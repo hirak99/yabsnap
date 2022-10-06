@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import logging
 import os
@@ -76,8 +77,19 @@ class _SnapManager:
           f'{self._config.source} {self._config.dest_prefix}{self._now_str}')
 
 
+def _parse_args():
+  parser = argparse.ArgumentParser()
+  subparsers = parser.add_subparsers(dest='command')
+  subparsers.add_parser('cronrun')
+  args = parser.parse_args()
+  if not args.command:
+    raise ValueError('No command passed')
+
+
 def main():
   logging.basicConfig(level=logging.INFO)
+
+  _parse_args()
 
   for config in configs.CONFIGS:
     snapper = _SnapManager(config)

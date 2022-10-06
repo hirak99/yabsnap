@@ -1,3 +1,5 @@
+#!/bin/bash
+
 set -uexo pipefail
 
 readonly MY_PATH=$(cd $(dirname "$0") && pwd)
