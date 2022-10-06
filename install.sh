@@ -1,5 +1,12 @@
 set -uexo pipefail
 
+# Most of the installation will work on other distros;
+# but certain things may not work - e.g. installation hooks.
+if ! grep -q 'Arch Linux' /etc/issue; then
+  echo Not Arch based distro, not proceeding. >&2
+  exit 1
+fi
+
 readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 
 cd $MY_PATH

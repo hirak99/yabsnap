@@ -1,5 +1,10 @@
 set -uexo pipefail
 
+if ! grep -q 'Arch Linux' /etc/issue; then
+  echo Not Arch based distro, not proceeding. >&2
+  exit 1
+fi
+
 readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 
 cd $MY_PATH
