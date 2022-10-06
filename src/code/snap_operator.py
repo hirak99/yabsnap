@@ -4,9 +4,10 @@ import os
 
 from . import configs
 from . import deletion_logic
+from . import shell
 from . import snap_holder
 
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, Optional
 
 # To prevent slight differences in starting time of the cron job,
 # will backup even if previous backup didn't expire by this much time.
@@ -70,6 +71,16 @@ class SnapOperator:
     for expired in previous_snaps[:-count]:
       expired.delete()
 
+  def btrfs_sync(self) -> None:
+    shell.execute_sh(
+        f'btrfs subvolume sync {os.path.dirname(self._config.dest_prefix)}')
+
+  def find_target(self, target: str) -> Optional[snap_holder.Snapshot]:
+    for snap in _get_old_backups(self._config):
+      if snap.target == target:
+        return snap_holder.Snapshot(target)
+    return None
+
   def create(self):
     self._create_and_maintain_n_backups(count=self._config.user, trigger='U')
 
@@ -86,7 +97,8 @@ class SnapOperator:
 
   def list_backups(self):
     for snap in _get_old_backups(self._config):
-      trigger_str = ''.join(c if snap.metadata.trigger == c else ' ' for c in 'SIU')
+      trigger_str = ''.join(
+          c if snap.metadata.trigger == c else ' ' for c in 'SIU')
       print(f'{trigger_str}  ', end='')
       print(f'{snap.snaptime}  ', end='')
       print(f'{snap.target}  ', end='')

@@ -7,9 +7,9 @@ it can also be an empty place holder.
 import dataclasses
 import datetime
 import json
-import logging
 import os
-import subprocess
+
+from . import shell
 
 TIME_FORMAT = r'%Y%m%d%H%M%S'
 
@@ -56,26 +56,13 @@ class Snapshot:
   def snaptime(self):
     return self._snaptime
 
-  def _execute_sh(self, command: str, error_ok: bool = False) -> None:
-    if self._dryrun:
-      logging.info(f'# {command}')
-      return
-
-    logging.info(f'Running {command}')
-    try:
-      subprocess.run(command.split(' '), check=True)
-    except subprocess.CalledProcessError as e:
-      if not error_ok:
-        raise e
-      logging.warn(f'Process had error {e}')
-
   def create_from(self, parent: str) -> None:
     self.metadata.source = parent
     self.metadata.save_file(self._metadata_fname)
-    self._execute_sh('btrfs subvolume snapshot -r '
+    shell.execute_sh('btrfs subvolume snapshot -r '
                      f'{parent} {self._target}')
 
   def delete(self) -> None:
-    self._execute_sh(f'btrfs subvolume delete {self._target}')
+    shell.execute_sh(f'btrfs subvolume delete {self._target}')
     if os.path.exists(self._metadata_fname):
       os.remove(self._metadata_fname)

@@ -5,25 +5,41 @@ from . import configs
 from . import snap_operator
 
 
-def _parse_args() -> str:
+def _parse_args() -> argparse.Namespace:
   parser = argparse.ArgumentParser()
   subparsers = parser.add_subparsers(dest='command')
   subparsers.add_parser('internal-cronrun')
   subparsers.add_parser('internal-preupdate')
   subparsers.add_parser('list')
   subparsers.add_parser('create')
+  deleter = subparsers.add_parser('delete')
+  deleter.add_argument('target')
   args = parser.parse_args()
-  return args.command
+  return args
 
 
 def main():
-  command = _parse_args()
+  args = _parse_args()
+  command: str = args.command
   if not command:
     print('Start with --help to see common args.')
     return
 
   logging.basicConfig(
-      level=logging.WARNING if command == 'list' else logging.INFO)
+      level=logging.INFO if command.startswith('internal-') else logging.WARNING)
+
+  if command == 'delete':
+    for config in configs.CONFIGS:
+      snapper = snap_operator.SnapOperator(config)
+      snap = snapper.find_target(args.target)
+      if snap:
+        snap.delete()
+        print('Syncing ...', flush=True)
+        snapper.btrfs_sync()
+        break
+    else:
+      print(f'Target {args.target} not found in any configs.')
+    return
 
   for config in configs.CONFIGS:
     if command == 'list':
