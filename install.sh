@@ -7,7 +7,7 @@ cd $MY_PATH
 rsync -aAXHSv src/ /usr/share/yabsnap --delete
 ln -sf /usr/share/yabsnap/yabsnap.sh /usr/bin/yabsnap
 
-cp yabsnap.service /etc/systemd/system
-cp yabsnap.timer /etc/systemd/system
+cp artifacts/yabsnap.service /etc/systemd/system
+cp artifacts/yabsnap.timer /etc/systemd/system
 systemctl daemon-reload
 systemctl enable yabsnap.timer --now
