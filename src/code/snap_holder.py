@@ -18,9 +18,9 @@ TIME_FORMAT = r'%Y%m%d%H%M%S'
 class _Metadata:
   source: str = ''
   # tags can contain the letters -
+  # P - Pacman
   # S - Scheduled
   # U - User
-  # P - Pacman
   tags: str = ''
   comment: str = ''
 

@@ -13,8 +13,7 @@ from typing import Iterator
 _TRIGGER_BUFFER = datetime.timedelta(minutes=3)
 
 
-def _get_old_backups(
-    config: configs.Config) -> Iterator[snap_holder.Snapshot]:
+def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
   configdir = os.path.dirname(config.dest_prefix)
   for fname in os.listdir(configdir):
     pathname = os.path.join(configdir, fname)
@@ -67,3 +66,11 @@ class SnapOperator:
       snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
       snapshot.metadata.tags = 'S'
       snapshot.create_from(self._config.source)
+
+  def list_backups(self):
+    for snap in _get_old_backups(self._config):
+      print(f'{snap.metadata.tags:>6}', end='')
+      print(f'{snap.snaptime}  ', end='')
+      print(f'{snap.target}  ', end='')
+      print('')
+    print('')

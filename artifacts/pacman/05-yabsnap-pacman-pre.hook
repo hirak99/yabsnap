@@ -9,6 +9,6 @@ Target = *
 Description = Triggering yabsnap pre snapshots for configurations...
 # Depends =
 When = PreTransaction
-Exec = /usr/share/yabsnap/yabsnap.sh pacmanpre
+Exec = /usr/share/yabsnap/yabsnap.sh internal-preupdate
 NeedsTargets
 AbortOnFail
