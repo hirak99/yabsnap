@@ -20,14 +20,12 @@ _TRIGGER_BUFFER = datetime.timedelta(minutes=3)
 
 
 def _get_old_backups(
-    config: configs.Config) -> Iterator[tuple[datetime.datetime, str]]:
+    config: configs.Config) -> Iterator[snap_holder.Snapshot]:
   configdir = os.path.dirname(config.dest_prefix)
   for fname in os.listdir(configdir):
     pathname = os.path.join(configdir, fname)
     if pathname.startswith(config.dest_prefix):
-      timestr = pathname[len(config.dest_prefix):]
-      snaptime = datetime.datetime.strptime(timestr, _TIME_FORMAT)
-      yield snaptime, pathname
+      yield snap_holder.Snapshot(pathname)
 
 
 class SnapOperator:
@@ -37,23 +35,25 @@ class SnapOperator:
     self._now = datetime.datetime.now()
     self._now_str = self._now.strftime(_TIME_FORMAT)
 
-  def _remove_expired(self, snaps: list[tuple[datetime.datetime, str]]) -> bool:
+  def _remove_expired(self, snaps: list[snap_holder.Snapshot]) -> bool:
     """Deletes old backups. Returns True if new backup is needed."""
     buffered_now = self._now + _TRIGGER_BUFFER
+
+    candidates = [(x.snaptime, x.target) for x in snaps]
     # Append a placeholder to denote the backup that will be taken next.
     # If this is deleted, it would indicate not to create new backup.
-    snaps.append((buffered_now, ''))
+    candidates.append((buffered_now, ''))
 
     delete = deletion_logic.DeleteManager(self._config.deletion_rules)
-    for when, fname in delete.get_deletes(buffered_now, snaps):
-      if fname == '':
+    for when, target in delete.get_deletes(buffered_now, candidates):
+      if target == '':
         logging.info(f'New backup not needed for {self._config.source}')
         return False
       elapsed_secs = (self._now - when).total_seconds()
       if elapsed_secs > self._config.min_keep_secs:
-        snap_holder.Snapshot(fname).delete()
+        snap_holder.Snapshot(target).delete()
       else:
-        logging.info(f'Not enough time passed, not deleting {fname}')
+        logging.info(f'Not enough time passed, not deleting {target}')
 
     return True
 
