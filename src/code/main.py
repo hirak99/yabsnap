@@ -51,7 +51,6 @@ def main():
       snap = snapper.find_target(args.target)
       if snap:
         snap.delete()
-        print('Syncing ...', flush=True)
         snapper.btrfs_sync()
         break
     else:

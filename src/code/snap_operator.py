@@ -81,7 +81,7 @@ class SnapOperator:
   def btrfs_sync(self) -> None:
     if not self._need_sync:
       return
-    logging.info('Syncing')
+    print('Syncing ...', flush=True)
     shell.execute_sh(
         f'btrfs subvolume sync {os.path.dirname(self._config.dest_prefix)}')
     self._need_sync = False
