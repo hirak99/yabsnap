@@ -11,6 +11,7 @@ def _parse_args() -> str:
   subparsers.add_parser('internal-cronrun')
   subparsers.add_parser('internal-preupdate')
   subparsers.add_parser('list')
+  subparsers.add_parser('create')
   args = parser.parse_args()
   return args.command
 
@@ -34,6 +35,8 @@ def main():
       snapper.on_pacman()
     elif command == 'list':
       snapper.list_backups()
+    elif command == 'create':
+      snapper.create()
     else:
       raise ValueError(f'Unknown command {command}')
 

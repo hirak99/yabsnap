@@ -56,11 +56,25 @@ class SnapOperator:
 
     return True
 
-  def on_pacman(self):
-    if self._config.on_pacman:
+  def _create_and_maintain_n_backups(self, count: int, trigger: str):
+    if count > 0:
       snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
-      snapshot.metadata.trigger = 'I'
+      snapshot.metadata.trigger = trigger
       snapshot.create_from(self._config.source)
+
+    # Clean up old snaps.
+    previous_snaps = [
+        x for x in _get_old_backups(self._config)
+        if x.metadata.trigger == trigger
+    ]
+    for expired in previous_snaps[:-count]:
+      expired.delete()
+
+  def create(self):
+    self._create_and_maintain_n_backups(count=self._config.user, trigger='U')
+
+  def on_pacman(self):
+    self._create_and_maintain_n_backups(count=self._config.pacman, trigger='I')
 
   def scheduled(self):
     previous_snaps = _get_old_backups(self._config)
@@ -72,7 +86,7 @@ class SnapOperator:
 
   def list_backups(self):
     for snap in _get_old_backups(self._config):
-      print(f'{snap.metadata.trigger:>6}', end='')
+      print(f'{snap.metadata.trigger:<5} ', end='')
       print(f'{snap.snaptime}  ', end='')
       print(f'{snap.target}  ', end='')
       print('')

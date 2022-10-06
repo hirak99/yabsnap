@@ -6,7 +6,10 @@ import datetime
 class Config:
   source: str
   dest_prefix: str
-  on_pacman: bool
+  # How many user backups to keep.
+  user: int = 1
+  # How many to keep on pacman installation or updates.
+  pacman: int = 0
   # Only snapshots older than this will be deleted.
   min_keep_secs: int = int(3.5 * 60 * 60)  # 3.5 hrs
   # Will keep this many of snapshots; rest will be removed during housekeeping.
@@ -30,13 +33,15 @@ class Config:
 CONFIGS: list[Config] = [
     Config(source='/',
            dest_prefix='/.snapshots/@root-',
-           on_pacman=True,
+           pacman=3,
+           user=3,
            keep_daily=3,
            keep_weekly=3,
            keep_monthly=2),
     Config(source='/home',
            dest_prefix='/.snapshots/@home-',
-           on_pacman=True,
+           pacman=3,
+           user=3,
            keep_hourly=3,
            keep_daily=5),
 ]
