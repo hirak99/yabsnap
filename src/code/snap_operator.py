@@ -1,10 +1,10 @@
 import datetime
 import logging
 import os
-import subprocess
 
 from . import configs
 from . import deletion_logic
+from . import snap_holder
 
 from typing import Iterator
 
@@ -30,26 +30,12 @@ def _get_old_backups(
       yield snaptime, pathname
 
 
-class SnapManager:
+class SnapOperator:
 
   def __init__(self, config: configs.Config) -> None:
     self._config = config
     self._now = datetime.datetime.now()
     self._now_str = self._now.strftime(_TIME_FORMAT)
-    self._dryrun = False
-
-  def _execute_sh(self, command: str, error_ok=False) -> None:
-    if self._dryrun:
-      logging.info(f'# {command}')
-      return
-
-    logging.info(f'Running {command}')
-    try:
-      subprocess.run(command.split(' '), check=True)
-    except subprocess.CalledProcessError as e:
-      if not error_ok:
-        raise e
-      logging.warn(f'Process had error {e}')
 
   def _remove_expired(self, snaps: list[tuple[datetime.datetime, str]]) -> bool:
     """Deletes old backups. Returns True if new backup is needed."""
@@ -65,7 +51,7 @@ class SnapManager:
         return False
       elapsed_secs = (self._now - when).total_seconds()
       if elapsed_secs > self._config.min_keep_secs:
-        self._execute_sh(f'btrfs subvolume delete {fname}')
+        snap_holder.Snapshot(fname).delete()
       else:
         logging.info(f'Not enough time passed, not deleting {fname}')
 
@@ -73,14 +59,12 @@ class SnapManager:
 
   def on_pacman(self):
     if self._config.on_pacman:
-      self._execute_sh(
-          'btrfs subvolume snapshot -r '
-          f'{self._config.source} {self._config.dest_prefix}{self._now_str}')
+      snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
+      snapshot.create_from(self._config.source)
 
   def do_update(self):
     previous_snaps = list(_get_old_backups(self._config))
     need_new = self._remove_expired(previous_snaps)
     if need_new:
-      self._execute_sh(
-          'btrfs subvolume snapshot -r '
-          f'{self._config.source} {self._config.dest_prefix}{self._now_str}')
+      snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
+      snapshot.create_from(self._config.source)

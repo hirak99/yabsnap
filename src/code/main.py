@@ -2,7 +2,7 @@ import argparse
 import logging
 
 from . import configs
-from . import snap_manager
+from . import snap_operator
 
 
 def _parse_args() -> str:
@@ -23,7 +23,7 @@ def main():
     return
 
   for config in configs.CONFIGS:
-    snapper = snap_manager.SnapManager(config)
+    snapper = snap_operator.SnapOperator(config)
     if command == 'cronrun':
       snapper.do_update()
     elif command == 'pacmanpre':
