@@ -2,12 +2,14 @@ import argparse
 import logging
 
 from . import configs
+from . import snap_holder
 from . import snap_operator
 
 
 def _parse_args() -> argparse.Namespace:
   parser = argparse.ArgumentParser()
   parser.add_argument('--source', help='Restrict to config with this source path.')
+  parser.add_argument('--dry-run', help='If passed, will disable all snapshot creation and deletion.', action='store_true')
   subparsers = parser.add_subparsers(dest='command')
 
   # User commands.
@@ -34,6 +36,9 @@ def main():
     print('Start with --help to see common args.')
     return
 
+  if args.dry_run:
+    snap_holder.DRYRUN = True
+
   logging.basicConfig(
       level=logging.INFO if command.startswith('internal-') else logging.WARNING)
 
@@ -50,7 +55,7 @@ def main():
         snapper.btrfs_sync()
         break
     else:
-      print(f'Target {args.target} not found in any configs.')
+      print(f'Target {args.target} not found in any config.')
     return
 
   for config in configs.iterate_configs(source=args.source):

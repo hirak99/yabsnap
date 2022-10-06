@@ -13,6 +13,16 @@ from . import shell
 
 TIME_FORMAT = r'%Y%m%d%H%M%S'
 
+# Set this to True to globally disable snapshot changes.
+DRYRUN = False
+
+
+def _execute_sh(cmd: str):
+  if DRYRUN:
+    print('Would run ' + cmd)
+  else:
+    shell.execute_sh(cmd)
+
 
 @dataclasses.dataclass
 class _Metadata:
@@ -27,6 +37,9 @@ class _Metadata:
   def save_file(self, fname: str) -> None:
     # Ignore empty strings.
     data = {k: v for k, v in dataclasses.asdict(self).items() if v != ''}
+    if DRYRUN:
+      print(f'Would create {fname}: {data}')
+      return
     with open(fname, 'w') as f:
       json.dump(data, f, indent=2)
 
@@ -59,10 +72,13 @@ class Snapshot:
   def create_from(self, parent: str) -> None:
     self.metadata.source = parent
     self.metadata.save_file(self._metadata_fname)
-    shell.execute_sh('btrfs subvolume snapshot -r '
-                     f'{parent} {self._target}')
+    _execute_sh('btrfs subvolume snapshot -r '
+                f'{parent} {self._target}')
 
   def delete(self) -> None:
-    shell.execute_sh(f'btrfs subvolume delete {self._target}')
-    if os.path.exists(self._metadata_fname):
-      os.remove(self._metadata_fname)
+    _execute_sh(f'btrfs subvolume delete {self._target}')
+    if not DRYRUN:
+      if os.path.exists(self._metadata_fname):
+        os.remove(self._metadata_fname)
+    else:
+      print(f'Would delete {self._metadata_fname}')
