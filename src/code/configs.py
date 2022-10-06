@@ -1,23 +1,37 @@
+import configparser
 import dataclasses
 import datetime
+
+from typing import Iterator, Optional
 
 
 @dataclasses.dataclass
 class Config:
   source: str
   dest_prefix: str
-  # How many user backups to keep.
-  user: int = 1
-  # How many to keep on pacman installation or updates.
-  pacman: int = 0
   # Only snapshots older than this will be deleted.
-  min_keep_secs: int = int(3.5 * 60 * 60)  # 3.5 hrs
+  min_keep_secs: int = 30 * 60
+  # How many user backups to keep.
+  keep_user: int = 1
+  # How many to keep on pacman installation or updates.
+  keep_preinstall: int = 0
   # Will keep this many of snapshots; rest will be removed during housekeeping.
   keep_hourly: int = 0
   keep_daily: int = 0
   keep_weekly: int = 0
   keep_monthly: int = 0
   keep_yearly: int = 0
+
+  @classmethod
+  def from_configfile(cls, config_file: str) -> 'Config':
+    inifile = configparser.ConfigParser()
+    inifile.read(config_file)
+    section = inifile['DEFAULT']
+    result = cls(source=section['source'], dest_prefix=section['dest_prefix'])
+    for key, value in section.items():
+      if key not in {'source', 'dest_prefix'}:
+        setattr(result, key, int(value))
+    return result
 
   @property
   def deletion_rules(self) -> dict[datetime.timedelta, int]:
@@ -30,18 +44,24 @@ class Config:
     }
 
 
-CONFIGS: list[Config] = [
+_CONFIGS: list[Config] = [
     Config(source='/',
            dest_prefix='/.snapshots/@root-',
-           pacman=3,
-           user=3,
+           keep_preinstall=3,
+           keep_user=3,
            keep_daily=3,
            keep_weekly=3,
            keep_monthly=2),
     Config(source='/home',
            dest_prefix='/.snapshots/@home-',
-           pacman=3,
-           user=3,
+           keep_preinstall=3,
+           keep_user=3,
            keep_hourly=3,
            keep_daily=5),
 ]
+
+
+def iterate_configs(source: Optional[str]) -> Iterator[Config]:
+  for config in _CONFIGS:
+    if not source or config.source == source:
+      yield config

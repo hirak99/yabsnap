@@ -93,12 +93,12 @@ class SnapOperator:
     return None
 
   def create(self, comment: Optional[str]):
-    self._create_and_maintain_n_backups(count=self._config.user,
+    self._create_and_maintain_n_backups(count=self._config.keep_user,
                                         trigger='U',
                                         comment=comment)
 
   def on_pacman(self):
-    self._create_and_maintain_n_backups(count=self._config.pacman,
+    self._create_and_maintain_n_backups(count=self._config.keep_preinstall,
                                         trigger='I',
                                         comment=None)
 
