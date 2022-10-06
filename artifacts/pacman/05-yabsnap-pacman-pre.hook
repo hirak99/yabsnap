@@ -1,0 +1,14 @@
+[Trigger]
+Operation = Upgrade
+Operation = Install
+Operation = Remove
+Type = Package
+Target = *
+
+[Action]
+Description = Triggering yabsnap pre snapshots for configurations...
+# Depends =
+When = PreTransaction
+Exec = /usr/share/yabsnap/yabsnap.sh pacmanpre
+NeedsTargets
+AbortOnFail

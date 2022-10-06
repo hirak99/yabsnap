@@ -4,6 +4,8 @@ readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 
 cd $MY_PATH
 
+rm -f /usr/share/libalpm/hooks/05-yabsnap-pacman-pre.hook
+
 systemctl disable yabsnap.timer || true
 systemctl daemon-reload
 rm -f /etc/systemd/system/yabsnap.service

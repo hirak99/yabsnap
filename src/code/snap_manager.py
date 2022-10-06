@@ -67,6 +67,12 @@ class SnapManager:
 
     return True
 
+  def on_pacman(self):
+    if self._config.on_pacman:
+      self._execute_sh(
+          'btrfs subvolume snapshot -r '
+          f'{self._config.source} {self._config.dest_prefix}{self._now_str}')
+
   def do_update(self):
     previous_snaps = list(_get_old_backups(self._config))
     need_new = self._remove_expired(previous_snaps)

@@ -6,6 +6,7 @@ import datetime
 class Config:
   source: str
   dest_prefix: str
+  on_pacman: bool
   keep_hourly: int = 0
   keep_daily: int = 0
   keep_weekly: int = 0
@@ -26,11 +27,13 @@ class Config:
 CONFIGS: list[Config] = [
     Config(source='/',
            dest_prefix='/.snapshots/@root-',
+           on_pacman=True,
            keep_daily=3,
            keep_weekly=3,
            keep_monthly=2),
     Config(source='/home',
            dest_prefix='/.snapshots/@home-',
+           on_pacman=True,
            keep_hourly=3,
            keep_daily=5),
 ]
