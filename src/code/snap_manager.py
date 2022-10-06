@@ -1,4 +1,3 @@
-import argparse
 import datetime
 import logging
 import os
@@ -31,7 +30,7 @@ def _get_old_backups(
       yield snaptime, pathname
 
 
-class _SnapManager:
+class SnapManager:
 
   def __init__(self, config: configs.Config) -> None:
     self._config = config
@@ -75,26 +74,3 @@ class _SnapManager:
       self._execute_sh(
           'btrfs subvolume snapshot -r '
           f'{self._config.source} {self._config.dest_prefix}{self._now_str}')
-
-
-def _parse_args():
-  parser = argparse.ArgumentParser()
-  subparsers = parser.add_subparsers(dest='command')
-  subparsers.add_parser('cronrun')
-  args = parser.parse_args()
-  if not args.command:
-    raise ValueError('No command passed')
-
-
-def main():
-  logging.basicConfig(level=logging.INFO)
-
-  _parse_args()
-
-  for config in configs.CONFIGS:
-    snapper = _SnapManager(config)
-    snapper.do_update()
-
-
-if __name__ == '__main__':
-  main()
