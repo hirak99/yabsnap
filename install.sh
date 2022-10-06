@@ -16,7 +16,7 @@ rsync -aAXHSv src/ /usr/share/yabsnap \
   --include '*/' --include '*.py' --include '*.sh' \
   --exclude '*' \
   --prune-empty-dirs \
-  --delete --delete-excluded
+  --delete
 ln -sf /usr/share/yabsnap/yabsnap.sh /usr/bin/yabsnap
 
 cp artifacts/services/yabsnap.service /etc/systemd/system
