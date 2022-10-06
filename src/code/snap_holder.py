@@ -8,7 +8,7 @@ import datetime
 import logging
 import subprocess
 
-_TIME_FORMAT = r'%Y%m%d%H%M%S'
+TIME_FORMAT = r'%Y%m%d%H%M%S'
 
 
 class Snapshot:
@@ -16,7 +16,7 @@ class Snapshot:
   def __init__(self, target: str) -> None:
     self._target = target
     timestr = self._target[-14:]
-    self._snaptime = datetime.datetime.strptime(timestr, _TIME_FORMAT)
+    self._snaptime = datetime.datetime.strptime(timestr, TIME_FORMAT)
     self._dryrun = False
 
   @property

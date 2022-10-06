@@ -8,8 +8,6 @@ from . import snap_holder
 
 from typing import Iterator
 
-_TIME_FORMAT = r'%Y%m%d%H%M%S'
-
 # To prevent slight differences in starting time of the cron job,
 # will backup even if previous backup didn't expire by this much time.
 _TRIGGER_BUFFER = datetime.timedelta(minutes=3)
@@ -33,7 +31,7 @@ class SnapOperator:
   def __init__(self, config: configs.Config) -> None:
     self._config = config
     self._now = datetime.datetime.now()
-    self._now_str = self._now.strftime(_TIME_FORMAT)
+    self._now_str = self._now.strftime(snap_holder.TIME_FORMAT)
 
   def _remove_expired(self, snaps: list[snap_holder.Snapshot]) -> bool:
     """Deletes old backups. Returns True if new backup is needed."""
