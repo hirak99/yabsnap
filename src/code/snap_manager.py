@@ -59,11 +59,15 @@ class SnapManager:
     snaps.append((buffered_now, ''))
 
     delete = deletion_logic.DeleteManager(self._config.deletion_rules)
-    for _, fname in delete.get_deletes(buffered_now, snaps):
+    for when, fname in delete.get_deletes(buffered_now, snaps):
       if fname == '':
         logging.info(f'New backup not needed for {self._config.source}')
         return False
-      self._execute_sh(f'btrfs subvolume delete {fname}')
+      elapsed_secs = (self._now - when).total_seconds()
+      if elapsed_secs > self._config.min_keep_secs:
+        self._execute_sh(f'btrfs subvolume delete {fname}')
+      else:
+        logging.info(f'Not enough time passed, not deleting {fname}')
 
     return True
 

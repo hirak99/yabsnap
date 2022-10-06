@@ -7,6 +7,9 @@ class Config:
   source: str
   dest_prefix: str
   on_pacman: bool
+  # Only snapshots older than this will be deleted.
+  min_keep_secs: int = 60 * 60 * 3
+  # Will keep this many of snapshots; rest will be removed during housekeeping.
   keep_hourly: int = 0
   keep_daily: int = 0
   keep_weekly: int = 0
