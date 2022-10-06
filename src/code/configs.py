@@ -1,6 +1,8 @@
 import configparser
 import dataclasses
 import datetime
+import pathlib
+import os
 
 from typing import Iterator, Optional
 
@@ -28,6 +30,10 @@ class Config:
     inifile.read(config_file)
     section = inifile['DEFAULT']
     result = cls(source=section['source'], dest_prefix=section['dest_prefix'])
+    if not result.source or not result.dest_prefix:
+      raise ValueError(
+          f'Invalid configuration, please specify source and dest_prefix in {config_file}'
+      )
     for key, value in section.items():
       if key not in {'source', 'dest_prefix'}:
         setattr(result, key, int(value))
@@ -44,24 +50,32 @@ class Config:
     }
 
 
-_CONFIGS: list[Config] = [
-    Config(source='/',
-           dest_prefix='/.snapshots/@root-',
-           keep_preinstall=3,
-           keep_user=3,
-           keep_daily=3,
-           keep_weekly=3,
-           keep_monthly=2),
-    Config(source='/home',
-           dest_prefix='/.snapshots/@home-',
-           keep_preinstall=3,
-           keep_user=3,
-           keep_hourly=3,
-           keep_daily=5),
-]
+_CONFIG_PATH = pathlib.Path('/etc/yabsnap/configs')
 
 
 def iterate_configs(source: Optional[str]) -> Iterator[Config]:
-  for config in _CONFIGS:
+  if not _CONFIG_PATH.is_dir():
+    print('No config found. Use \'create-config\' command to create a config.')
+    return
+  for fname in _CONFIG_PATH.iterdir():
+    config = Config.from_configfile(str(fname))
     if not source or config.source == source:
       yield config
+
+
+def create_config(name: str):
+  _config_fname = _CONFIG_PATH / f'{name}.conf'
+  if _config_fname.exists():
+    print(f'Already exists: {_config_fname}')
+    return
+  script_dir = pathlib.Path(os.path.realpath(__file__)).parent
+  with open(script_dir / 'example_config.conf') as f:
+    try:
+      _config_fname.parent.mkdir(parents=True, exist_ok=True)
+      with _config_fname.open('w') as out:
+        out.write(f.read())
+    except PermissionError:
+      print(f'Could not access or create {_config_fname}; run as root?')
+  print(f'Created: {_config_fname}')
+  print()
+  print("Please edit to add values for 'source' and 'dest_prefix'.")

@@ -10,16 +10,18 @@ def _parse_args() -> argparse.Namespace:
   parser.add_argument('--source', help='Restrict to config with this source path.')
   subparsers = parser.add_subparsers(dest='command')
 
-  # Internal commands used in scheduling and pacman hook.
-  subparsers.add_parser('internal-cronrun')
-  subparsers.add_parser('internal-preupdate')
-
   # User commands.
   subparsers.add_parser('list')
-  create = subparsers.add_parser('create')
+  create = subparsers.add_parser('create', help='Create new snapshots.')
   create.add_argument('--comment', help='Comment attached to this snapshot.')
-  delete = subparsers.add_parser('delete')
+  create_config = subparsers.add_parser('create-config', help='Bootstrap a config for new filesystem to snapshot.')
+  create_config.add_argument('config', help='Name to be given to config file, e.g. "home".')
+  delete = subparsers.add_parser('delete', help='Delete a snapshot created by yabsnap.')
   delete.add_argument('target', help='Full path of the target snapshot to be removed.')
+
+  # Internal commands used in scheduling and pacman hook.
+  subparsers.add_parser('internal-cronrun', help=argparse.SUPPRESS)
+  subparsers.add_parser('internal-preupdate', help=argparse.SUPPRESS)
 
   args = parser.parse_args()
   return args
@@ -34,6 +36,10 @@ def main():
 
   logging.basicConfig(
       level=logging.INFO if command.startswith('internal-') else logging.WARNING)
+
+  if command == 'create-config':
+    configs.create_config(args.config)
+    return
 
   if command == 'delete':
     for config in configs.iterate_configs(source=args.source):

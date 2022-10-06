@@ -1,4 +1,6 @@
-Yet Another Btrfs Snapshotter v0.01
+Yet Another Btrfs Snapshotter
+
+This readme is vastly outdated; need to rewrite.
 
 # Installing
 
