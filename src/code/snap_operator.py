@@ -6,7 +6,7 @@ from . import configs
 from . import deletion_logic
 from . import snap_holder
 
-from typing import Iterator
+from typing import Iterable, Iterator
 
 # To prevent slight differences in starting time of the cron job,
 # will backup even if previous backup didn't expire by this much time.
@@ -31,11 +31,14 @@ class SnapOperator:
     self._now = datetime.datetime.now()
     self._now_str = self._now.strftime(snap_holder.TIME_FORMAT)
 
-  def _remove_expired(self, snaps: list[snap_holder.Snapshot]) -> bool:
+  def _remove_expired(self, snaps: Iterable[snap_holder.Snapshot]) -> bool:
     """Deletes old backups. Returns True if new backup is needed."""
     buffered_now = self._now + _TRIGGER_BUFFER
 
-    candidates = [(x.snaptime, x.target) for x in snaps]
+    # Only consider scheduled backups for expiry.
+    candidates = [(x.snaptime, x.target)
+                  for x in snaps
+                  if x.metadata.trigger in {'', 'S'}]
     # Append a placeholder to denote the backup that will be taken next.
     # If this is deleted, it would indicate not to create new backup.
     candidates.append((buffered_now, ''))
@@ -60,7 +63,7 @@ class SnapOperator:
       snapshot.create_from(self._config.source)
 
   def scheduled(self):
-    previous_snaps = list(_get_old_backups(self._config))
+    previous_snaps = _get_old_backups(self._config)
     need_new = self._remove_expired(previous_snaps)
     if need_new:
       snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
