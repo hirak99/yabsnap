@@ -1,9 +1,8 @@
 [Unit]
-Description=Hourly Maintenance
+Description=Yet Another Btrfs Snapshotter Timer
 
 [Service]
 User=root
 Type=oneshot
-ExecStart=SERVICES_ROOT/scripts/arnab_hourly_service.sh
+ExecStart=/usr/bin/yabsnap
 TimeoutStopSec=30m
-
