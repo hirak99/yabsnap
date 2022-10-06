@@ -9,7 +9,7 @@ import datetime
 import json
 import os
 
-from . import shell
+from . import utils
 
 TIME_FORMAT = r'%Y%m%d%H%M%S'
 
@@ -21,7 +21,7 @@ def _execute_sh(cmd: str):
   if DRYRUN:
     print('Would run ' + cmd)
   else:
-    shell.execute_sh(cmd)
+    utils.execute_sh(cmd)
 
 
 @dataclasses.dataclass

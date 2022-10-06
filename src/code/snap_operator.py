@@ -4,7 +4,7 @@ import os
 
 from . import configs
 from . import deletion_logic
-from . import shell
+from . import utils
 from . import snap_holder
 
 from typing import Iterable, Iterator, Optional
@@ -82,7 +82,7 @@ class SnapOperator:
     if not self._need_sync:
       return
     print('Syncing ...', flush=True)
-    shell.execute_sh(
+    utils.execute_sh(
         f'btrfs subvolume sync {os.path.dirname(self._config.dest_prefix)}')
     self._need_sync = False
 
@@ -100,7 +100,7 @@ class SnapOperator:
   def on_pacman(self):
     self._create_and_maintain_n_backups(count=self._config.keep_preinstall,
                                         trigger='I',
-                                        comment=None)
+                                        comment=utils.last_pacman_command())
 
   def scheduled(self):
     previous_snaps = _get_old_backups(self._config)
