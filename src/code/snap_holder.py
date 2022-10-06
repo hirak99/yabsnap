@@ -17,11 +17,11 @@ TIME_FORMAT = r'%Y%m%d%H%M%S'
 @dataclasses.dataclass
 class _Metadata:
   source: str = ''
-  # tags can contain the letters -
-  # P - Pacman
+  # Can be one of -
+  # I - Package installation or system update
   # S - Scheduled
   # U - User
-  tags: str = ''
+  trigger: str = ''
   comment: str = ''
 
   def save_file(self, fname: str) -> None:
