@@ -12,18 +12,17 @@ from typing import Iterator
 # will backup even if previous backup didn't expire by this much time.
 _TRIGGER_BUFFER = datetime.timedelta(minutes=3)
 
-# TODO: Add operations -
-# --hourlyrun
-# --pacpre COMMENT
-
 
 def _get_old_backups(
     config: configs.Config) -> Iterator[snap_holder.Snapshot]:
   configdir = os.path.dirname(config.dest_prefix)
   for fname in os.listdir(configdir):
     pathname = os.path.join(configdir, fname)
-    if pathname.startswith(config.dest_prefix):
-      yield snap_holder.Snapshot(pathname)
+    if not os.path.isdir(pathname):
+      continue
+    if not pathname.startswith(config.dest_prefix):
+      continue
+    yield snap_holder.Snapshot(pathname)
 
 
 class SnapOperator:
@@ -58,11 +57,13 @@ class SnapOperator:
   def on_pacman(self):
     if self._config.on_pacman:
       snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
+      snapshot.metadata.tags = 'P'
       snapshot.create_from(self._config.source)
 
-  def do_update(self):
+  def scheduled(self):
     previous_snaps = list(_get_old_backups(self._config))
     need_new = self._remove_expired(previous_snaps)
     if need_new:
       snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
+      snapshot.metadata.tags = 'S'
       snapshot.create_from(self._config.source)

@@ -25,7 +25,7 @@ def main():
   for config in configs.CONFIGS:
     snapper = snap_operator.SnapOperator(config)
     if command == 'cronrun':
-      snapper.do_update()
+      snapper.scheduled()
     elif command == 'pacmanpre':
       snapper.on_pacman()
     else:
