@@ -1,0 +1,9 @@
+[Unit]
+Description=Hourly Maintenance
+
+[Service]
+User=root
+Type=oneshot
+ExecStart=SERVICES_ROOT/scripts/arnab_hourly_service.sh
+TimeoutStopSec=30m
+

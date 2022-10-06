@@ -1,0 +1,10 @@
+[Unit]
+Description=Btrfs Snapshotter
+
+[Timer]
+OnCalendar=*-*-* *:30:00
+AccuracySec=30s
+RandomizedDelaySec=30s
+
+[Install]
+WantedBy=timers.target
