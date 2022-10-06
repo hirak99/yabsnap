@@ -31,6 +31,8 @@ class SnapOperator:
     self._config = config
     self._now = datetime.datetime.now()
     self._now_str = self._now.strftime(snap_holder.TIME_FORMAT)
+    # Set to true on any delete operation.
+    self._need_sync = False
 
   def _remove_expired(self, snaps: Iterable[snap_holder.Snapshot]) -> bool:
     """Deletes old backups. Returns True if new backup is needed."""
@@ -52,15 +54,19 @@ class SnapOperator:
       elapsed_secs = (self._now - when).total_seconds()
       if elapsed_secs > self._config.min_keep_secs:
         snap_holder.Snapshot(target).delete()
+        self._need_sync = True
       else:
         logging.info(f'Not enough time passed, not deleting {target}')
 
     return True
 
-  def _create_and_maintain_n_backups(self, count: int, trigger: str):
+  def _create_and_maintain_n_backups(self, count: int, trigger: str,
+                                     comment: Optional[str]):
     if count > 0:
       snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
       snapshot.metadata.trigger = trigger
+      if comment:
+        snapshot.metadata.comment = comment
       snapshot.create_from(self._config.source)
 
     # Clean up old snaps.
@@ -70,10 +76,15 @@ class SnapOperator:
     ]
     for expired in previous_snaps[:-count]:
       expired.delete()
+      self._need_sync = True
 
   def btrfs_sync(self) -> None:
+    if not self._need_sync:
+      return
+    logging.info('Syncing')
     shell.execute_sh(
         f'btrfs subvolume sync {os.path.dirname(self._config.dest_prefix)}')
+    self._need_sync = False
 
   def find_target(self, target: str) -> Optional[snap_holder.Snapshot]:
     for snap in _get_old_backups(self._config):
@@ -81,11 +92,15 @@ class SnapOperator:
         return snap_holder.Snapshot(target)
     return None
 
-  def create(self):
-    self._create_and_maintain_n_backups(count=self._config.user, trigger='U')
+  def create(self, comment: Optional[str]):
+    self._create_and_maintain_n_backups(count=self._config.user,
+                                        trigger='U',
+                                        comment=comment)
 
   def on_pacman(self):
-    self._create_and_maintain_n_backups(count=self._config.pacman, trigger='I')
+    self._create_and_maintain_n_backups(count=self._config.pacman,
+                                        trigger='I',
+                                        comment=None)
 
   def scheduled(self):
     previous_snaps = _get_old_backups(self._config)
@@ -102,5 +117,5 @@ class SnapOperator:
       print(f'{trigger_str}  ', end='')
       print(f'{snap.snaptime}  ', end='')
       print(f'{snap.target}  ', end='')
-      print('')
+      print(snap.metadata.comment)
     print('')

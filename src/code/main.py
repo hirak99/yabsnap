@@ -12,12 +12,18 @@ def _parse_args() -> argparse.Namespace:
   parser = argparse.ArgumentParser()
   parser.add_argument('--source', help='Restrict to config with this source path.')
   subparsers = parser.add_subparsers(dest='command')
+
+  # Internal commands used in scheduling and pacman hook.
   subparsers.add_parser('internal-cronrun')
   subparsers.add_parser('internal-preupdate')
+
+  # User commands.
   subparsers.add_parser('list')
-  subparsers.add_parser('create')
-  deleter = subparsers.add_parser('delete')
-  deleter.add_argument('target', help='Full path of the target snapshot to be removed.')
+  create = subparsers.add_parser('create')
+  create.add_argument('--comment', help='Comment attached to this snapshot.')
+  delete = subparsers.add_parser('delete')
+  delete.add_argument('target', help='Full path of the target snapshot to be removed.')
+
   args = parser.parse_args()
   return args
 
@@ -63,9 +69,10 @@ def main():
     elif command == 'list':
       snapper.list_backups()
     elif command == 'create':
-      snapper.create()
+      snapper.create(args.comment)
     else:
       raise ValueError(f'Unknown command {command}')
+    snapper.btrfs_sync()
 
 
 if __name__ == '__main__':
