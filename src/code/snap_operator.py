@@ -86,7 +86,8 @@ class SnapOperator:
 
   def list_backups(self):
     for snap in _get_old_backups(self._config):
-      print(f'{snap.metadata.trigger:<5} ', end='')
+      trigger_str = ''.join(c if snap.metadata.trigger == c else ' ' for c in 'SIU')
+      print(f'{trigger_str}  ', end='')
       print(f'{snap.snaptime}  ', end='')
       print(f'{snap.target}  ', end='')
       print('')
