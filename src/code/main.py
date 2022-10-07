@@ -2,6 +2,7 @@ import argparse
 import logging
 
 from . import configs
+from . import rollbacker
 from . import snap_holder
 from . import snap_operator
 
@@ -29,9 +30,12 @@ def _parse_args() -> argparse.Namespace:
       'config', help='Name to be given to config file, e.g. "home".')
   delete = subparsers.add_parser('delete',
                                  help='Delete a snapshot created by yabsnap.')
-  delete.add_argument(
-      'target_suffix',
-      help='Datetime string or full path of the snapshot to remove.')
+  rollback = subparsers.add_parser('rollback',
+                                   help='Rollback one or more snaps.')
+
+  for command_with_target in [delete, rollback]:
+    command_with_target.add_argument(
+        'target_suffix', help='Datetime string, or full path of a snapshot.')
 
   # Internal commands used in scheduling and pacman hook.
   subparsers.add_parser('internal-cronrun', help=argparse.SUPPRESS)
@@ -77,6 +81,11 @@ def main():
                  args.target_suffix)
     return
 
+  if command == 'rollback':
+    rollbacker.rollback(configs.iterate_configs(source=args.source),
+                        args.target_suffix)
+    return
+
   for config in configs.iterate_configs(source=args.source):
     if command == 'list':
       print(f'Config: {config.config_file} (source={config.source})')
@@ -90,7 +99,7 @@ def main():
     elif command == 'create':
       snapper.create(args.comment)
     else:
-      raise ValueError(f'Unknown command {command}')
+      raise ValueError(f'Command not implemented: {command}')
     snapper.btrfs_sync()
 
 
