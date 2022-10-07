@@ -52,7 +52,7 @@ def main():
       snap = snapper.find_target(args.target)
       if snap:
         snap.delete()
-        snapper.btrfs_sync()
+        snapper.btrfs_sync(force=True)
         break
     else:
       print(f'Target {args.target} not found in any config.')

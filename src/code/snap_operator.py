@@ -78,8 +78,8 @@ class SnapOperator:
       expired.delete()
       self._need_sync = True
 
-  def btrfs_sync(self) -> None:
-    if not self._need_sync:
+  def btrfs_sync(self, force: bool = False) -> None:
+    if not force and not self._need_sync:
       return
     print('Syncing ...', flush=True)
     utils.execute_sh(
