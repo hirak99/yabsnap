@@ -49,14 +49,29 @@ Config: source=/
 ## `yabsnap delete`
 Deletes a snapshot.
 
+E.g.
+`yabsnap delete /.snapshots/@home-20221006143047`
+\
+Or,
+`yabsnap delete 20221006143047  # Deletes all backups with this timestamp.`
+
+## `yabsnap rollback-gen`
+Generates a script for rolling back.
+
+E.g.
+`yabsnap rollback-gen /.snapshots/@home-20221006143047`
+\
+Or,
+`yabsnap rollback-gen 20221006143047`
+
+Just running it will not carry out any changes, it will only display a script on
+the console. \
+The script must be stored and executed to perform the rollback.
+
 ## Global flags
 
 * `--dry-run` Disables all snapshot changes.
 * `--source` Restricts to the config which has the specified source.
-
-E.g.
-`yabsnap delete /.snapshots/@home-20221006143047`.
-
 
 # FAQ
 
