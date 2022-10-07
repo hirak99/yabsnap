@@ -1,5 +1,7 @@
 Yet Another Btrfs Snapshotter
 
+NOTE This is currently only tested and meant for Arch Linux.
+
 # Installing
 
 ```bash
