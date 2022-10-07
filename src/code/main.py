@@ -27,7 +27,7 @@ def _parse_args() -> argparse.Namespace:
       'create-config',
       help='Bootstrap a config for new filesystem to snapshot.')
   create_config.add_argument(
-      'config', help='Name to be given to config file, e.g. "home".')
+      'config_name', help='Name to be given to config file, e.g. "home".')
   delete = subparsers.add_parser('delete',
                                  help='Delete a snapshot created by yabsnap.')
   rollback = subparsers.add_parser(
@@ -73,7 +73,7 @@ def main():
                       startswith('internal-') else logging.WARNING)
 
   if command == 'create-config':
-    configs.create_config(args.config)
+    configs.create_config(args.config_name)
     return
 
   if command == 'delete':

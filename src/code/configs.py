@@ -80,6 +80,7 @@ def create_config(name: str):
         out.write(f.read())
     except PermissionError:
       print(f'Could not access or create {_config_fname}; run as root?')
+      return
   print(f'Created: {_config_fname}')
   print()
-  print("Please edit to add values for 'source' and 'dest_prefix'.")
+  print("Please edit to add values for 'source = ' and 'dest_prefix = '.")
