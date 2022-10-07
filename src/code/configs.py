@@ -9,6 +9,8 @@ from typing import Iterator, Optional
 
 @dataclasses.dataclass
 class Config:
+  config_file: str
+
   source: str
   dest_prefix: str
   # Only snapshots older than this will be deleted.
@@ -29,7 +31,9 @@ class Config:
     inifile = configparser.ConfigParser()
     inifile.read(config_file)
     section = inifile['DEFAULT']
-    result = cls(source=section['source'], dest_prefix=section['dest_prefix'])
+    result = cls(config_file=config_file,
+                 source=section['source'],
+                 dest_prefix=section['dest_prefix'])
     if not result.source or not result.dest_prefix:
       raise ValueError(
           f'Invalid configuration, please specify source and dest_prefix in {config_file}'

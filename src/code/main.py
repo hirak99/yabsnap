@@ -60,7 +60,7 @@ def main():
 
   for config in configs.iterate_configs(source=args.source):
     if command == 'list':
-      print(f'Config: source={config.source}')
+      print(f'Config: {config.config_file} (source={config.source})')
     snapper = snap_operator.SnapOperator(config)
     if command == 'internal-cronrun':
       snapper.scheduled()
