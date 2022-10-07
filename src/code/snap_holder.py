@@ -12,6 +12,7 @@ import os
 from . import utils
 
 TIME_FORMAT = r'%Y%m%d%H%M%S'
+TIME_FORMAT_LEN = 14
 
 # Set this to True to globally disable snapshot changes.
 DRYRUN = False
@@ -55,7 +56,7 @@ class Snapshot:
 
   def __init__(self, target: str) -> None:
     self._target = target
-    timestr = self._target[-14:]
+    timestr = self._target[-TIME_FORMAT_LEN:]
     self._snaptime = datetime.datetime.strptime(timestr, TIME_FORMAT)
     self._metadata_fname = target + '-meta.json'
     self.metadata = _Metadata.load_file(self._metadata_fname)

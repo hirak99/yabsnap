@@ -81,15 +81,21 @@ class SnapOperator:
   def btrfs_sync(self, force: bool = False) -> None:
     if not force and not self._need_sync:
       return
+    tosync = os.path.dirname(self._config.dest_prefix)
+    if snap_holder.DRYRUN:
+      print(f'Would sync {tosync}')
+      return
     print('Syncing ...', flush=True)
-    utils.execute_sh(
-        f'btrfs subvolume sync {os.path.dirname(self._config.dest_prefix)}')
+    utils.execute_sh(f'btrfs subvolume sync {tosync}')
     self._need_sync = False
 
-  def find_target(self, target: str) -> Optional[snap_holder.Snapshot]:
+  def find_target(self, suffix: str) -> Optional[snap_holder.Snapshot]:
+    if len(suffix) < snap_holder.TIME_FORMAT_LEN:
+      raise ValueError('Length of snapshot identifier suffix '
+                       f'must be at least {snap_holder.TIME_FORMAT_LEN}.')
     for snap in _get_old_backups(self._config):
-      if snap.target == target:
-        return snap_holder.Snapshot(target)
+      if snap.target.endswith(suffix):
+        return snap_holder.Snapshot(snap.target)
     return None
 
   def create(self, comment: Optional[str]):
