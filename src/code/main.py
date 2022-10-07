@@ -30,8 +30,8 @@ def _parse_args() -> argparse.Namespace:
       'config', help='Name to be given to config file, e.g. "home".')
   delete = subparsers.add_parser('delete',
                                  help='Delete a snapshot created by yabsnap.')
-  rollback = subparsers.add_parser('rollback',
-                                   help='Rollback one or more snaps.')
+  rollback = subparsers.add_parser(
+      'rollback-gen', help='Generate script to rollback one or more snaps.')
 
   for command_with_target in [delete, rollback]:
     command_with_target.add_argument(
@@ -81,7 +81,7 @@ def main():
                  args.target_suffix)
     return
 
-  if command == 'rollback':
+  if command == 'rollback-gen':
     rollbacker.rollback(configs.iterate_configs(source=args.source),
                         args.target_suffix)
     return

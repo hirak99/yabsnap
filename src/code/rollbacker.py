@@ -76,8 +76,8 @@ def rollback(configs_iter: Iterable[configs.Config], path_suffix: str):
       sh_lines += [f'cd {mount_pt}', '']
       current_dir = mount_pt
     live_path = mount_attr.subvol_name[1:]
-    backup_path = f'{target_mount.subvol_name[1:]}/yabsnap_rollback_{now_str}_{mount_attr.subvol_name[1:]}'
-    backup_path_after_reboot = f'{os.path.dirname(snap.target)}/yabsnap_rollback_{now_str}_{mount_attr.subvol_name[1:]}'
+    backup_path = f'{target_mount.subvol_name[1:]}/rollback_{now_str}_{mount_attr.subvol_name[1:]}'
+    backup_path_after_reboot = f'{os.path.dirname(snap.target)}/rollback_{now_str}_{mount_attr.subvol_name[1:]}'
     # sh_lines.append(f'[[ -e {backup_path} ]] && btrfs subvolume delete {backup_path}')
     sh_lines.append(f'mv {live_path} {backup_path}')
     backup_paths.append(backup_path_after_reboot)
