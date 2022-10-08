@@ -25,7 +25,7 @@ rsync -aAXHSv src/ $PKGDIR/usr/share/yabsnap \
   --prune-empty-dirs \
   --delete
 mkdir -p $PKGDIR/usr/bin
-ln -sf $PKGDIR/usr/share/yabsnap/yabsnap.sh $PKGDIR/usr/bin/yabsnap
+ln -sf /usr/share/yabsnap/yabsnap.sh $PKGDIR/usr/bin/yabsnap
 
 mkdir -p $PKGDIR/etc/systemd/system
 cp artifacts/services/yabsnap.service $PKGDIR/etc/systemd/system
