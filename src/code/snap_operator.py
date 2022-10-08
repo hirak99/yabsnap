@@ -49,7 +49,7 @@ class SnapOperator:
     delete = deletion_logic.DeleteManager(self._config.deletion_rules)
     for when, target in delete.get_deletes(buffered_now, candidates):
       if target == '':
-        logging.info(f'New backup not needed for {self._config.source}')
+        logging.info(f'No new backup needed for {self._config.source}')
         return False
       elapsed_secs = (self._now - when).total_seconds()
       if elapsed_secs > self._config.min_keep_secs:
