@@ -7,7 +7,7 @@ fi
 
 readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 
-cd $MY_PATH
+cd $MY_PATH/..
 
 rm -f /usr/share/libalpm/hooks/05-yabsnap-pacman-pre.hook
 

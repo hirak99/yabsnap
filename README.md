@@ -5,12 +5,12 @@ NOTE This is currently only tested and meant for Arch Linux.
 # Installing
 
 ```bash
-sudo ./install.sh
+sudo scripts/install.sh
 ```
 
 ## To uninstall
 ```bash
-sudo ./uninstall.sh
+sudo scripts/uninstall.sh
 ```
 
 # Configuring
@@ -18,14 +18,20 @@ sudo ./uninstall.sh
 * Run `yabsnap create-config CONFIGNAME`
 * Then edit the file it creates.
 
-# Commands
+# Usage
 
-## `yabsnap create-config NAME`
+## Global flags
+
+* `--dry-run` Disables all snapshot changes.
+* `--source` Restricts to the config which has the specified source.
+
+## Commands
+### `yabsnap create-config NAME`
 Creates a new config by `NAME`. \
 Immediately after that, the `source` and `dest_prefix` fields must be filled
 out.
 
-## `yabsnap list`
+### `yabsnap list`
 Lists existing snaps. Example -
 ```
 Config: source=/home
@@ -41,12 +47,12 @@ Config: source=/
 
  The indicators `S`, `I`, `U` respectively indicate scheduled, installation, user backups.
 
- ## `yabsnap create`
+### `yabsnap create`
  Creates an user backup.
 
  Optionally add comment with `--comment "COMMENT"`.
 
-## `yabsnap delete`
+### `yabsnap delete`
 Deletes a snapshot.
 
 E.g.
@@ -55,7 +61,7 @@ E.g.
 Or,
 `yabsnap delete 20221006143047  # Deletes all backups with this timestamp.`
 
-## `yabsnap rollback-gen`
+### `yabsnap rollback-gen`
 Generates a script for rolling back.
 
 E.g.
@@ -67,11 +73,6 @@ Or,
 Just running it will not carry out any changes, it will only display a script on
 the console. \
 The script must be stored and executed to perform the rollback.
-
-## Global flags
-
-* `--dry-run` Disables all snapshot changes.
-* `--source` Restricts to the config which has the specified source.
 
 # FAQ
 

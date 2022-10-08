@@ -1,8 +1,10 @@
 import argparse
 import logging
 
+
 from . import configs
 from . import rollbacker
+from . import os_utils
 from . import snap_holder
 from . import snap_operator
 
@@ -71,6 +73,16 @@ def main():
 
   logging.basicConfig(level=logging.INFO if command.
                       startswith('internal-') else logging.WARNING)
+
+  if configs.is_schedule_enabled():
+    if not os_utils.timer_enabled():
+      print('\n'.join([
+          '',
+          '*** NOTE - Backup schedule exists but yabsnap.timer is not active ***',
+          'To enable scheduled backups, please run -',
+          '  sudo systemctl enable --now yabsnap.timer',
+          '',
+      ]))
 
   if command == 'create-config':
     configs.create_config(args.config_name)

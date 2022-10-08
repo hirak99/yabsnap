@@ -26,6 +26,11 @@ class Config:
   keep_monthly: int = 0
   keep_yearly: int = 0
 
+  def is_schedule_enabled(self) -> bool:
+    return (self.keep_hourly > 0 or self.keep_daily > 0 or
+            self.keep_weekly > 0 or self.keep_monthly > 0 or
+            self.keep_yearly > 0)
+
   @classmethod
   def from_configfile(cls, config_file: str) -> 'Config':
     inifile = configparser.ConfigParser()
@@ -65,6 +70,13 @@ def iterate_configs(source: Optional[str]) -> Iterator[Config]:
     config = Config.from_configfile(str(fname))
     if not source or config.source == source:
       yield config
+
+
+def is_schedule_enabled() -> bool:
+  for config in iterate_configs(None):
+    if config.is_schedule_enabled():
+      return True
+  return False
 
 
 def create_config(name: str):

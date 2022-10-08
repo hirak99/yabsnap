@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import subprocess
 
@@ -22,3 +23,7 @@ def last_pacman_command() -> str:
       if match:
         return match.group('cmd')
   raise ValueError('Last pacman command not found')
+
+
+def timer_enabled() -> bool:
+  return os.system('systemctl is-active yabsnap.timer >/dev/null') == 0
