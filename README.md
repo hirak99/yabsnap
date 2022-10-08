@@ -4,12 +4,24 @@ NOTE This is currently only tested and meant for Arch Linux.
 
 # Installing
 
+## Arch with AUR (Recommended)
+
 ```bash
-sudo scripts/install.sh
+# Use your favorite AUR manager. E.g. -
+yay -S yabsnap
+# OR,
+pamac install yabsnap
 ```
 
-## To uninstall
+## Command-line Install
 ```bash
+git clone https://github.com/hirak99/yabsnap
+cd yabsnap
+
+# To install -
+sudo scripts/install.sh
+
+# To uninstall -
 sudo scripts/uninstall.sh
 ```
 
