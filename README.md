@@ -24,6 +24,35 @@ sudo scripts/install.sh
 # To uninstall -
 sudo scripts/uninstall.sh
 ```
+# What does it do?
+
+Allows managing scheduled btrfs snapshots.
+
+* Supports multiple sources, and customizing destination directory. Use `yabsnap
+  create-config` to configure what gets snapped, and when.
+* Supports pre-installation snaps with auto-generated comments.
+* Supports rollback - by generating a short shell script.
+
+## Alternatives
+
+Some good alternatives are timeshift, snapper; both very good in what they do.
+However, neither supports customized of backup location, (e.g. [Arch recommended
+layout](https://wiki.archlinux.org/title/snapper#Suggested_filesystem_layout)).
+Adhering to such layouts, and rolling back using them, sometime [involve
+non-obvious
+workarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previous_snapshot).
+The motivation for `yabsnap` was to create a simpler, hackable and customizable
+backup system.
+
+|                     | yabsnap                | timeshift                         | snapper          |
+| ------------------- | ---------------------- | --------------------------------- | ---------------- |
+| Custom sources      | ✓                      | Only root and home                | ✓                |
+| Custom destinations | ✓                      |                                   |                  |
+| Pacman hook         | ✓                      |                                   | With snap-pac    |
+| File system         | btrfs                  | btrfs, ext4                       | btrfs            |
+| GUI                 |                        | ✓                                 | With snapper-gui |
+| Rollback            | Generates shell script | Automated using default subvolume | Automated        |
+
 
 # Configuring
 
@@ -88,7 +117,11 @@ The script must be stored and executed to perform the rollback.
 
 # FAQ
 
-* I deleted a snapshot manually. Will it mess it up?
+* I deleted a snapshot manually. Will it confuse yabsnap?
   * No, you can also delete the corresponding metadata manually. It's in the
     same directory. If you used `yabsnap delete PATH_TO_SNAPSHOT`, it would take
     care of that for you.
+
+* How do I delete multiple snaps?
+  * The quickest way is to delete them manually. Remove the snaps, and
+    corresponding `-meta.json` files.
