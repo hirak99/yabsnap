@@ -20,18 +20,16 @@ cd $MY_PATH/..
 mkdir -p $PKGDIR/usr/share
 rsync -aAXHSv src/ $PKGDIR/usr/share/yabsnap \
   --exclude '*_test.py' \
-  --include '*/' --include '*.py' --include '*.sh' \
+  --include '*/' --include '*.py' --include '*.sh' --include '*.conf' \
   --exclude '*' \
   --prune-empty-dirs \
   --delete
 mkdir -p $PKGDIR/usr/bin
 ln -sf $PKGDIR/usr/share/yabsnap/yabsnap.sh $PKGDIR/usr/bin/yabsnap
 
-mkdir -p $PKGDIR/etc/systemd
+mkdir -p $PKGDIR/etc/systemd/system
 cp artifacts/services/yabsnap.service $PKGDIR/etc/systemd/system
 cp artifacts/services/yabsnap.timer $PKGDIR/etc/systemd/system
-# systemctl daemon-reload
-# systemctl enable yabsnap.timer --now
 
 mkdir -p $PKGDIR/usr/share/libalpm/hooks/
 cp artifacts/pacman/05-yabsnap-pacman-pre.hook $PKGDIR/usr/share/libalpm/hooks/

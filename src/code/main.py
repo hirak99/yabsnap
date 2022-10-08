@@ -1,7 +1,6 @@
 import argparse
 import logging
 
-
 from . import configs
 from . import rollbacker
 from . import os_utils
@@ -13,6 +12,9 @@ from typing import Iterable
 
 def _parse_args() -> argparse.Namespace:
   parser = argparse.ArgumentParser()
+  parser.add_argument('--sync',
+                      help='Perform a sync before returning.',
+                      action='store_true')
   parser.add_argument('--source',
                       help='Restrict to config with this source path.')
   parser.add_argument(
@@ -47,7 +49,8 @@ def _parse_args() -> argparse.Namespace:
   return args
 
 
-def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str):
+def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str,
+                 sync: bool):
   found = False
   for config in configs_iter:
     snapper = snap_operator.SnapOperator(config)
@@ -55,7 +58,8 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str):
     if snap:
       found = True
       snap.delete()
-      snapper.btrfs_sync(force=True)
+      if sync:
+        snapper.btrfs_sync(force=True)
 
   if not found:
     print(f'Target {path_suffix} not found in any config.')
@@ -90,7 +94,8 @@ def main():
 
   if command == 'delete':
     _delete_snap(configs.iterate_configs(source=args.source),
-                 args.target_suffix)
+                 path_suffix=args.target_suffix,
+                 sync=args.sync)
     return
 
   if command == 'rollback-gen':
@@ -98,6 +103,7 @@ def main():
                         args.target_suffix)
     return
 
+  # Commands that need to access existing config.
   for config in configs.iterate_configs(source=args.source):
     if command == 'list':
       print(f'Config: {config.config_file} (source={config.source})')
@@ -112,7 +118,8 @@ def main():
       snapper.create(args.comment)
     else:
       raise ValueError(f'Command not implemented: {command}')
-    snapper.btrfs_sync()
+    if args.sync:
+      snapper.btrfs_sync()
 
 
 if __name__ == '__main__':
