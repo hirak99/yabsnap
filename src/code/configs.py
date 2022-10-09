@@ -39,10 +39,6 @@ class Config:
     result = cls(config_file=config_file,
                  source=section['source'],
                  dest_prefix=section['dest_prefix'])
-    if not result.source or not result.dest_prefix:
-      raise ValueError(
-          f'Invalid configuration, please specify source and dest_prefix in {config_file}'
-      )
     for key, value in section.items():
       if key not in {'source', 'dest_prefix'}:
         setattr(result, key, int(value))
@@ -68,6 +64,10 @@ def iterate_configs(source: Optional[str]) -> Iterator[Config]:
     return
   for fname in _CONFIG_PATH.iterdir():
     config = Config.from_configfile(str(fname))
+    if not config.source or not config.dest_prefix:
+      print(f'WARNING: Skipping invalid configuration {fname}'
+            ' (please specify source and dest_prefix)')
+      continue
     if not source or config.source == source:
       yield config
 
