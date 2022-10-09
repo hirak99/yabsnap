@@ -33,3 +33,6 @@ cp artifacts/services/yabsnap.timer $PKGDIR/etc/systemd/system
 
 mkdir -p $PKGDIR/usr/share/libalpm/hooks/
 cp artifacts/pacman/05-yabsnap-pacman-pre.hook $PKGDIR/usr/share/libalpm/hooks/
+
+mkdir -p $PKGDIR/usr/share/man/man1
+install artifacts/yabsnap.manpage $PKGDIR/usr/share/man/man1/yabsnap.1
