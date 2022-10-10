@@ -44,14 +44,14 @@ workarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previou
 The motivation for `yabsnap` was to create a simpler, hackable and customizable
 backup system.
 
-|                     | yabsnap                | timeshift                         | snapper          |
-| ------------------- | ---------------------- | --------------------------------- | ---------------- |
-| Custom sources      | ✓                      | Only root and home                | ✓                |
-| Custom destinations | ✓                      |                                   |                  |
-| Pacman hook         | ✓                      |                                   | With snap-pac    |
-| File system         | btrfs                  | btrfs, ext4                       | btrfs            |
-| GUI                 |                        | ✓                                 | With snapper-gui |
-| Rollback            | Generates shell script | Automated using default subvolume | Automated        |
+|                     | yabsnap | timeshift          | snapper                |
+| ------------------- | ------- | ------------------ | ---------------------- |
+| Custom sources      | ✓       | Only root and home | ✓                      |
+| Custom destinations | ✓       |                    |                        |
+| Pacman hook         | ✓       |                    | With snap-pac          |
+| File system         | btrfs   | btrfs, ext4        | btrfs                  |
+| GUI                 |         | ✓                  | With snapper-gui       |
+| Rollback            | ✓       | ✓                  | Only default subvolume |
 
 
 # Configuring
