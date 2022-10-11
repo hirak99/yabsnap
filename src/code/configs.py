@@ -93,7 +93,7 @@ def is_schedule_enabled() -> bool:
   return False
 
 
-def create_config(name: str):
+def create_config(name: str, source: str | None):
 
   inadmissible_chars = '@/.'
   if any(c in inadmissible_chars for c in name):
@@ -109,7 +109,9 @@ def create_config(name: str):
   lines: list[str] = []
   for line in open(script_dir / 'example_config.conf'):
     line = line.strip()
-    if line.startswith('dest_prefix ='):
+    if source and line.startswith('source ='):
+      line = f'source = {source}'
+    elif line.startswith('dest_prefix ='):
       line = f'dest_prefix = /.snapshots/@{name}-'
     lines.append(line)
 
@@ -123,4 +125,5 @@ def create_config(name: str):
 
   print()
   print(f'Created: {_config_fname}')
-  print("Please edit the file to set 'source = ' and 'dest_prefix = '")
+  if not source:
+    print("Please edit the file to set 'source = ' field.")

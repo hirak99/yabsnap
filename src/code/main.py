@@ -103,7 +103,7 @@ def main():
       ]))
 
   if command == 'create-config':
-    configs.create_config(args.config_name)
+    configs.create_config(args.config_name, args.source)
     return
 
   if command == 'delete':
