@@ -100,6 +100,6 @@ def rollback(configs_iter: Iterable[configs.Config], path_suffix: str):
   sh_lines += ['echo Please reboot to complete the rollback.', 'echo']
   sh_lines.append('echo After reboot you may delete -')
   for backup_path in backup_paths:
-    sh_lines.append(f'echo # sudo btrfs subvolume delete {backup_path}')
+    sh_lines.append(f'echo "# sudo btrfs subvolume delete {backup_path}"')
 
   print('\n'.join(sh_lines))

@@ -27,7 +27,7 @@ from typing import Iterable
 def _parse_args() -> argparse.Namespace:
   parser = argparse.ArgumentParser(prog='yabsnap')
   parser.add_argument('--sync',
-                      help='Perform a sync before returning.',
+                      help='Wait for btrfs to sync for any delete operations.',
                       action='store_true')
   parser.add_argument('--source',
                       help='Restrict to config with this source path.')
