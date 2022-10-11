@@ -25,7 +25,7 @@ from typing import Iterable
 
 
 def _parse_args() -> argparse.Namespace:
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(prog='yabsnap')
   parser.add_argument('--sync',
                       help='Perform a sync before returning.',
                       action='store_true')
