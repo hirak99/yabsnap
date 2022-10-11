@@ -44,15 +44,19 @@ workarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previou
 The motivation for `yabsnap` was to create a simpler, hackable and customizable
 backup system.
 
-|                     | yabsnap | timeshift          | snapper                |
-| ------------------- | ------- | ------------------ | ---------------------- |
-| Custom sources      | ✓       | Only root and home | ✓                      |
-| Custom destinations | ✓       |                    |                        |
-| Pacman hook         | ✓       |                    | With snap-pac          |
-| File system         | btrfs   | btrfs, ext4        | btrfs                  |
-| GUI                 |         | ✓                  | With snapper-gui       |
-| Rollback            | ✓       | ✓                  | Only default subvolume |
+|                     | yabsnap | timeshift                  | snapper                |
+| ------------------- | ------- | -------------------------- | ---------------------- |
+| Custom sources      | ✓       | Only root and home (1)     | ✓                      |
+| Custom destinations | ✓       |                            |                        |
+| Pacman hook         | ✓       | Via timeshift-autosnap (2) | Via snap-pac           |
+| File system         | btrfs   | btrfs, ext4                | btrfs                  |
+| GUI                 |         | ✓                          | With snapper-gui       |
+| Rollback            | ✓       | ✓                          | Only default subvolume |
 
+(1) timeshift does not allow separate schedules or triggers for root and home.
+
+(2) At the time of writing, `timeshift-autosnap` does not tag the backup with
+pacman command used.
 
 # Configuring
 
