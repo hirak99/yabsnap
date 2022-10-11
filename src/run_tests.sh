@@ -19,5 +19,10 @@ set -uexo pipefail
 readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 
 cd ${MY_PATH}
+
+flake8 --ignore=E111,E114,E266,E501,W504 code/
+
+mypy --ignore-missing-imports --show-column-numbers --check-untyped-defs --show-error-codes code/
+
 python -m code.deletion_logic_test
 
