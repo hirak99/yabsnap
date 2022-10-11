@@ -21,8 +21,8 @@ set -uexo pipefail
 readonly PKGDIR=${1-}
 
 # Most of the installation will work on other distros;
-# but certain things may not work - e.g. installation hooks.
-if [[ "$(lsb_release -si)" != "Arch" ]]; then
+# except pacman hook only works for Arch derived OS.
+if [[ ! -f /usr/bin/pacman ]]; then
   echo Not Arch based distro, not proceeding. >&2
   exit 1
 fi
