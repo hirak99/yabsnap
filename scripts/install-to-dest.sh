@@ -41,9 +41,9 @@ rsync -aAXHSv src/ $PKGDIR/usr/share/yabsnap \
 mkdir -p $PKGDIR/usr/bin
 ln -sf /usr/share/yabsnap/yabsnap.sh $PKGDIR/usr/bin/yabsnap
 
-mkdir -p $PKGDIR/etc/systemd/system
-cp artifacts/services/yabsnap.service $PKGDIR/etc/systemd/system
-cp artifacts/services/yabsnap.timer $PKGDIR/etc/systemd/system
+mkdir -p $PKGDIR/usr/lib/systemd/system
+cp artifacts/services/yabsnap.service $PKGDIR/usr/lib/systemd/system
+cp artifacts/services/yabsnap.timer $PKGDIR/usr/lib/systemd/system
 
 mkdir -p $PKGDIR/usr/share/libalpm/hooks/
 cp artifacts/pacman/05-yabsnap-pacman-pre.hook $PKGDIR/usr/share/libalpm/hooks/

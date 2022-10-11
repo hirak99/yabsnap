@@ -27,8 +27,14 @@ rm -f /usr/share/libalpm/hooks/05-yabsnap-pacman-pre.hook
 
 systemctl disable yabsnap.timer || true
 systemctl daemon-reload
+
+# TODO: Remove the following two lines after sufficient time has passed.
+# Prior to 2022-10-12, /etc/systemd/system was used.
 rm -f /etc/systemd/system/yabsnap.service
 rm -f /etc/systemd/system/yabsnap.timer
+
+rm -f /usr/lib/systemd/system/yabsnap.service
+rm -f /usr/lib/systemd/system/yabsnap.timer
 
 rm -f /usr/bin/yabsnap
 rm -rf /usr/share/yabsnap 2> /dev/null
