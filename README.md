@@ -63,7 +63,7 @@ backup system.
 
 ## Global flags
 
-* `--dry-run` Disables all snapshot changes.
+* `--dry-run` Disables all snapshot changes. Shows what it would do instead.
 * `--source` Restricts to the config which has the specified source.
 
 ## Commands
@@ -93,7 +93,7 @@ Config: source=/
 
  Optionally add comment with `--comment "COMMENT"`.
 
-### `yabsnap delete`
+### `yabsnap delete PATH|TIMESTAMP`
 Deletes a snapshot.
 
 E.g.
@@ -102,7 +102,7 @@ E.g.
 Or,
 `yabsnap delete 20221006143047  # Deletes all backups with this timestamp.`
 
-### `yabsnap rollback-gen`
+### `yabsnap rollback-gen PATH|TIMESTAMP`
 Generates a script for rolling back.
 
 E.g.
@@ -113,7 +113,7 @@ Or,
 
 Just running it will not carry out any changes, it will only display a script on
 the console. \
-The script must be stored and executed to perform the rollback.
+The script must be stored and executed to perform the rollback operation.
 
 # FAQ
 
