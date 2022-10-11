@@ -22,7 +22,7 @@ readonly PKGDIR=${1-}
 
 # Most of the installation will work on other distros;
 # but certain things may not work - e.g. installation hooks.
-if ! grep -q 'Arch Linux' /etc/issue; then
+if [[ "$(lsb_release -si)" != "Arch" ]]; then
   echo Not Arch based distro, not proceeding. >&2
   exit 1
 fi
