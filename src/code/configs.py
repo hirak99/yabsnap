@@ -80,19 +80,33 @@ def is_schedule_enabled() -> bool:
 
 
 def create_config(name: str):
+
+  inadmissible_chars = '@/.'
+  if any(c in inadmissible_chars for c in name):
+    print(f'Error: Config name should be a file name, without following chars: {inadmissible_chars}')
+    return
+
   _config_fname = _CONFIG_PATH / f'{name}.conf'
   if _config_fname.exists():
     print(f'Already exists: {_config_fname}')
     return
+
   script_dir = pathlib.Path(os.path.realpath(__file__)).parent
-  with open(script_dir / 'example_config.conf') as f:
-    try:
-      _config_fname.parent.mkdir(parents=True, exist_ok=True)
-      with _config_fname.open('w') as out:
-        out.write(f.read())
-    except PermissionError:
-      print(f'Could not access or create {_config_fname}; run as root?')
-      return
-  print(f'Created: {_config_fname}')
+  lines: list[str] = []
+  for line in open(script_dir / 'example_config.conf'):
+    line = line.strip()
+    if line.startswith('dest_prefix ='):
+      line = f'dest_prefix = /.snapshots/@{name}-'
+    lines.append(line)
+
+  try:
+    _config_fname.parent.mkdir(parents=True, exist_ok=True)
+    with _config_fname.open('w') as out:
+      out.write('\n'.join(lines))
+  except PermissionError:
+    print(f'Could not access or create {_config_fname}; run as root?')
+    return
+
   print()
-  print("Please edit to add values for 'source = ' and 'dest_prefix = '.")
+  print(f'Created: {_config_fname}')
+  print("Please edit the file to set 'source = ' and 'dest_prefix = '")
