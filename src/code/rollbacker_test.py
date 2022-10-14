@@ -41,7 +41,7 @@ class TestRollbacker(unittest.TestCase):
       with mock.patch.object(rollbacker,
                              '_get_now_str',
                              return_value='20220202140000'):
-        generated = rollbacker._rollback_all(to_rollback=snaps_list)
+        generated = rollbacker._rollback_snapshots(to_rollback=snaps_list)
 
     expected = '''#!/bin/bash
 # Save this to a script, review and run as root to perform the rollback.

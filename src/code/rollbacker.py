@@ -55,14 +55,17 @@ def rollback(configs_iter: Iterable[configs.Config], path_suffix: str):
     snap = snapper.find_target(path_suffix)
     if snap:
       to_rollback.append(snap)
-  print('\n'.join(_rollback_all(to_rollback)))
+  print('\n'.join(_rollback_snapshots(to_rollback)))
 
 
 def _get_now_str():
   return datetime.datetime.now().strftime(snap_holder.TIME_FORMAT)
 
 
-def _rollback_all(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
+def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
+  if not to_rollback:
+    return ['# No snapshot matched to rollback.']
+
   sh_lines = [
       '#!/bin/bash',
       '# Save this to a script, review and run as root to perform the rollback.',
