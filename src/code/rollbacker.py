@@ -88,6 +88,13 @@ def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
 
   now_str = _get_now_str()
 
+  def drop_slash(s: str) -> str:
+    if s[0] != '/':
+      raise RuntimeError(f'Could not drop initial / from {s!r}')
+    if '/' in s[1:]:
+      raise RuntimeError(f'Unexpected / after the first one in subvolume {s!r}')
+    return s[1:]
+
   sh_lines.append('')
   backup_paths: list[str] = []
   current_dir: Optional[str] = None
@@ -100,13 +107,13 @@ def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
     if current_dir != mount_pt:
       sh_lines += [f'cd {mount_pt}', '']
       current_dir = mount_pt
-    live_path = source_mount.subvol_name[1:]
-    backup_path = f'{target_mount.subvol_name[1:]}/rollback_{now_str}_{source_mount.subvol_name[1:]}'
-    backup_path_after_reboot = f'{os.path.dirname(snap.target)}/rollback_{now_str}_{source_mount.subvol_name[1:]}'
+    live_path = source_mount.subvol_name
+    backup_path = f'{drop_slash(target_mount.subvol_name)}/rollback_{now_str}_{drop_slash(live_path)}'
+    backup_path_after_reboot = f'{os.path.dirname(snap.target)}/rollback_{now_str}_{drop_slash(live_path)}'
     # sh_lines.append(f'[[ -e {backup_path} ]] && btrfs subvolume delete {backup_path}')
-    sh_lines.append(f'mv {live_path} {backup_path}')
+    sh_lines.append(f'mv {live_path[1:]} {backup_path}')
     backup_paths.append(backup_path_after_reboot)
-    sh_lines.append(f'btrfs subvolume snapshot {snap.target} {live_path}')
+    sh_lines.append(f'btrfs subvolume snapshot {snap.target} {live_path[1:]}')
     sh_lines.append('')
   sh_lines += ['echo Please reboot to complete the rollback.', 'echo']
   sh_lines.append('echo After reboot you may delete -')
