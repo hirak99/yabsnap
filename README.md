@@ -36,13 +36,13 @@ Allows managing scheduled btrfs snapshots.
 ## Alternatives
 
 Some good alternatives are timeshift, snapper; both very good in what they do.
-However, neither supports customized of backup location, (e.g. [Arch recommended
+However, neither supports customized of snapshot location, (e.g. [Arch recommended
 layout](https://wiki.archlinux.org/title/snapper#Suggested_filesystem_layout)).
 Adhering to such layouts, and rolling back using them, sometime [involve
 non-obvious
 workarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previous_snapshot).
 The motivation for `yabsnap` was to create a simpler, hackable and customizable
-backup system.
+snapshot system.
 
 |                     | yabsnap | timeshift                  | snapper                |
 | ------------------- | ------- | -------------------------- | ---------------------- |
@@ -55,7 +55,7 @@ backup system.
 
 (1) timeshift does not allow separate schedules or triggers for root and home.
 
-(2) At the time of writing, `timeshift-autosnap` does not tag the backup with
+(2) At the time of writing, `timeshift-autosnap` does not tag the snapshot with
 pacman command used.
 
 # Configuring
@@ -90,10 +90,10 @@ Config: source=/
  I   2022-10-06 16:46:59  /.snapshots/@root-20221006164659  pacman -S perl-rename
  ```
 
- The indicators `S`, `I`, `U` respectively indicate scheduled, installation, user backups.
+ The indicators `S`, `I`, `U` respectively indicate scheduled, installation, user snapshots.
 
 ### `yabsnap create`
- Creates an user backup.
+ Creates an user snapshot.
 
  Optionally add comment with `--comment "COMMENT"`.
 
@@ -104,7 +104,7 @@ E.g.
 `yabsnap delete /.snapshots/@home-20221006143047`
 \
 Or,
-`yabsnap delete 20221006143047  # Deletes all backups with this timestamp.`
+`yabsnap delete 20221006143047  # Deletes all snapshots with this timestamp.`
 
 ### `yabsnap rollback-gen PATH|TIMESTAMP`
 Generates a script for rolling back.
