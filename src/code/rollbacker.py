@@ -51,8 +51,7 @@ def _get_mount_attributes(mount_point: str) -> _MountAttributes:
 def rollback(configs_iter: Iterable[configs.Config], path_suffix: str):
   to_rollback: list[snap_holder.Snapshot] = []
   for config in configs_iter:
-    snapper = snap_operator.SnapOperator(config)
-    snap = snapper.find_target(path_suffix)
+    snap = snap_operator.find_target(config, path_suffix)
     if snap:
       to_rollback.append(snap)
   print('\n'.join(_rollback_snapshots(to_rollback)))

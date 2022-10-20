@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import datetime
 import logging
 
 from . import configs
@@ -67,13 +68,13 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str,
                  sync: bool):
   found = False
   for config in configs_iter:
-    snapper = snap_operator.SnapOperator(config)
-    snap = snapper.find_target(path_suffix)
+    snap = snap_operator.find_target(config, path_suffix)
     if snap:
       found = True
       snap.delete()
-      if sync:
-        snapper.btrfs_sync(force=True)
+      # TODO: synce if 'sync' is true.
+      # if sync:
+      #   snapper.btrfs_sync(force=True)
 
   if not found:
     print(f'Target {path_suffix} not found in any config.')
@@ -117,11 +118,14 @@ def main():
                         args.target_suffix)
     return
 
+  # Single timestamp for all operations.
+  now = datetime.datetime.now()
+
   # Commands that need to access existing config.
   for config in configs.iterate_configs(source=args.source):
     if command == 'list':
       print(f'Config: {config.config_file} (source={config.source})')
-    snapper = snap_operator.SnapOperator(config)
+    snapper = snap_operator.SnapOperator(config, now)
     if command == 'internal-cronrun':
       snapper.scheduled()
     elif command == 'internal-preupdate':

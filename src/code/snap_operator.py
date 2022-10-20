@@ -39,11 +39,22 @@ def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
     yield snap_holder.Snapshot(pathname)
 
 
+def find_target(config: configs.Config,
+                suffix: str) -> Optional[snap_holder.Snapshot]:
+  if len(suffix) < snap_holder.TIME_FORMAT_LEN:
+    raise ValueError('Length of snapshot identifier suffix '
+                     f'must be at least {snap_holder.TIME_FORMAT_LEN}.')
+  for snap in _get_old_backups(config):
+    if snap.target.endswith(suffix):
+      return snap_holder.Snapshot(snap.target)
+  return None
+
+
 class SnapOperator:
 
-  def __init__(self, config: configs.Config) -> None:
+  def __init__(self, config: configs.Config, now: datetime.datetime) -> None:
     self._config = config
-    self._now = datetime.datetime.now()
+    self._now = now
     self._now_str = self._now.strftime(snap_holder.TIME_FORMAT)
     # Set to true on any delete operation.
     self._need_sync = False
@@ -102,15 +113,6 @@ class SnapOperator:
     print('Syncing ...', flush=True)
     os_utils.execute_sh(f'btrfs subvolume sync {tosync}')
     self._need_sync = False
-
-  def find_target(self, suffix: str) -> Optional[snap_holder.Snapshot]:
-    if len(suffix) < snap_holder.TIME_FORMAT_LEN:
-      raise ValueError('Length of snapshot identifier suffix '
-                       f'must be at least {snap_holder.TIME_FORMAT_LEN}.')
-    for snap in _get_old_backups(self._config):
-      if snap.target.endswith(suffix):
-        return snap_holder.Snapshot(snap.target)
-    return None
 
   def create(self, comment: Optional[str]):
     try:
