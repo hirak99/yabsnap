@@ -89,6 +89,36 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str,
     print(f'Target {path_suffix} not found in any config.')
 
 
+def _config_operation(command: str, source: str, comment: str, sync: bool):
+  # Single timestamp for all operations.
+  now = datetime.datetime.now()
+
+  # Which mount paths to sync.
+  mount_paths_to_sync: set[str] = set()
+
+  # Commands that need to access existing config.
+  for config in configs.iterate_configs(source=source):
+    if command == 'list':
+      print(f'Config: {config.config_file} (source={config.source})')
+    snapper = snap_operator.SnapOperator(config, now)
+    if command == 'internal-cronrun':
+      snapper.scheduled()
+    elif command == 'internal-preupdate':
+      snapper.on_pacman()
+    elif command == 'list':
+      snapper.list_backups()
+    elif command == 'create':
+      snapper.create(comment)
+    else:
+      raise ValueError(f'Command not implemented: {command}')
+
+    if snapper.need_sync:
+      mount_paths_to_sync.add(config.mount_path)
+
+  if sync:
+    _btrfs_sync(mount_paths_to_sync)
+
+
 def main():
   args = _parse_args()
   command: str = args.command
@@ -114,46 +144,19 @@ def main():
 
   if command == 'create-config':
     configs.create_config(args.config_name, args.source)
-    return
-
-  if command == 'delete':
+  elif command == 'delete':
     _delete_snap(configs.iterate_configs(source=args.source),
                  path_suffix=args.target_suffix,
                  sync=args.sync)
-    return
-
-  if command == 'rollback-gen':
+  elif command == 'rollback-gen':
     rollbacker.rollback(configs.iterate_configs(source=args.source),
                         args.target_suffix)
-    return
-
-  # Single timestamp for all operations.
-  now = datetime.datetime.now()
-
-  # Which mount paths to sync.
-  mount_paths_to_sync: set[str] = set()
-
-  # Commands that need to access existing config.
-  for config in configs.iterate_configs(source=args.source):
-    if command == 'list':
-      print(f'Config: {config.config_file} (source={config.source})')
-    snapper = snap_operator.SnapOperator(config, now)
-    if command == 'internal-cronrun':
-      snapper.scheduled()
-    elif command == 'internal-preupdate':
-      snapper.on_pacman()
-    elif command == 'list':
-      snapper.list_backups()
-    elif command == 'create':
-      snapper.create(args.comment)
-    else:
-      raise ValueError(f'Command not implemented: {command}')
-
-    if snapper.need_sync:
-      mount_paths_to_sync.add(config.mount_path)
-
-  if args.sync:
-      _btrfs_sync(mount_paths_to_sync)
+  else:
+    comment = getattr(args, 'comment', '')
+    _config_operation(command=args.command,
+                      source=args.source,
+                      comment=comment,
+                      sync=args.sync)
 
 
 if __name__ == '__main__':
