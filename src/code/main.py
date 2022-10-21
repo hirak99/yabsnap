@@ -17,9 +17,9 @@ import datetime
 import logging
 
 from . import configs
+from . import global_flags
 from . import rollbacker
 from . import os_utils
-from . import snap_holder
 from . import snap_operator
 
 from typing import Iterable
@@ -64,9 +64,9 @@ def _parse_args() -> argparse.Namespace:
   return args
 
 
-def _btrfs_sync(dryrun: bool, mount_paths: set[str]) -> None:
+def _btrfs_sync(mount_paths: set[str]) -> None:
   for mount_path in sorted(mount_paths):
-    if dryrun:
+    if global_flags.FLAGS.dryrun:
       print(f'Would sync {mount_path}')
       continue
     print('Syncing ...', flush=True)
@@ -75,17 +75,17 @@ def _btrfs_sync(dryrun: bool, mount_paths: set[str]) -> None:
 
 def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str,
                  sync: bool):
-  found = False
+  mount_paths: set[str] = set()
   for config in configs_iter:
     snap = snap_operator.find_target(config, path_suffix)
     if snap:
-      found = True
       snap.delete()
-      # TODO: synce if 'sync' is true.
-      if sync:
-        _btrfs_sync(snap_holder.DRYRUN, {config.mount_path})
+      mount_paths.add(config.mount_path)
 
-  if not found:
+  if sync:
+    _btrfs_sync(mount_paths)
+
+  if not mount_paths:
     print(f'Target {path_suffix} not found in any config.')
 
 
@@ -97,7 +97,7 @@ def main():
     return
 
   if args.dry_run:
-    snap_holder.DRYRUN = True
+    global_flags.FLAGS.dryrun = True
 
   logging.basicConfig(level=logging.INFO if command.
                       startswith('internal-') else logging.WARNING)
@@ -131,7 +131,7 @@ def main():
   now = datetime.datetime.now()
 
   # Which mount paths to sync.
-  to_sync: set[str] = set()
+  mount_paths_to_sync: set[str] = set()
 
   # Commands that need to access existing config.
   for config in configs.iterate_configs(source=args.source):
@@ -150,10 +150,10 @@ def main():
       raise ValueError(f'Command not implemented: {command}')
 
     if snapper.need_sync:
-      to_sync.add(config.mount_path)
+      mount_paths_to_sync.add(config.mount_path)
 
   if args.sync:
-      _btrfs_sync(args.dry_run, to_sync)
+      _btrfs_sync(mount_paths_to_sync)
 
 
 if __name__ == '__main__':

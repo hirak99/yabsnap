@@ -23,17 +23,15 @@ import datetime
 import json
 import os
 
+from . import global_flags
 from . import os_utils
 
 TIME_FORMAT = r'%Y%m%d%H%M%S'
 TIME_FORMAT_LEN = 14
 
-# Set this to True to globally disable snapshot changes.
-DRYRUN = False
-
 
 def _execute_sh(cmd: str):
-  if DRYRUN:
+  if global_flags.FLAGS.dryrun:
     print('Would run ' + cmd)
   else:
     os_utils.execute_sh(cmd)
@@ -52,7 +50,7 @@ class _Metadata:
   def save_file(self, fname: str) -> None:
     # Ignore empty strings.
     data = {k: v for k, v in dataclasses.asdict(self).items() if v != ''}
-    if DRYRUN:
+    if global_flags.FLAGS.dryrun:
       print(f'Would create {fname}: {data}')
       return
     with open(fname, 'w') as f:
@@ -92,7 +90,7 @@ class Snapshot:
 
   def delete(self) -> None:
     _execute_sh(f'btrfs subvolume delete {self._target}')
-    if not DRYRUN:
+    if not global_flags.FLAGS.dryrun:
       if os.path.exists(self._metadata_fname):
         os.remove(self._metadata_fname)
     else:
