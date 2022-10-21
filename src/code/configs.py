@@ -68,6 +68,10 @@ class Config:
         datetime.timedelta(days=365.24): self.keep_yearly,
     }
 
+  @property
+  def mount_path(self) -> str:
+    return os.path.dirname(self.dest_prefix)
+
 
 _CONFIG_PATH = pathlib.Path('/etc/yabsnap/configs')
 

@@ -64,6 +64,15 @@ def _parse_args() -> argparse.Namespace:
   return args
 
 
+def _btrfs_sync(dryrun: bool, mount_paths: set[str]) -> None:
+  for mount_path in sorted(mount_paths):
+    if dryrun:
+      print(f'Would sync {mount_path}')
+      continue
+    print('Syncing ...', flush=True)
+    os_utils.execute_sh(f'btrfs subvolume sync {mount_path}')
+
+
 def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str,
                  sync: bool):
   found = False
@@ -73,8 +82,8 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str,
       found = True
       snap.delete()
       # TODO: synce if 'sync' is true.
-      # if sync:
-      #   snapper.btrfs_sync(force=True)
+      if sync:
+        _btrfs_sync(snap_holder.DRYRUN, {config.mount_path})
 
   if not found:
     print(f'Target {path_suffix} not found in any config.')
@@ -121,6 +130,9 @@ def main():
   # Single timestamp for all operations.
   now = datetime.datetime.now()
 
+  # Which mount paths to sync.
+  to_sync: set[str] = set()
+
   # Commands that need to access existing config.
   for config in configs.iterate_configs(source=args.source):
     if command == 'list':
@@ -136,8 +148,12 @@ def main():
       snapper.create(args.comment)
     else:
       raise ValueError(f'Command not implemented: {command}')
-    if args.sync:
-      snapper.btrfs_sync()
+
+    if snapper.need_sync:
+      to_sync.add(config.mount_path)
+
+  if args.sync:
+      _btrfs_sync(args.dry_run, to_sync)
 
 
 if __name__ == '__main__':

@@ -57,7 +57,7 @@ class SnapOperator:
     self._now = now
     self._now_str = self._now.strftime(snap_holder.TIME_FORMAT)
     # Set to true on any delete operation.
-    self._need_sync = False
+    self.need_sync = False
 
   def _remove_expired(self, snaps: Iterable[snap_holder.Snapshot]) -> bool:
     """Deletes old backups. Returns True if new backup is needed."""
@@ -79,7 +79,7 @@ class SnapOperator:
       elapsed_secs = (self._now - when).total_seconds()
       if elapsed_secs > self._config.min_keep_secs:
         snap_holder.Snapshot(target).delete()
-        self._need_sync = True
+        self.need_sync = True
       else:
         logging.info(f'Not enough time passed, not deleting {target}')
 
@@ -87,6 +87,13 @@ class SnapOperator:
 
   def _create_and_maintain_n_backups(self, count: int, trigger: str,
                                      comment: Optional[str]):
+    # Find previous snaps.
+    # Doing this before the update handles dryrun (where no new snap is created).
+    previous_snaps = [
+        x for x in _get_old_backups(self._config)
+        if x.metadata.trigger == trigger
+    ]
+
     if count > 0:
       snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
       snapshot.metadata.trigger = trigger
@@ -94,25 +101,10 @@ class SnapOperator:
         snapshot.metadata.comment = comment
       snapshot.create_from(self._config.source)
 
-    # Clean up old snaps.
-    previous_snaps = [
-        x for x in _get_old_backups(self._config)
-        if x.metadata.trigger == trigger
-    ]
-    for expired in previous_snaps[:-count]:
+    # Clean up old snaps; leave count-1 previous snaps (plus the one now created).
+    for expired in previous_snaps[:-count + 1]:
       expired.delete()
-      self._need_sync = True
-
-  def btrfs_sync(self, force: bool = False) -> None:
-    if not force and not self._need_sync:
-      return
-    tosync = os.path.dirname(self._config.dest_prefix)
-    if snap_holder.DRYRUN:
-      print(f'Would sync {tosync}')
-      return
-    print('Syncing ...', flush=True)
-    os_utils.execute_sh(f'btrfs subvolume sync {tosync}')
-    self._need_sync = False
+      self.need_sync = True
 
   def create(self, comment: Optional[str]):
     try:
