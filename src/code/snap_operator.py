@@ -133,10 +133,10 @@ class SnapOperator:
       trigger_str = ''.join(
           c if snap.metadata.trigger == c else ' ' for c in 'SIU')
       print(f'{trigger_str}  ', end='')
+      print(f'{snap.target}  ', end='')
       # print(f'{snap.snaptime}  ', end='')
       elapsed = (self._now - snap.snaptime).total_seconds()
       elapsed_str = '(' + human_interval.humanize(elapsed) + ' ago)'
       print(f'{elapsed_str:<20}  ', end='')
-      print(f'{snap.target}  ', end='')
       print(snap.metadata.comment)
     print('')
