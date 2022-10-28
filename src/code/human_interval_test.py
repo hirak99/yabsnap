@@ -56,18 +56,8 @@ class TestHumanInterval(unittest.TestCase):
         (4 * 60 * 60, '4h'),
         (24 * 60 * 60, '1 day'),
         (4 * 24 * 60 * 60, '4 days'),
+        (4 * 24 * 60 * 60 + 60 * 60, '4 days 1h'),
+        (4 * 24 * 60 * 60 + 60 * 60 + 65, '4 days 1h'),
     ]
     for input, expected in cases:
       self.assertEqual(human_interval.humanize(input), expected)
-
-  def test_humanize_truncated(self):
-    self.assertEqual(human_interval.humanize(11 * 24 * 60 * 60 + 65),
-                     '1 week 4 days 1m 5s')
-    self.assertEqual(human_interval.humanize(11 * 24 * 60 * 60 + 65, maxlen=19),
-                     '1 week 4 days 1m 5s')
-    self.assertEqual(human_interval.humanize(11 * 24 * 60 * 60 + 65, maxlen=18),
-                     '1 week 4 days 1m')
-    self.assertEqual(human_interval.humanize(11 * 24 * 60 * 60 + 65, maxlen=16),
-                     '1 week 4 days 1m')
-    self.assertEqual(human_interval.humanize(11 * 24 * 60 * 60 + 65, maxlen=15),
-                     '1 week 4 days')

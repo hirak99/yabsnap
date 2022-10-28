@@ -60,12 +60,19 @@ _SUFFIXES = [
     (1, 's'),
 ]
 
+_ACCURACY = 0.01
 
-def humanize(seconds: int | float, *, maxlen: Optional[int] = None) -> str:
+
+def humanize(seconds: int | float) -> str:
   result: list[str] = []
+  largest_duration: Optional[float] = None
   for duration, suffix in _SUFFIXES:
     if seconds >= duration:
       count, seconds = divmod(seconds, duration)
+      if largest_duration is None:
+        largest_duration = duration
+      elif duration < largest_duration * _ACCURACY:
+        break
       if count == 0:
         continue
       if len(suffix) > 1:
@@ -73,9 +80,4 @@ def humanize(seconds: int | float, *, maxlen: Optional[int] = None) -> str:
         result.append(f'{count:0.0f} {suffix}{pluralize}')
       else:
         result.append(f'{count:0.0f}{suffix}')
-      if maxlen is not None:
-        strlen = len(result) + sum(len(x) for x in result) - 1
-        if strlen > maxlen:
-          result = result[:-1]
-          break
   return ' '.join(result)
