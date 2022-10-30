@@ -19,14 +19,14 @@ from typing import Iterator
 
 class DeleteManager:
 
-  def __init__(self, rules: dict[datetime.timedelta, int]) -> None:
+  def __init__(self, rules: list[tuple[datetime.timedelta, int]]) -> None:
     self._rules = rules
 
   def _required_intervals(
       self, now: datetime.datetime
   ) -> list[tuple[datetime.datetime, datetime.datetime]]:
     result: list[tuple[datetime.datetime, datetime.datetime]] = []
-    for width, count in self._rules.items():
+    for width, count in self._rules:
       for index in range(count):
         result.append((now - (index + 1) * width, now - index * width))
     return result
@@ -41,7 +41,8 @@ class DeleteManager:
 
     for time, fname in records:
 
-      # Ensure ascending order.
+      # Check that snaps passed to check are in ascending order, because this is
+      # assumed in the deletion logic.
       if prev_time is not None and prev_time > time:
         raise ValueError(f'Records not in order, {prev_time}, {time}')
       else:

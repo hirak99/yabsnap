@@ -59,14 +59,14 @@ class Config:
     return result
 
   @property
-  def deletion_rules(self) -> dict[datetime.timedelta, int]:
-    return {
-        datetime.timedelta(hours=1): self.keep_hourly,
-        datetime.timedelta(days=1): self.keep_daily,
-        datetime.timedelta(weeks=1): self.keep_weekly,
-        datetime.timedelta(days=30): self.keep_monthly,
-        datetime.timedelta(days=365.24): self.keep_yearly,
-    }
+  def deletion_rules(self) -> list[tuple[datetime.timedelta, int]]:
+    return [
+        (datetime.timedelta(hours=1), self.keep_hourly),
+        (datetime.timedelta(days=1), self.keep_daily),
+        (datetime.timedelta(weeks=1), self.keep_weekly),
+        (datetime.timedelta(days=30), self.keep_monthly),
+        (datetime.timedelta(days=365.24), self.keep_yearly),
+    ]
 
   @property
   def mount_path(self) -> str:
@@ -101,7 +101,9 @@ def create_config(name: str, source: str | None):
 
   inadmissible_chars = '@/.'
   if any(c in inadmissible_chars for c in name):
-    print(f'Error: Config name should be a file name, without following chars: {inadmissible_chars}')
+    print(
+        f'Error: Config name should be a file name, without following chars: {inadmissible_chars}'
+    )
     return
 
   _config_fname = _CONFIG_PATH / f'{name}.conf'
