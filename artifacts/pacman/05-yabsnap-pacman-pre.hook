@@ -6,7 +6,7 @@ Type = Package
 Target = *
 
 [Action]
-Description = Triggering yabsnap pre snapshots for configurations...
+Description = Triggering yabsnap pre-installation snapshots...
 # Depends =
 When = PreTransaction
 Exec = /usr/share/yabsnap/yabsnap.sh internal-preupdate
