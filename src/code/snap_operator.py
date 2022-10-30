@@ -24,10 +24,6 @@ from . import snap_holder
 
 from typing import Iterable, Iterator, Optional
 
-# To prevent slight differences in starting time of the cron job,
-# will backup even if previous backup didn't expire by this much time.
-_TRIGGER_BUFFER = datetime.timedelta(minutes=3)
-
 
 def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
   configdir = os.path.dirname(config.dest_prefix)
@@ -62,18 +58,16 @@ class SnapOperator:
 
   def _remove_expired(self, snaps: Iterable[snap_holder.Snapshot]) -> bool:
     """Deletes old backups. Returns True if new backup is needed."""
-    buffered_now = self._now + _TRIGGER_BUFFER
-
     # Only consider scheduled backups for expiry.
     candidates = [(x.snaptime, x.target)
                   for x in snaps
                   if x.metadata.trigger in {'', 'S'}]
     # Append a placeholder to denote the backup that will be taken next.
     # If this is deleted, it would indicate not to create new backup.
-    candidates.append((buffered_now, ''))
+    candidates.append((self._now, ''))
 
     delete = deletion_logic.DeleteManager(self._config.deletion_rules)
-    for when, target in delete.get_deletes(buffered_now, candidates):
+    for when, target in delete.get_deletes(self._now, candidates):
       if target == '':
         logging.info(f'No new backup needed for {self._config.source}')
         return False

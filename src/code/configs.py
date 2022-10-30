@@ -20,6 +20,16 @@ import os
 
 from typing import Iterator, Optional
 
+# Shortens the scheduled times by this amount. This ensures that sheduled backup
+# happens, even if previous backup didn't expire by this much time.
+#
+# Since the scheduled job runs once per hour, this will not result in denser
+# snapshots; just the deletion check will be lineant.
+_DURATION_BUFFER = datetime.timedelta(minutes=3)
+
+# Where config files are stored.
+_CONFIG_PATH = pathlib.Path('/etc/yabsnap/configs')
+
 
 @dataclasses.dataclass
 class Config:
@@ -61,19 +71,16 @@ class Config:
   @property
   def deletion_rules(self) -> list[tuple[datetime.timedelta, int]]:
     return [
-        (datetime.timedelta(hours=1), self.keep_hourly),
-        (datetime.timedelta(days=1), self.keep_daily),
-        (datetime.timedelta(weeks=1), self.keep_weekly),
-        (datetime.timedelta(days=30), self.keep_monthly),
-        (datetime.timedelta(days=365.24), self.keep_yearly),
+        (datetime.timedelta(hours=1) - _DURATION_BUFFER, self.keep_hourly),
+        (datetime.timedelta(days=1) - _DURATION_BUFFER, self.keep_daily),
+        (datetime.timedelta(weeks=1) - _DURATION_BUFFER, self.keep_weekly),
+        (datetime.timedelta(days=30) - _DURATION_BUFFER, self.keep_monthly),
+        (datetime.timedelta(days=365.24) - _DURATION_BUFFER, self.keep_yearly),
     ]
 
   @property
   def mount_path(self) -> str:
     return os.path.dirname(self.dest_prefix)
-
-
-_CONFIG_PATH = pathlib.Path('/etc/yabsnap/configs')
 
 
 def iterate_configs(source: Optional[str]) -> Iterator[Config]:
