@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Encapsulates a btrfs snapshot, and relevant metadata.
 
 The existence of this object doesn't mean the snapshot exists;
@@ -32,7 +31,7 @@ TIME_FORMAT_LEN = 14
 
 def _execute_sh(cmd: str):
   if global_flags.FLAGS.dryrun:
-    print('Would run ' + cmd)
+    os_utils.eprint('Would run ' + cmd)
   else:
     os_utils.execute_sh(cmd)
 
@@ -51,7 +50,7 @@ class _Metadata:
     # Ignore empty strings.
     data = {k: v for k, v in dataclasses.asdict(self).items() if v != ''}
     if global_flags.FLAGS.dryrun:
-      print(f'Would create {fname}: {data}')
+      os_utils.eprint(f'Would create {fname}: {data}')
       return
     with open(fname, 'w') as f:
       json.dump(data, f, indent=2)
@@ -94,4 +93,4 @@ class Snapshot:
       if os.path.exists(self._metadata_fname):
         os.remove(self._metadata_fname)
     else:
-      print(f'Would delete {self._metadata_fname}')
+      os_utils.eprint(f'Would delete {self._metadata_fname}')

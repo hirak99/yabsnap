@@ -18,6 +18,8 @@ import datetime
 import pathlib
 import os
 
+from . import os_utils
+
 from typing import Iterator, Optional
 
 # Shortens the scheduled times by this amount. This ensures that sheduled backup
@@ -85,13 +87,14 @@ class Config:
 
 def iterate_configs(source: Optional[str]) -> Iterator[Config]:
   if not _CONFIG_PATH.is_dir():
-    print('No config found. Use \'create-config\' command to create a config.')
+    os_utils.eprint(
+        'No config found. Use \'create-config\' command to create a config.')
     return
   for fname in _CONFIG_PATH.iterdir():
     config = Config.from_configfile(str(fname))
     if not config.source or not config.dest_prefix:
-      print(f'WARNING: Skipping invalid configuration {fname}'
-            ' (please specify source and dest_prefix)')
+      os_utils.eprint(f'WARNING: Skipping invalid configuration {fname}'
+                      ' (please specify source and dest_prefix)')
       continue
     if not source or config.source == source:
       yield config
@@ -108,14 +111,14 @@ def create_config(name: str, source: str | None):
 
   inadmissible_chars = '@/.'
   if any(c in inadmissible_chars for c in name):
-    print(
+    os_utils.eprint(
         f'Error: Config name should be a file name, without following chars: {inadmissible_chars}'
     )
     return
 
   _config_fname = _CONFIG_PATH / f'{name}.conf'
   if _config_fname.exists():
-    print(f'Already exists: {_config_fname}')
+    os_utils.eprint(f'Already exists: {_config_fname}')
     return
 
   script_dir = pathlib.Path(os.path.realpath(__file__)).parent
@@ -133,10 +136,10 @@ def create_config(name: str, source: str | None):
     with _config_fname.open('w') as out:
       out.write('\n'.join(lines))
   except PermissionError:
-    print(f'Could not access or create {_config_fname}; run as root?')
+    os_utils.eprint(f'Could not access or create {_config_fname}; run as root?')
     return
 
-  print()
-  print(f'Created: {_config_fname}')
+  os_utils.eprint()
+  os_utils.eprint(f'Created: {_config_fname}')
   if not source:
-    print("Please edit the file to set 'source = ' field.")
+    os_utils.eprint("Please edit the file to set 'source = ' field.")

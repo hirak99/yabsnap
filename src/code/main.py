@@ -67,9 +67,9 @@ def _parse_args() -> argparse.Namespace:
 def _btrfs_sync(mount_paths: set[str]) -> None:
   for mount_path in sorted(mount_paths):
     if global_flags.FLAGS.dryrun:
-      print(f'Would sync {mount_path}')
+      os_utils.eprint(f'Would sync {mount_path}')
       continue
-    print('Syncing ...', flush=True)
+    os_utils.eprint('Syncing ...', flush=True)
     os_utils.execute_sh(f'btrfs subvolume sync {mount_path}')
 
 
@@ -86,7 +86,7 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str,
     _btrfs_sync(mount_paths)
 
   if not mount_paths:
-    print(f'Target {path_suffix} not found in any config.')
+    os_utils.eprint(f'Target {path_suffix} not found in any config.')
 
 
 def _config_operation(command: str, source: str, comment: str, sync: bool):
@@ -123,7 +123,7 @@ def main():
   args = _parse_args()
   command: str = args.command
   if not command:
-    print('Start with --help to see common args.')
+    os_utils.eprint('Start with --help to see common args.')
     return
 
   if args.dry_run:
@@ -134,7 +134,7 @@ def main():
 
   if configs.is_schedule_enabled():
     if not os_utils.timer_enabled():
-      print('\n'.join([
+      os_utils.eprint('\n'.join([
           '',
           '*** NOTE - Backup schedule exists but yabsnap.timer is not active ***',
           'To enable scheduled backups, please run -',

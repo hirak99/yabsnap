@@ -16,6 +16,9 @@ import logging
 import os
 import re
 import subprocess
+import sys
+
+from typing import Any
 
 
 def execute_sh(command: str, error_ok: bool = False) -> None:
@@ -25,7 +28,7 @@ def execute_sh(command: str, error_ok: bool = False) -> None:
   except subprocess.CalledProcessError as e:
     if not error_ok:
       raise e
-    logging.warn(f'Process had error {e}')
+    logging.warning(f'Process had error {e}')
 
 
 def last_pacman_command() -> str:
@@ -41,3 +44,8 @@ def last_pacman_command() -> str:
 
 def timer_enabled() -> bool:
   return os.system('systemctl is-active yabsnap.timer >/dev/null') == 0
+
+
+def eprint(*args: Any, **kwargs: Any) -> None:
+  """Notifications meant for user, but not for redirection to any file."""
+  print(*args, file=sys.stderr, **kwargs)

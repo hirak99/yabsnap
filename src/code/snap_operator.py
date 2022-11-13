@@ -107,7 +107,8 @@ class SnapOperator:
                                           trigger='U',
                                           comment=comment)
     except PermissionError:
-      print(f'Could perform snap for {self._config.config_file}; run as root?')
+      os_utils.eprint(
+          f'Could perform snap for {self._config.config_file}; run as root?')
 
   def on_pacman(self):
     self._create_and_maintain_n_backups(count=self._config.keep_preinstall,
