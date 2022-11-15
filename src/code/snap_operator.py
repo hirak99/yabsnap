@@ -111,6 +111,16 @@ class SnapOperator:
           f'Could perform snap for {self._config.config_file}; run as root?')
 
   def on_pacman(self):
+    last_snap: Optional[snap_holder.Snapshot] = None
+    for snap in _get_old_backups(self._config):
+      if snap.metadata.trigger == 'I':
+        last_snap = snap
+    if last_snap is not None:
+      time_since = (self._now - last_snap.snaptime).total_seconds()
+      if time_since < self._config.preinstall_interval:
+        logging.info(f'Only {time_since:0.0f}s has passed since last install, '
+                     f'need {self._config.preinstall_interval:0.0f}s. Skipping.')
+        return
     self._create_and_maintain_n_backups(count=self._config.keep_preinstall,
                                         trigger='I',
                                         comment=os_utils.last_pacman_command())

@@ -18,6 +18,7 @@ import datetime
 import pathlib
 import os
 
+from . import human_interval
 from . import os_utils
 
 from typing import Iterator, Optional
@@ -44,10 +45,12 @@ class Config:
   # How many user backups to keep.
   keep_user: int = 1
   # How many to keep on pacman installation or updates.
-  keep_preinstall: int = 0
+  keep_preinstall: int = 1
+  # How much time must have passed since last pacman install.
+  preinstall_interval: float = 5 * 60.0
   # Will keep this many of snapshots; rest will be removed during housekeeping.
   keep_hourly: int = 0
-  keep_daily: int = 0
+  keep_daily: int = 5
   keep_weekly: int = 0
   keep_monthly: int = 0
   keep_yearly: int = 0
@@ -66,7 +69,9 @@ class Config:
                  source=section['source'],
                  dest_prefix=section['dest_prefix'])
     for key, value in section.items():
-      if key not in {'source', 'dest_prefix'}:
+      if key.endswith('_interval'):
+        setattr(result, key, human_interval.parse_to_secs(value))
+      elif key not in {'source', 'dest_prefix'}:
         setattr(result, key, int(value))
     return result
 
@@ -107,6 +112,11 @@ def is_schedule_enabled() -> bool:
   return False
 
 
+def _example_config_fname() -> pathlib.Path:
+  script_dir = pathlib.Path(os.path.realpath(__file__)).parent
+  return script_dir / 'example_config.conf'
+
+
 def create_config(name: str, source: str | None):
 
   inadmissible_chars = '@/.'
@@ -121,9 +131,8 @@ def create_config(name: str, source: str | None):
     os_utils.eprint(f'Already exists: {_config_fname}')
     return
 
-  script_dir = pathlib.Path(os.path.realpath(__file__)).parent
   lines: list[str] = []
-  for line in open(script_dir / 'example_config.conf'):
+  for line in open(_example_config_fname()):
     line = line.strip()
     if source and line.startswith('source ='):
       line = f'source = {source}'
