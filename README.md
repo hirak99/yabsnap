@@ -1,6 +1,6 @@
 Yet Another Btrfs Snapshotter
 
-NOTE This is currently only tested and meant for Arch Linux.
+NOTE: This is currently only tested and meant for Arch Linux.
 
 # Installing
 
@@ -24,6 +24,7 @@ sudo scripts/install.sh
 # To uninstall -
 sudo scripts/uninstall.sh
 ```
+
 # What does it do?
 
 Allows managing scheduled btrfs snapshots.
@@ -129,3 +130,7 @@ The script must be stored and executed to perform the rollback operation.
 * How do I delete multiple snaps?
   * The quickest way is to delete them manually. Remove the snaps, and
     corresponding `-meta.json` files.
+
+* What's new?
+  * See [change log](CHANGELOG.md).
+
