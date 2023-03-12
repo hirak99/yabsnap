@@ -58,7 +58,9 @@ snapshot system.
 (2) At the time of writing, `timeshift-autosnap` does not tag the snapshot with
 pacman command used.
 
-# Quick Start
+# Usage
+
+## Quick Start
 
 - Create a config:
 `yabsnap create-config CONFIGNAME`
@@ -72,17 +74,25 @@ sudo systemctl enable --now yabsnap.timer
 
 You should now have automated backups running.
 
-# Config File
+## Config File
 
-The example config file shows options that you can change to configura the
-behavior of backup and cleanups.
+Once you create a config, automated snapshots should start running.
+
+You can further configure the behavior of snapshots by editing the config. Below
+is how a config file looks like.
 
 ```ini
+# All configurations must be under the [DEFAULT] section.
 [DEFAULT]
-# Source, must be a btrfs mount.
-source = /home
 
-# Destination directory and prefix. Timestamp will be added to this prefix.
+# Source, must be a btrfs mount.
+# For example, `source = /` or `source = /home`.
+source =
+
+# Destination including directory and prefix where the snapshots will be stored.
+# For example, `dest_prefix = /.snapshots/@root-` will result in snapshots like
+# "/.snapshots/@root-20230315120000".
+# Time in the format YYYYMMDDhhmmss will be added to the prefix while creating snaps.
 dest_prefix =
 
 # How much time must pass after a snap before creating another one.
@@ -171,11 +181,14 @@ The script must be stored and executed to perform the rollback operation.
 
 # FAQ
 
-* I deleted a snapshot manually. Will it confuse yabsnap?
-  * No, you can also delete the corresponding metadata manually. It's in the
+- Does it work on other distros than Arch?
+  - It should be easy to port if the usage grows, or there if are requests.
+
+- I deleted a snapshot manually. Will it confuse yabsnap?
+  - No, you can also delete the corresponding metadata manually. It's in the
     same directory. If you used `yabsnap delete PATH_TO_SNAPSHOT`, it would take
     care of that for you.
 
-* How do I delete multiple snaps?
-  * The quickest way is to delete them manually. Remove the snaps, and
+- How do I delete multiple snaps?
+  - The quickest way is to delete them manually. Remove the snaps, and
     corresponding `-meta.json` files.
