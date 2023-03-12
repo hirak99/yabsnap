@@ -15,6 +15,7 @@
 import configparser
 import dataclasses
 import datetime
+import logging
 import pathlib
 import os
 
@@ -73,6 +74,8 @@ class Config:
                  source=section['source'],
                  dest_prefix=section['dest_prefix'])
     for key, value in section.items():
+      if not hasattr(result, key):
+        logging.warning(f'Invalid field {key=} found in {config_file=}')
       if key.endswith('_interval'):
         setattr(result, key, human_interval.parse_to_secs(value))
       elif key not in {'source', 'dest_prefix'}:
