@@ -26,6 +26,7 @@ from typing import Iterable, Iterator, Optional
 
 
 def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
+  """Returns existing backups in chronological order."""
   configdir = os.path.dirname(config.dest_prefix)
   for fname in os.listdir(configdir):
     pathname = os.path.join(configdir, fname)
@@ -118,15 +119,28 @@ class SnapOperator:
     if last_snap is not None:
       time_since = (self._now - last_snap.snaptime).total_seconds()
       if time_since < self._config.preinstall_interval:
-        logging.info(f'Only {time_since:0.0f}s has passed since last install, '
-                     f'need {self._config.preinstall_interval:0.0f}s. Skipping.')
+        logging.info(
+            f'Only {time_since:0.0f}s has passed since last install, '
+            f'need {self._config.preinstall_interval:0.0f}s. Skipping.')
         return
     self._create_and_maintain_n_backups(count=self._config.keep_preinstall,
                                         trigger='I',
                                         comment=os_utils.last_pacman_command())
 
   def scheduled(self):
-    previous_snaps = _get_old_backups(self._config)
+    """Triggers periodically by the system timer."""
+    previous_snaps = list(_get_old_backups(self._config))
+    if previous_snaps:
+      # Check if we should trigger a backup.
+      wait_until = (previous_snaps[-1].snaptime +
+                    datetime.timedelta(seconds=self._config.trigger_interval) -
+                    configs.DURATION_BUFFER) - self._now
+      if wait_until.total_seconds() > 0:
+        logging.info(
+            f'Schedule not triggered for {self._config.source}, need to wait {wait_until}'
+        )
+        return
+    # Manage deletions and check if new backup is needed.
     need_new = self._remove_expired(previous_snaps)
     if need_new:
       snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)

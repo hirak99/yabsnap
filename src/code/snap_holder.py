@@ -66,6 +66,7 @@ class _Metadata:
 class Snapshot:
 
   def __init__(self, target: str) -> None:
+    # The full pathname of the snapshot directory.
     self._target = target
     timestr = self._target[-TIME_FORMAT_LEN:]
     self._snaptime = datetime.datetime.strptime(timestr, TIME_FORMAT)
@@ -74,11 +75,11 @@ class Snapshot:
     self._dryrun = False
 
   @property
-  def target(self):
+  def target(self) -> str:
     return self._target
 
   @property
-  def snaptime(self):
+  def snaptime(self) -> datetime.datetime:
     return self._snaptime
 
   def create_from(self, parent: str) -> None:

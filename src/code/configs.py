@@ -28,7 +28,7 @@ from typing import Iterator, Optional
 #
 # Since the scheduled job runs once per hour, this will not result in denser
 # snapshots; just the deletion check will be lineant.
-_DURATION_BUFFER = datetime.timedelta(minutes=3)
+DURATION_BUFFER = datetime.timedelta(minutes=3)
 
 # Where config files are stored.
 _CONFIG_PATH = pathlib.Path('/etc/yabsnap/configs')
@@ -48,6 +48,10 @@ class Config:
   keep_preinstall: int = 1
   # How much time must have passed since last pacman install.
   preinstall_interval: float = 5 * 60.0
+  # After how much time this backup will be triggered. Currently, the system
+  # timer runs with a frequency of 60 minutes. Hence only multiples of 60
+  # minutes should be used.
+  trigger_interval: float = 60 * 60.0
   # Will keep this many of snapshots; rest will be removed during housekeeping.
   keep_hourly: int = 0
   keep_daily: int = 5
@@ -78,11 +82,11 @@ class Config:
   @property
   def deletion_rules(self) -> list[tuple[datetime.timedelta, int]]:
     return [
-        (datetime.timedelta(hours=1) - _DURATION_BUFFER, self.keep_hourly),
-        (datetime.timedelta(days=1) - _DURATION_BUFFER, self.keep_daily),
-        (datetime.timedelta(weeks=1) - _DURATION_BUFFER, self.keep_weekly),
-        (datetime.timedelta(days=30) - _DURATION_BUFFER, self.keep_monthly),
-        (datetime.timedelta(days=365.24) - _DURATION_BUFFER, self.keep_yearly),
+        (datetime.timedelta(hours=1) - DURATION_BUFFER, self.keep_hourly),
+        (datetime.timedelta(days=1) - DURATION_BUFFER, self.keep_daily),
+        (datetime.timedelta(weeks=1) - DURATION_BUFFER, self.keep_weekly),
+        (datetime.timedelta(days=30) - DURATION_BUFFER, self.keep_monthly),
+        (datetime.timedelta(days=365.24) - DURATION_BUFFER, self.keep_yearly),
     ]
 
   @property
