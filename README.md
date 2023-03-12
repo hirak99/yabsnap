@@ -58,12 +58,62 @@ snapshot system.
 (2) At the time of writing, `timeshift-autosnap` does not tag the snapshot with
 pacman command used.
 
-# Configuring
+# Quick Start
 
-* Run `yabsnap create-config CONFIGNAME`
-* Then edit the file it creates.
+- Create a config:
+`yabsnap create-config CONFIGNAME`
+  - This will create a file `/etc/configs/yabsnap/CONFIGNAME.conf`
+- Edit the config to change the `source` field, to point to a btrfs mounted directory. E.g. `source = /`, or `source = /home`.
 
-# Usage
+Also, ensure that the service is enabled,
+```sh
+sudo systemctl enable --now yabsnap.timer
+```
+
+You should now have automated backups running.
+
+# Config File
+
+The example config file shows options that you can change to configura the
+behavior of backup and cleanups.
+
+```ini
+[DEFAULT]
+# Source, must be a btrfs mount.
+source = /home
+
+# Destination directory and prefix. Timestamp will be added to this prefix.
+dest_prefix =
+
+# How much time must pass after a snap before creating another one.
+trigger_interval = 1 hour
+
+# How much minimum time must pass before a snap can be cleaned up.
+min_keep_secs = 1800
+
+# How many user-created snaps to keep.
+# User created snaps can are made with 'create' command.
+keep_user = 1
+
+# How many pre-installation snaps to keep.
+# Any value more than 0 will enable pacman hook, and store snap on before pacman operation.
+# Will also work for AUR managers such as yay, since AUR managers also use pacman.
+keep_preinstall = 1
+
+# How much time must have bassed from last installation to trigger a snap.
+# This prevents snaps multiple installations from a script to each trigger snap in short succession.
+preinstall_interval = 5 minutes
+
+# How many scheduled snaps to keep.
+# If all are 0, scheduled snap will be disabled.
+keep_hourly = 0
+keep_daily = 5
+keep_weekly = 0
+keep_monthly = 0
+keep_yearly = 0
+```
+
+# Command Line Interface
 
 ## Global flags
 
