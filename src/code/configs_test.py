@@ -21,16 +21,15 @@ from . import configs
 
 
 class ConfigsTest(unittest.TestCase):
+    def test_default_config(self):
+        # Check that the bootstrap config indeed encodes defaults.
+        config_file = str(configs._example_config_fname())
+        config = configs.Config.from_configfile(config_file)
+        expected_config = configs.Config(
+            config_file=config_file, source="", dest_prefix=""
+        )
+        self.assertEqual(config, expected_config)
 
-  def test_default_config(self):
-    # Check that the bootstrap config indeed encodes defaults.
-    config_file = str(configs._example_config_fname())
-    config = configs.Config.from_configfile(config_file)
-    expected_config = configs.Config(config_file=config_file,
-                                     source='',
-                                     dest_prefix='')
-    self.assertEqual(config, expected_config)
 
-
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

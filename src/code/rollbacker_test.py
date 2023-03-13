@@ -22,40 +22,41 @@ from . import snap_holder
 # pyright: reportPrivateUsage=false
 
 _MOUNT_LOOKUP = {
-    '/snaps': ('/dev/BLOCKDEV1', '/subv_snaps'),
-    '/home': ('/dev/BLOCKDEV1', '/subv_home'),
-    '/root': ('/dev/BLOCKDEV1', '/subv_root'),
+    "/snaps": ("/dev/BLOCKDEV1", "/subv_snaps"),
+    "/home": ("/dev/BLOCKDEV1", "/subv_home"),
+    "/root": ("/dev/BLOCKDEV1", "/subv_root"),
 }
 
 
 def _mock_get_mount_attributes(mount_pt: str):
-  return rollbacker._MountAttributes(device=_MOUNT_LOOKUP[mount_pt][0],
-                                     subvol_name=_MOUNT_LOOKUP[mount_pt][1])
+    return rollbacker._MountAttributes(
+        device=_MOUNT_LOOKUP[mount_pt][0], subvol_name=_MOUNT_LOOKUP[mount_pt][1]
+    )
 
 
 class TestRollbacker(unittest.TestCase):
+    def test_empty_snap(self):
+        generated = rollbacker._rollback_snapshots(to_rollback=[])
+        self.assertEqual(generated, ["# No snapshot matched to rollback."])
 
-  def test_empty_snap(self):
-    generated = rollbacker._rollback_snapshots(to_rollback=[])
-    self.assertEqual(generated, ['# No snapshot matched to rollback.'])
+    @mock.patch.object(rollbacker, "_get_now_str", return_value="20220202220000")
+    @mock.patch.object(
+        rollbacker, "_get_mount_attributes", side_effect=_mock_get_mount_attributes
+    )
+    def test_two_snaps(
+        self, mock_get_now_str: mock.Mock, mock_get_mount_attributes: mock.Mock
+    ):
+        # config_list = [configs.Config('test.conf', source='/home', dest_prefix='/snaps/@home-')]
+        snaps_list = [
+            snap_holder.Snapshot("/snaps/@home-20220101130000"),
+            snap_holder.Snapshot("/snaps/@root-20220101140000"),
+        ]
+        snaps_list[0].metadata.source = "/home"
+        snaps_list[1].metadata.source = "/root"
 
-  @mock.patch.object(rollbacker, '_get_now_str', return_value='20220202220000')
-  @mock.patch.object(rollbacker,
-                     '_get_mount_attributes',
-                     side_effect=_mock_get_mount_attributes)
-  def test_two_snaps(self, mock_get_now_str: mock.Mock,
-                     mock_get_mount_attributes: mock.Mock):
-    # config_list = [configs.Config('test.conf', source='/home', dest_prefix='/snaps/@home-')]
-    snaps_list = [
-        snap_holder.Snapshot('/snaps/@home-20220101130000'),
-        snap_holder.Snapshot('/snaps/@root-20220101140000'),
-    ]
-    snaps_list[0].metadata.source = '/home'
-    snaps_list[1].metadata.source = '/root'
+        generated = rollbacker._rollback_snapshots(to_rollback=snaps_list)
 
-    generated = rollbacker._rollback_snapshots(to_rollback=snaps_list)
-
-    expected = '''#!/bin/bash
+        expected = """#!/bin/bash
 # Save this to a script, review and run as root to perform the rollback.
 
 set -uexo pipefail
@@ -76,9 +77,9 @@ echo
 echo After reboot you may delete -
 echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_home"
 echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
-'''
-    self.assertEqual(generated, expected.splitlines())
+"""
+        self.assertEqual(generated, expected.splitlines())
 
 
-if __name__ == '__main__':
-  unittest.main()
+if __name__ == "__main__":
+    unittest.main()

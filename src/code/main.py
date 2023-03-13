@@ -26,138 +26,150 @@ from typing import Iterable
 
 
 def _parse_args() -> argparse.Namespace:
-  parser = argparse.ArgumentParser(prog='yabsnap')
-  parser.add_argument('--sync',
-                      help='Wait for btrfs to sync for any delete operations.',
-                      action='store_true')
-  parser.add_argument('--source',
-                      help='Restrict to config with this source path.')
-  parser.add_argument(
-      '--dry-run',
-      help='If passed, will disable all snapshot creation and deletion.',
-      action='store_true')
-  subparsers = parser.add_subparsers(dest='command')
+    parser = argparse.ArgumentParser(prog="yabsnap")
+    parser.add_argument(
+        "--sync",
+        help="Wait for btrfs to sync for any delete operations.",
+        action="store_true",
+    )
+    parser.add_argument("--source", help="Restrict to config with this source path.")
+    parser.add_argument(
+        "--dry-run",
+        help="If passed, will disable all snapshot creation and deletion.",
+        action="store_true",
+    )
+    subparsers = parser.add_subparsers(dest="command")
 
-  # User commands.
-  subparsers.add_parser('list')
-  create = subparsers.add_parser('create', help='Create new snapshots.')
-  create.add_argument('--comment', help='Comment attached to this snapshot.')
-  create_config = subparsers.add_parser(
-      'create-config',
-      help='Bootstrap a config for new filesystem to snapshot.')
-  create_config.add_argument(
-      'config_name', help='Name to be given to config file, e.g. "home".')
-  delete = subparsers.add_parser('delete',
-                                 help='Delete a snapshot created by yabsnap.')
-  rollback = subparsers.add_parser(
-      'rollback-gen', help='Generate script to rollback one or more snaps.')
+    # User commands.
+    subparsers.add_parser("list")
+    create = subparsers.add_parser("create", help="Create new snapshots.")
+    create.add_argument("--comment", help="Comment attached to this snapshot.")
+    create_config = subparsers.add_parser(
+        "create-config", help="Bootstrap a config for new filesystem to snapshot."
+    )
+    create_config.add_argument(
+        "config_name", help='Name to be given to config file, e.g. "home".'
+    )
+    delete = subparsers.add_parser(
+        "delete", help="Delete a snapshot created by yabsnap."
+    )
+    rollback = subparsers.add_parser(
+        "rollback-gen", help="Generate script to rollback one or more snaps."
+    )
 
-  for command_with_target in [delete, rollback]:
-    command_with_target.add_argument(
-        'target_suffix', help='Datetime string, or full path of a snapshot.')
+    for command_with_target in [delete, rollback]:
+        command_with_target.add_argument(
+            "target_suffix", help="Datetime string, or full path of a snapshot."
+        )
 
-  # Internal commands used in scheduling and pacman hook.
-  subparsers.add_parser('internal-cronrun', help=argparse.SUPPRESS)
-  subparsers.add_parser('internal-preupdate', help=argparse.SUPPRESS)
+    # Internal commands used in scheduling and pacman hook.
+    subparsers.add_parser("internal-cronrun", help=argparse.SUPPRESS)
+    subparsers.add_parser("internal-preupdate", help=argparse.SUPPRESS)
 
-  args = parser.parse_args()
-  return args
+    args = parser.parse_args()
+    return args
 
 
 def _btrfs_sync(mount_paths: set[str]) -> None:
-  for mount_path in sorted(mount_paths):
-    if global_flags.FLAGS.dryrun:
-      os_utils.eprint(f'Would sync {mount_path}')
-      continue
-    os_utils.eprint('Syncing ...', flush=True)
-    os_utils.execute_sh(f'btrfs subvolume sync {mount_path}')
+    for mount_path in sorted(mount_paths):
+        if global_flags.FLAGS.dryrun:
+            os_utils.eprint(f"Would sync {mount_path}")
+            continue
+        os_utils.eprint("Syncing ...", flush=True)
+        os_utils.execute_sh(f"btrfs subvolume sync {mount_path}")
 
 
-def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str,
-                 sync: bool):
-  mount_paths: set[str] = set()
-  for config in configs_iter:
-    snap = snap_operator.find_target(config, path_suffix)
-    if snap:
-      snap.delete()
-      mount_paths.add(config.mount_path)
+def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync: bool):
+    mount_paths: set[str] = set()
+    for config in configs_iter:
+        snap = snap_operator.find_target(config, path_suffix)
+        if snap:
+            snap.delete()
+            mount_paths.add(config.mount_path)
 
-  if sync:
-    _btrfs_sync(mount_paths)
+    if sync:
+        _btrfs_sync(mount_paths)
 
-  if not mount_paths:
-    os_utils.eprint(f'Target {path_suffix} not found in any config.')
+    if not mount_paths:
+        os_utils.eprint(f"Target {path_suffix} not found in any config.")
 
 
 def _config_operation(command: str, source: str, comment: str, sync: bool):
-  # Single timestamp for all operations.
-  now = datetime.datetime.now()
+    # Single timestamp for all operations.
+    now = datetime.datetime.now()
 
-  # Which mount paths to sync.
-  mount_paths_to_sync: set[str] = set()
+    # Which mount paths to sync.
+    mount_paths_to_sync: set[str] = set()
 
-  # Commands that need to access existing config.
-  for config in configs.iterate_configs(source=source):
-    if command == 'list':
-      print(f'Config: {config.config_file} (source={config.source})')
-    snapper = snap_operator.SnapOperator(config, now)
-    if command == 'internal-cronrun':
-      snapper.scheduled()
-    elif command == 'internal-preupdate':
-      snapper.on_pacman()
-    elif command == 'list':
-      snapper.list_backups()
-    elif command == 'create':
-      snapper.create(comment)
-    else:
-      raise ValueError(f'Command not implemented: {command}')
+    # Commands that need to access existing config.
+    for config in configs.iterate_configs(source=source):
+        if command == "list":
+            print(f"Config: {config.config_file} (source={config.source})")
+        snapper = snap_operator.SnapOperator(config, now)
+        if command == "internal-cronrun":
+            snapper.scheduled()
+        elif command == "internal-preupdate":
+            snapper.on_pacman()
+        elif command == "list":
+            snapper.list_backups()
+        elif command == "create":
+            snapper.create(comment)
+        else:
+            raise ValueError(f"Command not implemented: {command}")
 
-    if snapper.need_sync:
-      mount_paths_to_sync.add(config.mount_path)
+        if snapper.need_sync:
+            mount_paths_to_sync.add(config.mount_path)
 
-  if sync:
-    _btrfs_sync(mount_paths_to_sync)
+    if sync:
+        _btrfs_sync(mount_paths_to_sync)
 
 
 def main():
-  args = _parse_args()
-  command: str = args.command
-  if not command:
-    os_utils.eprint('Start with --help to see common args.')
-    return
+    args = _parse_args()
+    command: str = args.command
+    if not command:
+        os_utils.eprint("Start with --help to see common args.")
+        return
 
-  if args.dry_run:
-    global_flags.FLAGS.dryrun = True
+    if args.dry_run:
+        global_flags.FLAGS.dryrun = True
 
-  logging.basicConfig(level=logging.INFO if command.
-                      startswith('internal-') else logging.WARNING)
+    logging.basicConfig(
+        level=logging.INFO if command.startswith("internal-") else logging.WARNING
+    )
 
-  if configs.is_schedule_enabled():
-    if not os_utils.timer_enabled():
-      os_utils.eprint('\n'.join([
-          '',
-          '*** NOTE - Backup schedule exists but yabsnap.timer is not active ***',
-          'To enable scheduled backups, please run -',
-          '  sudo systemctl enable --now yabsnap.timer',
-          '',
-      ]))
+    if configs.is_schedule_enabled():
+        if not os_utils.timer_enabled():
+            os_utils.eprint(
+                "\n".join(
+                    [
+                        "",
+                        "*** NOTE - Backup schedule exists but yabsnap.timer is not active ***",
+                        "To enable scheduled backups, please run -",
+                        "  sudo systemctl enable --now yabsnap.timer",
+                        "",
+                    ]
+                )
+            )
 
-  if command == 'create-config':
-    configs.create_config(args.config_name, args.source)
-  elif command == 'delete':
-    _delete_snap(configs.iterate_configs(source=args.source),
-                 path_suffix=args.target_suffix,
-                 sync=args.sync)
-  elif command == 'rollback-gen':
-    rollbacker.rollback(configs.iterate_configs(source=args.source),
-                        args.target_suffix)
-  else:
-    comment = getattr(args, 'comment', '')
-    _config_operation(command=args.command,
-                      source=args.source,
-                      comment=comment,
-                      sync=args.sync)
+    if command == "create-config":
+        configs.create_config(args.config_name, args.source)
+    elif command == "delete":
+        _delete_snap(
+            configs.iterate_configs(source=args.source),
+            path_suffix=args.target_suffix,
+            sync=args.sync,
+        )
+    elif command == "rollback-gen":
+        rollbacker.rollback(
+            configs.iterate_configs(source=args.source), args.target_suffix
+        )
+    else:
+        comment = getattr(args, "comment", "")
+        _config_operation(
+            command=args.command, source=args.source, comment=comment, sync=args.sync
+        )
 
 
-if __name__ == '__main__':
-  main()
+if __name__ == "__main__":
+    main()

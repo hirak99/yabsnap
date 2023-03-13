@@ -25,98 +25,100 @@ from typing import Iterable, Optional
 
 @dataclasses.dataclass
 class _MountAttributes:
-  device: str
-  subvol_name: str
+    device: str
+    subvol_name: str
 
 
 def _get_mount_attributes(mount_point: str) -> _MountAttributes:
-  for line in open('/etc/mtab'):
-    tokens = line.split()
-    if tokens[1] == mount_point:
-      break
-  else:
-    raise ValueError(f'Mount point not found: {mount_point}')
+    for line in open("/etc/mtab"):
+        tokens = line.split()
+        if tokens[1] == mount_point:
+            break
+    else:
+        raise ValueError(f"Mount point not found: {mount_point}")
 
-  if tokens[2] != 'btrfs':
-    raise ValueError(f'Mount point is not btrfs: {mount_point} ({tokens[2]})')
-  for mount_param in tokens[3].split(','):
-    subvol_prefix = 'subvol='
-    if not mount_param.startswith(subvol_prefix):
-      continue
-    subvol_name = mount_param[len(subvol_prefix):]
-    return _MountAttributes(device=tokens[0], subvol_name=subvol_name)
-  raise ValueError(f'Could not determine subvol in {line!r}')
+    if tokens[2] != "btrfs":
+        raise ValueError(f"Mount point is not btrfs: {mount_point} ({tokens[2]})")
+    for mount_param in tokens[3].split(","):
+        subvol_prefix = "subvol="
+        if not mount_param.startswith(subvol_prefix):
+            continue
+        subvol_name = mount_param[len(subvol_prefix) :]
+        return _MountAttributes(device=tokens[0], subvol_name=subvol_name)
+    raise ValueError(f"Could not determine subvol in {line!r}")
 
 
 def rollback(configs_iter: Iterable[configs.Config], path_suffix: str):
-  to_rollback: list[snap_holder.Snapshot] = []
-  for config in configs_iter:
-    snap = snap_operator.find_target(config, path_suffix)
-    if snap:
-      to_rollback.append(snap)
-  print('\n'.join(_rollback_snapshots(to_rollback)))
+    to_rollback: list[snap_holder.Snapshot] = []
+    for config in configs_iter:
+        snap = snap_operator.find_target(config, path_suffix)
+        if snap:
+            to_rollback.append(snap)
+    print("\n".join(_rollback_snapshots(to_rollback)))
 
 
 def _get_now_str():
-  return datetime.datetime.now().strftime(snap_holder.TIME_FORMAT)
+    return datetime.datetime.now().strftime(snap_holder.TIME_FORMAT)
 
 
 def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
-  if not to_rollback:
-    return ['# No snapshot matched to rollback.']
+    if not to_rollback:
+        return ["# No snapshot matched to rollback."]
 
-  sh_lines = [
-      '#!/bin/bash',
-      '# Save this to a script, review and run as root to perform the rollback.',
-      '',
-      'set -uexo pipefail',
-      '',
-  ]
+    sh_lines = [
+        "#!/bin/bash",
+        "# Save this to a script, review and run as root to perform the rollback.",
+        "",
+        "set -uexo pipefail",
+        "",
+    ]
 
-  # Mount all required volumes at root.
-  mount_points: dict[str, str] = {}
-  for snap in to_rollback:
-    source_mount = _get_mount_attributes(snap.metadata.source)
-    if source_mount.device not in mount_points:
-      mount_pt = f'/run/mount/_yabsnap_internal_{len(mount_points)}'
-      mount_points[source_mount.device] = mount_pt
-      sh_lines += [
-          f'mkdir -p {mount_pt}',
-          f'mount {source_mount.device} {mount_pt} -o subvolid=5'
-      ]
+    # Mount all required volumes at root.
+    mount_points: dict[str, str] = {}
+    for snap in to_rollback:
+        source_mount = _get_mount_attributes(snap.metadata.source)
+        if source_mount.device not in mount_points:
+            mount_pt = f"/run/mount/_yabsnap_internal_{len(mount_points)}"
+            mount_points[source_mount.device] = mount_pt
+            sh_lines += [
+                f"mkdir -p {mount_pt}",
+                f"mount {source_mount.device} {mount_pt} -o subvolid=5",
+            ]
 
-  now_str = _get_now_str()
+    now_str = _get_now_str()
 
-  def drop_slash(s: str) -> str:
-    if s[0] != '/':
-      raise RuntimeError(f'Could not drop initial / from {s!r}')
-    if '/' in s[1:]:
-      raise RuntimeError(f'Unexpected / after the first one in subvolume {s!r}')
-    return s[1:]
+    def drop_slash(s: str) -> str:
+        if s[0] != "/":
+            raise RuntimeError(f"Could not drop initial / from {s!r}")
+        if "/" in s[1:]:
+            raise RuntimeError(f"Unexpected / after the first one in subvolume {s!r}")
+        return s[1:]
 
-  sh_lines.append('')
-  backup_paths: list[str] = []
-  current_dir: Optional[str] = None
-  for snap in to_rollback:
-    source_mount = _get_mount_attributes(snap.metadata.source)
-    target_mount = _get_mount_attributes(os.path.dirname(snap.target))
-    # The snapshot must be on the same block device as the original (target) volume.
-    assert target_mount.device == source_mount.device
-    mount_pt = mount_points[source_mount.device]
-    if current_dir != mount_pt:
-      sh_lines += [f'cd {mount_pt}', '']
-      current_dir = mount_pt
-    live_path = source_mount.subvol_name
-    backup_path = f'{drop_slash(target_mount.subvol_name)}/rollback_{now_str}_{drop_slash(live_path)}'
-    backup_path_after_reboot = f'{os.path.dirname(snap.target)}/rollback_{now_str}_{drop_slash(live_path)}'
-    # sh_lines.append(f'[[ -e {backup_path} ]] && btrfs subvolume delete {backup_path}')
-    sh_lines.append(f'mv {live_path[1:]} {backup_path}')
-    backup_paths.append(backup_path_after_reboot)
-    sh_lines.append(f'btrfs subvolume snapshot {snap.target} {live_path[1:]}')
-    sh_lines.append('')
-  sh_lines += ['echo Please reboot to complete the rollback.', 'echo']
-  sh_lines.append('echo After reboot you may delete -')
-  for backup_path in backup_paths:
-    sh_lines.append(f'echo "# sudo btrfs subvolume delete {backup_path}"')
+    sh_lines.append("")
+    backup_paths: list[str] = []
+    current_dir: Optional[str] = None
+    for snap in to_rollback:
+        source_mount = _get_mount_attributes(snap.metadata.source)
+        target_mount = _get_mount_attributes(os.path.dirname(snap.target))
+        # The snapshot must be on the same block device as the original (target) volume.
+        assert target_mount.device == source_mount.device
+        mount_pt = mount_points[source_mount.device]
+        if current_dir != mount_pt:
+            sh_lines += [f"cd {mount_pt}", ""]
+            current_dir = mount_pt
+        live_path = source_mount.subvol_name
+        backup_path = f"{drop_slash(target_mount.subvol_name)}/rollback_{now_str}_{drop_slash(live_path)}"
+        backup_path_after_reboot = (
+            f"{os.path.dirname(snap.target)}/rollback_{now_str}_{drop_slash(live_path)}"
+        )
+        # sh_lines.append(f'[[ -e {backup_path} ]] && btrfs subvolume delete {backup_path}')
+        sh_lines.append(f"mv {live_path[1:]} {backup_path}")
+        backup_paths.append(backup_path_after_reboot)
+        sh_lines.append(f"btrfs subvolume snapshot {snap.target} {live_path[1:]}")
+        sh_lines.append("")
+    sh_lines += ["echo Please reboot to complete the rollback.", "echo"]
+    sh_lines.append("echo After reboot you may delete -")
+    for backup_path in backup_paths:
+        sh_lines.append(f'echo "# sudo btrfs subvolume delete {backup_path}"')
 
-  return sh_lines
+    return sh_lines

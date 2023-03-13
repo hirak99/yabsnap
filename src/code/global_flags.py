@@ -17,7 +17,7 @@ import dataclasses
 
 @dataclasses.dataclass
 class _Flags:
-  dryrun: bool = False
+    dryrun: bool = False
 
 
 FLAGS = _Flags()
