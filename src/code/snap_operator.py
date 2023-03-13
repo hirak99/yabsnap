@@ -154,15 +154,19 @@ class SnapOperator:
             snapshot.create_from(self._config.source)
 
     def list_backups(self):
+        print(f"Config: {self._config.config_file} (source={self._config.source})")
+        print(f"Snaps at: {self._config.dest_prefix}...")
         for snap in _get_old_backups(self._config):
+            columns: list[str] = []
+            columns.append("..." + snap.target.removeprefix(self._config.dest_prefix))
             trigger_str = "".join(
                 c if snap.metadata.trigger == c else " " for c in "SIU"
             )
-            print(f"{trigger_str}  ", end="")
-            print(f"{snap.target}  ", end="")
+            columns.append(trigger_str)
             # print(f'{snap.snaptime}  ', end='')
             elapsed = (self._now - snap.snaptime).total_seconds()
             elapsed_str = "(" + human_interval.humanize(elapsed) + " ago)"
-            print(f"{elapsed_str:<20}  ", end="")
-            print(snap.metadata.comment)
+            columns.append(f"{elapsed_str:<20}")
+            columns.append(snap.metadata.comment)
+            print("  ".join(columns))
         print("")

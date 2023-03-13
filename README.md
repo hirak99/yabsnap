@@ -139,15 +139,17 @@ out.
 ### `yabsnap list`
 Lists existing snaps. Example -
 ```
-Config: source=/home
-S    2022-10-06 14:30:47  /.snapshots/@home-20221006143047
-S    2022-10-06 15:30:07  /.snapshots/@home-20221006153007
-S    2022-10-06 16:30:19  /.snapshots/@home-20221006163019
- I   2022-10-06 16:46:59  /.snapshots/@home-20221006164659  pacman -S perl-rename
+Config: /etc/yabsnap/configs/home.conf (source=/home)
+Snaps at: /.snapshots/@home-...
+...20221006143047  S    2022-10-06 14:30:47
+...20221006153007  S    2022-10-06 15:30:07
+...20221006163019  S    2022-10-06 16:30:19
+...20221006164659   I   2022-10-06 16:46:59  pacman -S perl-rename
 
-Config: source=/
-  U  2022-10-06 12:23:12  /.snapshots/@root-20221006122312  test_comment
- I   2022-10-06 16:46:59  /.snapshots/@root-20221006164659  pacman -S perl-rename
+Config: /etc/yabsnap/configs/root.conf (source=/)
+Snaps at: /.snapshots/@root-...
+...20221006122312    U  2022-10-06 12:23:12   test_comment
+...20221006164659   I   2022-10-06 16:46:59   pacman -S perl-rename
  ```
 
  The indicators `S`, `I`, `U` respectively indicate scheduled, installation, user snapshots.

@@ -103,8 +103,6 @@ def _config_operation(command: str, source: str, comment: str, sync: bool):
 
     # Commands that need to access existing config.
     for config in configs.iterate_configs(source=source):
-        if command == "list":
-            print(f"Config: {config.config_file} (source={config.source})")
         snapper = snap_operator.SnapOperator(config, now)
         if command == "internal-cronrun":
             snapper.scheduled()
