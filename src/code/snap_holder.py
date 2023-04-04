@@ -38,12 +38,14 @@ def _execute_sh(cmd: str):
 
 @dataclasses.dataclass
 class _Metadata:
+    # Name of the subvolume from whcih this snap was taken.
     source: str = ""
     # Can be one of -
     # I - Package installation or system update
     # S - Scheduled
     # U - User
     trigger: str = ""
+    # Optional comment if any.
     comment: str = ""
 
     def save_file(self, fname: str) -> None:

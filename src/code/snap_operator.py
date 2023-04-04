@@ -133,7 +133,10 @@ class SnapOperator:
 
     def scheduled(self):
         """Triggers periodically by the system timer."""
-        previous_snaps = list(_get_old_backups(self._config))
+        # All _scheduled_ snaps that already exist.
+        previous_snaps = [
+            x for x in _get_old_backups(self._config) if "S" in x.metadata.trigger
+        ]
         if previous_snaps:
             # Check if we should trigger a backup.
             wait_until = (

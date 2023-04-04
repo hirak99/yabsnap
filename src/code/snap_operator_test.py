@@ -48,6 +48,7 @@ class SnapOperatorTest(unittest.TestCase):
 
     def test_scheduled_not_triggered(self):
         self._old_snaps = [snap_holder.Snapshot("/tmp/nodir/@home-20230213120000")]
+        self._old_snaps[-1].metadata.trigger = "S"
         # Old snap within this trigger interval.
         within_interval_secs = datetime.timedelta(days=2, minutes=5).total_seconds()
         snapper = snap_operator.SnapOperator(
@@ -65,6 +66,7 @@ class SnapOperatorTest(unittest.TestCase):
 
     def test_scheduled_triggered(self):
         self._old_snaps = [snap_holder.Snapshot("/tmp/nodir/@home-20230213120000")]
+        self._old_snaps[-1].metadata.trigger = "S"
         # Old snap outside this trigger interval.
         outside_interval_secs = datetime.timedelta(days=2).total_seconds()
         snapper = snap_operator.SnapOperator(
