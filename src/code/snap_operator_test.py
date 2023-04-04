@@ -14,6 +14,7 @@
 
 import contextlib
 import datetime
+import time
 import unittest
 from unittest import mock
 from typing import Iterator
@@ -26,7 +27,24 @@ from . import snap_operator
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
 
+# UTC time.
+# Alternative to using pytz.localize(...), and removes dependency on pytz.
 _FAKE_NOW = datetime.datetime(2023, 2, 15, hour=12, minute=0, second=0)
+
+
+def _utc_to_local(yyyymmddhhmmss: str) -> datetime.datetime:
+    return (
+        (
+            datetime.datetime.strptime(yyyymmddhhmmss, "%Y%m%d%H%M%S")
+            - datetime.timedelta(seconds=time.timezone)
+        )
+        .astimezone()
+        .replace(tzinfo=None)
+    )
+
+
+def _utc_to_local_str(yyyymmddhhmmss: str) -> str:
+    return _utc_to_local(yyyymmddhhmmss).strftime("%Y%m%d%H%M%S")
 
 
 class SnapOperatorTest(unittest.TestCase):
@@ -47,36 +65,44 @@ class SnapOperatorTest(unittest.TestCase):
         self._mock_create_from.assert_called_with("snap_source")
 
     def test_scheduled_not_triggered(self):
-        self._old_snaps = [snap_holder.Snapshot("/tmp/nodir/@home-20230213120000")]
+        self._old_snaps = [
+            snap_holder.Snapshot(
+                # Added 10 minutes, to counteract DURATION_BUFFER.
+                "/tmp/nodir/@home-" + _utc_to_local_str("20230213" "001000")
+            )
+        ]
         self._old_snaps[-1].metadata.trigger = "S"
-        # Old snap within this trigger interval.
-        within_interval_secs = datetime.timedelta(days=2, minutes=5).total_seconds()
+        trigger_interval = datetime.timedelta(hours=12).total_seconds()
         snapper = snap_operator.SnapOperator(
             config=configs.Config(
                 config_file="config_file",
                 source="snap_source",
                 dest_prefix="dest_prefix",
-                trigger_interval=within_interval_secs,
+                trigger_interval=trigger_interval,
             ),
-            now=_FAKE_NOW,
+            now=_utc_to_local("20230213" "110000"),
         )
         snapper.scheduled()
         self._mock_delete.assert_not_called()
         self._mock_create_from.assert_not_called()
 
     def test_scheduled_triggered(self):
-        self._old_snaps = [snap_holder.Snapshot("/tmp/nodir/@home-20230213120000")]
+        self._old_snaps = [
+            snap_holder.Snapshot(
+                # Added 10 minutes, to counteract DURATION_BUFFER.
+                "/tmp/nodir/@home-" + _utc_to_local_str("20230213" "001000")
+            )
+        ]
         self._old_snaps[-1].metadata.trigger = "S"
-        # Old snap outside this trigger interval.
-        outside_interval_secs = datetime.timedelta(days=2).total_seconds()
+        trigger_interval = datetime.timedelta(hours=12).total_seconds()
         snapper = snap_operator.SnapOperator(
             config=configs.Config(
                 config_file="config_file",
                 source="snap_source",
                 dest_prefix="dest_prefix",
-                trigger_interval=outside_interval_secs,
+                trigger_interval=trigger_interval,
             ),
-            now=_FAKE_NOW,
+            now=_utc_to_local("20230213" "130000"),
         )
         snapper.scheduled()
         self._mock_delete.assert_called_once_with()

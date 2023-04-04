@@ -139,14 +139,25 @@ class SnapOperator:
         ]
         if previous_snaps:
             # Check if we should trigger a backup.
-            wait_until = (
+            # Phase of the time windows. Optionally, we can set it to phase = time.timezone.
+            # Then the times will align to the local timezone. However, DST messes it up;
+            # so we just choose phase = 0 or UTC.
+            phase = 0
+            current_mod = (
+                self._now.timestamp() - phase
+            ) // self._config.trigger_interval
+            previous_mod = (
                 previous_snaps[-1].snaptime
-                + datetime.timedelta(seconds=self._config.trigger_interval)
                 - configs.DURATION_BUFFER
-            ) - self._now
-            if wait_until.total_seconds() > 0:
+                - datetime.timedelta(seconds=phase)
+            ).timestamp() // self._config.trigger_interval
+            assert previous_mod <= current_mod
+            if previous_mod == current_mod:
+                wait_until = datetime.datetime.fromtimestamp(
+                    (current_mod + 1) * self._config.trigger_interval + phase
+                )
                 logging.info(
-                    f"Schedule not triggered for {self._config.source}, need to wait {wait_until}"
+                    f"Already triggered for {self._config.source}, wait until {wait_until}."
                 )
                 return
         # Manage deletions and check if new backup is needed.
