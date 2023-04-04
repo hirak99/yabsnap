@@ -57,7 +57,7 @@ class SnapOperator:
         # Set to true on any delete operation.
         self.need_sync = False
 
-    def _remove_expired(self, snaps: Iterable[snap_holder.Snapshot]) -> bool:
+    def _apply_deletion_rules(self, snaps: Iterable[snap_holder.Snapshot]) -> bool:
         """Deletes old backups. Returns True if new backup is needed."""
         # Only consider scheduled backups for expiry.
         candidates = [
@@ -131,37 +131,42 @@ class SnapOperator:
             comment=os_utils.last_pacman_command(),
         )
 
-    def scheduled(self):
-        """Triggers periodically by the system timer."""
+    def _next_trigger_time(self) -> Optional[datetime.datetime]:
+        """Returns the next time after which a scheduled backup can trigger."""
         # All _scheduled_ snaps that already exist.
         previous_snaps = [
             x for x in _get_old_backups(self._config) if "S" in x.metadata.trigger
         ]
-        if previous_snaps:
-            # Check if we should trigger a backup.
-            # Phase of the time windows. Optionally, we can set it to phase = time.timezone.
-            # Then the times will align to the local timezone. However, DST messes it up;
-            # so we just choose phase = 0 or UTC.
-            phase = 0
-            current_mod = (
-                self._now.timestamp() - phase
-            ) // self._config.trigger_interval
-            previous_mod = (
-                previous_snaps[-1].snaptime
-                - configs.DURATION_BUFFER
-                - datetime.timedelta(seconds=phase)
-            ).timestamp() // self._config.trigger_interval
-            assert previous_mod <= current_mod
-            if previous_mod == current_mod:
-                wait_until = datetime.datetime.fromtimestamp(
-                    (current_mod + 1) * self._config.trigger_interval + phase
-                )
+        if not previous_snaps:
+            return None
+        # Check if we should trigger a backup.
+        # Phase of the time windows. Optionally, we can set it to phase = time.timezone.
+        # Then the times will align to the local timezone. However, DST messes it up;
+        # so we just choose phase = 0 or UTC.
+        phase = 0
+        previous_mod = (
+            previous_snaps[-1].snaptime - datetime.timedelta(seconds=phase)
+        ).timestamp() // self._config.trigger_interval
+        wait_until = datetime.datetime.fromtimestamp(
+            (previous_mod + 1) * self._config.trigger_interval + phase
+        )
+        return wait_until
+
+    def scheduled(self):
+        """Triggers periodically by the system timer."""
+        wait_until = self._next_trigger_time()
+        if wait_until is not None:
+            if self._now <= wait_until - configs.DURATION_BUFFER:
                 logging.info(
-                    f"Already triggered for {self._config.source}, wait until {wait_until}."
+                    f"Already triggered for {self._config.source}, wait until {wait_until}"
                 )
                 return
+        # All _scheduled_ snaps that already exist.
+        previous_snaps = [
+            x for x in _get_old_backups(self._config) if "S" in x.metadata.trigger
+        ]
         # Manage deletions and check if new backup is needed.
-        need_new = self._remove_expired(previous_snaps)
+        need_new = self._apply_deletion_rules(previous_snaps)
         if need_new:
             snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
             snapshot.metadata.trigger = "S"
@@ -183,4 +188,9 @@ class SnapOperator:
             columns.append(f"{elapsed_str:<20}")
             columns.append(snap.metadata.comment)
             print("  ".join(columns))
+        wait_until = self._next_trigger_time()
+        if wait_until is None or wait_until - configs.DURATION_BUFFER <= self._now:
+            print("Ready for scheduled snap.")
+        else:
+            print(f"Can trigger scheduled snap after {wait_until}.")
         print("")
