@@ -188,9 +188,4 @@ class SnapOperator:
             columns.append(f"{elapsed_str:<20}")
             columns.append(snap.metadata.comment)
             print("  ".join(columns))
-        wait_until = self._next_trigger_time()
-        if wait_until is None or wait_until - configs.DURATION_BUFFER <= self._now:
-            print("Ready for scheduled snap.")
-        else:
-            print(f"Can trigger scheduled snap after {wait_until}.")
         print("")
