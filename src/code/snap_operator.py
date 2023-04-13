@@ -177,7 +177,7 @@ class SnapOperator:
         print(f"Snaps at: {self._config.dest_prefix}...")
         for snap in _get_old_backups(self._config):
             columns: list[str] = []
-            columns.append("..." + snap.target.removeprefix(self._config.dest_prefix))
+            columns.append("  " + snap.target.removeprefix(self._config.dest_prefix))
             trigger_str = "".join(
                 c if snap.metadata.trigger == c else " " for c in "SIU"
             )
