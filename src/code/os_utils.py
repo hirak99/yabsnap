@@ -18,17 +18,40 @@ import re
 import subprocess
 import sys
 
-from typing import Any
+from typing import Any, Optional
 
 
-def execute_sh(command: str, error_ok: bool = False) -> None:
+def execute_sh(command: str, error_ok: bool = False) -> Optional[str]:
     logging.info(f"Running {command}")
     try:
-        subprocess.run(command.split(" "), check=True)
+        return subprocess.check_output(command.split(" ")).decode()
     except subprocess.CalledProcessError as e:
         if not error_ok:
             raise e
-        logging.warning(f"Process had error {e}")
+        logging.warning(f"Error running command: {e}")
+        return None
+
+
+def is_btrfs_volume(mount_point: str) -> bool:
+    """Test if directory is a btrfs volume."""
+    # Based on https://stackoverflow.com/a/32865333/196462
+    fstype = execute_sh("stat -f --format=%T " + mount_point, error_ok=True)
+    if not fstype:
+        logging.warning(f"Not btrfs (cannot determine filesystem): {mount_point}")
+        return False
+    if fstype.strip() != "btrfs":
+        logging.warning(f"Not btrfs (filesystem not btrfs): {mount_point}")
+        return False
+    inodenum = execute_sh("stat --format=%i " + mount_point, error_ok=True)
+    if not inodenum:
+        logging.warning(f"Not btrfs (cannot determine inode): {mount_point}")
+        return False
+    if inodenum.strip() != "256":
+        logging.warning(
+            f"Not btrfs (inode not 256, possibly a subdirectory of a btrfs mount): {mount_point}"
+        )
+        return False
+    return True
 
 
 def last_pacman_command() -> str:

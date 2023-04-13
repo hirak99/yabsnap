@@ -87,6 +87,8 @@ class SnapOperator:
     def _create_and_maintain_n_backups(
         self, count: int, trigger: str, comment: Optional[str]
     ):
+        if not os_utils.is_btrfs_volume(self._config.source):
+            return
         # Find previous snaps.
         # Doing this before the update handles dryrun (where no new snap is created).
         previous_snaps = [
@@ -157,6 +159,8 @@ class SnapOperator:
 
     def scheduled(self):
         """Triggers periodically by the system timer."""
+        if not os_utils.is_btrfs_volume(self._config.source):
+            return
         wait_until = self._next_trigger_time()
         if wait_until is not None:
             if self._now <= wait_until - configs.DURATION_BUFFER:
@@ -177,6 +181,8 @@ class SnapOperator:
 
     def list_backups(self):
         print(f"Config: {self._config.config_file} (source={self._config.source})")
+        # Just display the log if it's not a btrfs volume.
+        _ = os_utils.is_btrfs_volume(self._config.source)
         print(f"Snaps at: {self._config.dest_prefix}...")
         for snap in _get_old_backups(self._config):
             columns: list[str] = []

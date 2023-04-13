@@ -17,6 +17,7 @@ import datetime
 import os
 
 from . import configs
+from . import os_utils
 from . import snap_holder
 from . import snap_operator
 
@@ -120,6 +121,8 @@ def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
     backup_paths: list[str] = []
     current_dir: Optional[str] = None
     for snap in to_rollback:
+        if not os_utils.is_btrfs_volume(snap.metadata.source):
+            raise ValueError(f'Mount point may no longer be a btrfs volume: {snap.metadata.source}')
         source_mount = _get_mount_attributes_from_mtab(snap.metadata.source)
         target_mount = _get_mount_attributes_from_mtab(os.path.dirname(snap.target))
         # The snapshot must be on the same block device as the original (target) volume.

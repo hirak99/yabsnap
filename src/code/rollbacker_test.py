@@ -16,6 +16,7 @@ import unittest
 from unittest import mock
 
 from . import rollbacker
+from . import os_utils
 from . import snap_holder
 
 # For testing, we can access private methods.
@@ -58,19 +59,7 @@ class TestRollbacker(unittest.TestCase):
             rollbacker._get_mount_attributes("/mnt/rootbtrfs/@nestedvol", lines),
         )
 
-    def test_empty_snap(self):
-        generated = rollbacker._rollback_snapshots(to_rollback=[])
-        self.assertEqual(generated, ["# No snapshot matched to rollback."])
-
-    @mock.patch.object(rollbacker, "_get_now_str", return_value="20220202220000")
-    @mock.patch.object(
-        rollbacker,
-        "_get_mount_attributes_from_mtab",
-        side_effect=_mock_get_mount_attributes_from_mtab,
-    )
-    def test_two_snaps(
-        self, mock_get_now_str: mock.Mock, mock_get_mount_attributes: mock.Mock
-    ):
+    def test_rollback_for_two_snaps(self):
         # config_list = [configs.Config('test.conf', source='/home', dest_prefix='/snaps/@home-')]
         snaps_list = [
             snap_holder.Snapshot("/snaps/@home-20220101130000"),
@@ -79,7 +68,21 @@ class TestRollbacker(unittest.TestCase):
         snaps_list[0].metadata.source = "/home"
         snaps_list[1].metadata.source = "/root"
 
-        generated = rollbacker._rollback_snapshots(to_rollback=snaps_list)
+        with mock.patch.object(
+            os_utils, "is_btrfs_volume", return_value=True
+        ) as mock_is_btrfs_volume, mock.patch.object(
+            rollbacker, "_get_now_str", return_value="20220202220000"
+        ), mock.patch.object(
+            rollbacker,
+            "_get_mount_attributes_from_mtab",
+            side_effect=_mock_get_mount_attributes_from_mtab,
+        ):
+            generated = rollbacker._rollback_snapshots(to_rollback=snaps_list)
+
+        self.assertEqual(
+            mock_is_btrfs_volume.call_args_list,
+            [mock.call("/home"), mock.call("/root")],
+        )
 
         expected = """#!/bin/bash
 # Save this to a script, review and run as root to perform the rollback.

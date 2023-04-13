@@ -21,6 +21,7 @@ from typing import Iterator
 
 from . import configs
 from . import deletion_logic
+from . import os_utils
 from . import snap_holder
 from . import snap_operator
 
@@ -68,7 +69,8 @@ class SnapOperatorTest(unittest.TestCase):
         self._old_snaps = [
             snap_holder.Snapshot(
                 # Added 10 minutes, to counteract DURATION_BUFFER.
-                "/tmp/nodir/@home-" + _utc_to_local_str("20230213" "001000")
+                "/tmp/nodir/@home-"
+                + _utc_to_local_str("20230213" "001000")
             )
         ]
         self._old_snaps[-1].metadata.trigger = "S"
@@ -90,7 +92,8 @@ class SnapOperatorTest(unittest.TestCase):
         self._old_snaps = [
             snap_holder.Snapshot(
                 # Added 10 minutes, to counteract DURATION_BUFFER.
-                "/tmp/nodir/@home-" + _utc_to_local_str("20230213" "001000")
+                "/tmp/nodir/@home-"
+                + _utc_to_local_str("20230213" "001000")
             )
         ]
         self._old_snaps[-1].metadata.trigger = "S"
@@ -111,6 +114,9 @@ class SnapOperatorTest(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
         self._exit_stack = contextlib.ExitStack()
+        self._exit_stack.enter_context(
+            mock.patch.object(os_utils, "is_btrfs_volume", lambda _: True)
+        )
         self._mock_delete = mock.MagicMock()
         self._exit_stack.enter_context(
             mock.patch.object(snap_holder.Snapshot, "delete", self._mock_delete)
