@@ -28,20 +28,45 @@ _MOUNT_LOOKUP = {
 }
 
 
-def _mock_get_mount_attributes(mount_pt: str):
+def _mock_get_mount_attributes_from_mtab(mount_pt: str):
     return rollbacker._MountAttributes(
         device=_MOUNT_LOOKUP[mount_pt][0], subvol_name=_MOUNT_LOOKUP[mount_pt][1]
     )
 
 
 class TestRollbacker(unittest.TestCase):
+    def test_get_mount_attributes(self):
+        # Fake /etc/mtab lines used for this test.
+        lines = [
+            "/dev/mapper/luksdev /home btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@home 0 0",
+            # A specific volume mapped under /home.
+            "/dev/mapper/myhome /home/myhome btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@special_home 0 0",
+            # Nested subvolume @nestedvol.
+            "/dev/mapper/opened_rootbtrfs /mnt/rootbtrfs btrfs rw,noatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/ 0 0",
+        ]
+        # Assertiions.
+        self.assertEqual(
+            rollbacker._MountAttributes("/dev/mapper/luksdev", "/@home"),
+            rollbacker._get_mount_attributes("/home", lines),
+        )
+        self.assertEqual(
+            rollbacker._MountAttributes("/dev/mapper/myhome", "/@special_home"),
+            rollbacker._get_mount_attributes("/home/myhome", lines),
+        )
+        self.assertEqual(
+            rollbacker._MountAttributes("/dev/mapper/opened_rootbtrfs", "/@nestedvol"),
+            rollbacker._get_mount_attributes("/mnt/rootbtrfs/@nestedvol", lines),
+        )
+
     def test_empty_snap(self):
         generated = rollbacker._rollback_snapshots(to_rollback=[])
         self.assertEqual(generated, ["# No snapshot matched to rollback."])
 
     @mock.patch.object(rollbacker, "_get_now_str", return_value="20220202220000")
     @mock.patch.object(
-        rollbacker, "_get_mount_attributes", side_effect=_mock_get_mount_attributes
+        rollbacker,
+        "_get_mount_attributes_from_mtab",
+        side_effect=_mock_get_mount_attributes_from_mtab,
     )
     def test_two_snaps(
         self, mock_get_now_str: mock.Mock, mock_get_mount_attributes: mock.Mock

@@ -25,27 +25,49 @@ from typing import Iterable, Optional
 
 @dataclasses.dataclass
 class _MountAttributes:
+    # The device e.g. /mnt/volume/subv under which we have the subv or its parent is mounted.
     device: str
     subvol_name: str
 
 
-def _get_mount_attributes(mount_point: str) -> _MountAttributes:
-    for line in open("/etc/mtab"):
-        tokens = line.split()
-        if tokens[1] == mount_point:
-            break
-    else:
+def _get_mount_attributes(
+    mount_point: str, mtab_lines: Iterable[str]
+) -> _MountAttributes:
+    # For a mount point, this denotes the longest path that was seen in /etc/mtab.
+    # This is therefore the point where that directory is mounted.
+    longest_match_to_mount_point = ""
+    # Which line matches the mount point.
+    matched_line: str = ""
+    for this_line in mtab_lines:
+        this_tokens = this_line.split()
+        if mount_point.startswith(this_tokens[1]):
+            if len(this_tokens[1]) > len(longest_match_to_mount_point):
+                longest_match_to_mount_point = this_tokens[1]
+                matched_line = this_line
+
+    if not matched_line:
         raise ValueError(f"Mount point not found: {mount_point}")
+    tokens = matched_line.split()
 
     if tokens[2] != "btrfs":
         raise ValueError(f"Mount point is not btrfs: {mount_point} ({tokens[2]})")
+    mount_param: str = ""
     for mount_param in tokens[3].split(","):
         subvol_prefix = "subvol="
-        if not mount_param.startswith(subvol_prefix):
-            continue
-        subvol_name = mount_param[len(subvol_prefix) :]
-        return _MountAttributes(device=tokens[0], subvol_name=subvol_name)
-    raise ValueError(f"Could not determine subvol in {line!r}")
+        if mount_param.startswith(subvol_prefix):
+            break
+    else:
+        raise RuntimeError(f"Could not find subvol= in {matched_line!r}")
+    subvol_name = mount_param[len(subvol_prefix) :]
+    if tokens[1] != mount_point:
+        nested_subvol = mount_point.removeprefix(tokens[1])
+        assert nested_subvol.startswith("/")
+        subvol_name = nested_subvol
+    return _MountAttributes(device=tokens[0], subvol_name=subvol_name)
+
+
+def _get_mount_attributes_from_mtab(mount_point: str) -> _MountAttributes:
+    return _get_mount_attributes(mount_point, open("/etc/mtab"))
 
 
 def rollback(configs_iter: Iterable[configs.Config], path_suffix: str):
@@ -76,7 +98,7 @@ def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
     # Mount all required volumes at root.
     mount_points: dict[str, str] = {}
     for snap in to_rollback:
-        source_mount = _get_mount_attributes(snap.metadata.source)
+        source_mount = _get_mount_attributes_from_mtab(snap.metadata.source)
         if source_mount.device not in mount_points:
             mount_pt = f"/run/mount/_yabsnap_internal_{len(mount_points)}"
             mount_points[source_mount.device] = mount_pt
@@ -98,8 +120,8 @@ def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
     backup_paths: list[str] = []
     current_dir: Optional[str] = None
     for snap in to_rollback:
-        source_mount = _get_mount_attributes(snap.metadata.source)
-        target_mount = _get_mount_attributes(os.path.dirname(snap.target))
+        source_mount = _get_mount_attributes_from_mtab(snap.metadata.source)
+        target_mount = _get_mount_attributes_from_mtab(os.path.dirname(snap.target))
         # The snapshot must be on the same block device as the original (target) volume.
         assert target_mount.device == source_mount.device
         mount_pt = mount_points[source_mount.device]
