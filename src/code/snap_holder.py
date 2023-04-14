@@ -20,6 +20,7 @@ it can also be an empty place holder.
 import dataclasses
 import datetime
 import json
+import logging
 import os
 
 from . import global_flags
@@ -59,10 +60,13 @@ class _Metadata:
 
     @classmethod
     def load_file(cls, fname: str) -> "_Metadata":
-        if not os.path.isfile(fname):
-            return cls()
-        with open(fname) as f:
-            return cls(**json.load(f))
+        if os.path.isfile(fname):
+            with open(fname) as f:
+                try:
+                    return cls(**json.load(f))
+                except json.JSONDecodeError:
+                    logging.warning(f"Unable to parse metadata file: {fname}")
+        return cls()
 
 
 class Snapshot:

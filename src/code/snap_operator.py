@@ -34,7 +34,10 @@ def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
             continue
         if not pathname.startswith(config.dest_prefix):
             continue
-        yield snap_holder.Snapshot(pathname)
+        try:
+            yield snap_holder.Snapshot(pathname)
+        except ValueError:
+            logging.warning(f"Could not parse timestamp, ignoring: {pathname}")
 
 
 def find_target(config: configs.Config, suffix: str) -> Optional[snap_holder.Snapshot]:
