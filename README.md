@@ -142,15 +142,15 @@ Lists existing snaps. Example -
 ```
 Config: /etc/yabsnap/configs/home.conf (source=/home)
 Snaps at: /.snapshots/@home-...
-...20221006143047  S    2022-10-06 14:30:47
-...20221006153007  S    2022-10-06 15:30:07
-...20221006163019  S    2022-10-06 16:30:19
-...20221006164659   I   2022-10-06 16:46:59  pacman -S perl-rename
+  20221006143047  S    2022-10-06 14:30:47
+  20221006153007  S    2022-10-06 15:30:07
+  20221006163019  S    2022-10-06 16:30:19
+  20221006164659   I   2022-10-06 16:46:59  pacman -S perl-rename
 
 Config: /etc/yabsnap/configs/root.conf (source=/)
 Snaps at: /.snapshots/@root-...
-...20221006122312    U  2022-10-06 12:23:12   test_comment
-...20221006164659   I   2022-10-06 16:46:59   pacman -S perl-rename
+  20221006122312    U  2022-10-06 12:23:12   test_comment
+  20221006164659   I   2022-10-06 16:46:59   pacman -S perl-rename
  ```
 
  The indicators `S`, `I`, `U` respectively indicate scheduled, installation, user snapshots.
@@ -185,13 +185,17 @@ The script must be stored and executed to perform the rollback operation.
 # FAQ
 
 - Does it work on other distros than Arch?
-  - It should be easy to port if the usage grows, or there if are requests.
+  - It _should_ work if installed with `sudo scripts/install.sh`, although
+    - Installation hook will not work.
+    - And rest of the features should be tested.
+  - If you'd want full support on a distro, I'm happy to know so that I can
+    evaluate and find a way to prioritize it. Please open an issue.
 
 - I deleted a snapshot manually. Will it confuse yabsnap?
-  - No, you can also delete the corresponding metadata manually. It's in the
-    same directory. If you used `yabsnap delete PATH_TO_SNAPSHOT`, it would take
-    care of that for you.
+  - No. You should also delete the corresponding metadata `-meta.json` manually
+    (it's in the same directory). If you used `yabsnap delete PATH_TO_SNAPSHOT`,
+    it would take care of that for you.
 
 - How do I delete multiple snaps?
-  - The quickest way is to delete them manually. Remove the snaps, and
-    corresponding `-meta.json` files.
+  - The quickest way is to delete them manually. Remove the snaps with `btrfs
+    subvolume snapshot del YOUR_SNAP`, and corresponding `-meta.json` files.
