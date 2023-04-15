@@ -21,13 +21,17 @@ import sys
 from typing import Any, Optional
 
 
+class CommandError(Exception):
+    """Raised when a command is unsuccesful."""
+
+
 def execute_sh(command: str, error_ok: bool = False) -> Optional[str]:
     logging.info(f"Running {command}")
     try:
         return subprocess.check_output(command.split(" ")).decode()
     except subprocess.CalledProcessError as e:
         if not error_ok:
-            raise e
+            raise CommandError(f"Unable to run command: {command}") from e
         logging.warning(f"Error running command: {e}")
         return None
 

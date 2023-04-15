@@ -93,10 +93,18 @@ class Snapshot:
             return
         self.metadata.source = parent
         self.metadata.save_file(self._metadata_fname)
-        _execute_sh("btrfs subvolume snapshot -r " f"{parent} {self._target}")
+        try:
+            _execute_sh("btrfs subvolume snapshot -r " f"{parent} {self._target}")
+        except os_utils.CommandError:
+            logging.error("Unable to create; are you running as root?")
+            raise
 
     def delete(self) -> None:
-        _execute_sh(f"btrfs subvolume delete {self._target}")
+        try:
+            _execute_sh(f"btrfs subvolume delete {self._target}")
+        except os_utils.CommandError:
+            logging.error("Unable to delete; are you running as root?")
+            raise
         if not global_flags.FLAGS.dryrun:
             if os.path.exists(self._metadata_fname):
                 os.remove(self._metadata_fname)
