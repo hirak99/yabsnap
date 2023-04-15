@@ -4,5 +4,5 @@ Description=Yet Another Btrfs Snapshotter Timer
 [Service]
 User=root
 Type=oneshot
-ExecStart=/usr/bin/yabsnap --sync internal-cronrun
+ExecStart=/usr/bin/yabsnap --verbose --sync internal-cronrun
 TimeoutStopSec=30m

@@ -16,6 +16,7 @@ import argparse
 import datetime
 import logging
 
+from . import colored_logs
 from . import configs
 from . import global_flags
 from . import rollbacker
@@ -37,6 +38,9 @@ def _parse_args() -> argparse.Namespace:
         "--dry-run",
         help="If passed, will disable all snapshot creation and deletion.",
         action="store_true",
+    )
+    parser.add_argument(
+        "--verbose", help="Sets log-level to INFO.", action="store_true"
     )
     subparsers = parser.add_subparsers(dest="command")
 
@@ -132,9 +136,7 @@ def main():
     if args.dry_run:
         global_flags.FLAGS.dryrun = True
 
-    logging.basicConfig(
-        level=logging.INFO if command.startswith("internal-") else logging.WARNING
-    )
+    colored_logs.setup_logging(level=logging.INFO if args.verbose else logging.WARNING)
 
     if configs.is_schedule_enabled():
         if not os_utils.timer_enabled():

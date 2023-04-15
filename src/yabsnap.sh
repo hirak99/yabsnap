@@ -19,4 +19,6 @@ set -ueo pipefail
 readonly MY_PATH="$(dirname "$(realpath "$0")")"
 
 cd $MY_PATH
-python3 -m code.main "$@"
+# -u to enable unbuffered, to make sure `yabsnap ... 2>&1 | less` does not
+# change order of logs.
+python3 -u -m code.main "$@"

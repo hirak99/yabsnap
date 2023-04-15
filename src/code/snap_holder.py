@@ -89,9 +89,7 @@ class Snapshot:
 
     def create_from(self, parent: str) -> None:
         if not os_utils.is_btrfs_volume(parent):
-            logging.warning(
-                "Unable to validate source as btrfs mount - aborting create!"
-            )
+            logging.error("Unable to validate source as btrfs - aborting snapshot!")
             return
         self.metadata.source = parent
         self.metadata.save_file(self._metadata_fname)
