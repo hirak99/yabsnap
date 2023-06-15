@@ -1,5 +1,5 @@
 [Unit]
-Description=Yet Another Btrfs Snapshotter
+Description=Yet Another Btrfs Snapshotter Timer
 
 [Timer]
 OnCalendar=*-*-* *:30:00
