@@ -4,7 +4,7 @@ NOTE This is currently only tested and meant for Arch Linux.
 
 # Installing
 
-## Arch with AUR (Recommended)
+## Arch Linux: Install from AUR
 
 ```bash
 # Use your favorite AUR manager. E.g. -
@@ -13,7 +13,7 @@ yay -S yabsnap
 pamac install yabsnap
 ```
 
-## Command-line Install
+## Other Distributions: Install from git
 ```bash
 git clone https://github.com/hirak99/yabsnap
 cd yabsnap

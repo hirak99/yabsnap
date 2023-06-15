@@ -20,13 +20,6 @@ set -uexo pipefail
 # The PKGDIR will be assumed to have the same structure as root.
 readonly PKGDIR=${1-}
 
-# Most of the installation will work on other distros;
-# except pacman hook only works for Arch derived OS.
-if [[ ! -f /usr/bin/pacman ]]; then
-  echo Not Arch based distro, not proceeding. >&2
-  exit 1
-fi
-
 readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 
 cd $MY_PATH/..
@@ -45,8 +38,13 @@ mkdir -p $PKGDIR/usr/lib/systemd/system
 cp artifacts/services/yabsnap.service $PKGDIR/usr/lib/systemd/system
 cp artifacts/services/yabsnap.timer $PKGDIR/usr/lib/systemd/system
 
-mkdir -p $PKGDIR/usr/share/libalpm/hooks/
-cp artifacts/pacman/05-yabsnap-pacman-pre.hook $PKGDIR/usr/share/libalpm/hooks/
+readonly HOOKDIR=/usr/share/libalpm/hooks/
+if [[ -d "$HOOKDIR" ]]; then
+  mkdir -p $PKGDIR/$HOOKDIR
+  cp artifacts/pacman/05-yabsnap-pacman-pre.hook $PKGDIR/$HOOKDIR
+else
+  printf 'Not an Arch based distro, will not install hook.\n' >&2
+fi
 
 mkdir -p $PKGDIR/usr/share/man/man1
 install artifacts/yabsnap.manpage $PKGDIR/usr/share/man/man1/yabsnap.1
