@@ -31,17 +31,24 @@ rsync -aAXHSv src/ $PKGDIR/usr/share/yabsnap \
   --exclude '*' \
   --prune-empty-dirs \
   --delete
+chmod -R g-w,a-w src/ $PKGDIR/usr/share/yabsnap
+if $(which selinuxenabled 2>/dev/null); then
+  restorecon -R src/ $PKGDIR/usr/share/yabsnap
+fi
+
 mkdir -p $PKGDIR/usr/bin
 ln -sf /usr/share/yabsnap/yabsnap.sh $PKGDIR/usr/bin/yabsnap
+chmod 755 $PKGDIR/usr/bin/yabsnap
 
 mkdir -p $PKGDIR/usr/lib/systemd/system
-cp artifacts/services/yabsnap.service $PKGDIR/usr/lib/systemd/system
-cp artifacts/services/yabsnap.timer $PKGDIR/usr/lib/systemd/system
+install -Z artifacts/services/yabsnap.service $PKGDIR/usr/lib/systemd/system
+install -Z artifacts/services/yabsnap.timer $PKGDIR/usr/lib/systemd/system
+sudo systemctl daemon-reload
 
 readonly HOOKDIR=/usr/share/libalpm/hooks/
 if [[ -d "$HOOKDIR" ]]; then
   mkdir -p $PKGDIR/$HOOKDIR
-  cp artifacts/pacman/05-yabsnap-pacman-pre.hook $PKGDIR/$HOOKDIR
+  install -Z artifacts/pacman/05-yabsnap-pacman-pre.hook $PKGDIR/$HOOKDIR
 else
   printf 'Not an Arch based distro, will not install hook.\n' >&2
 fi
