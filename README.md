@@ -75,6 +75,35 @@ sudo systemctl enable --now yabsnap.timer
 
 You should now have automated backups running.
 
+## Recommended Subvolume Layout
+
+Below is an example layout.
+
+| Subvolumes | Mount Point | Mount Options |
+|---|---|---|
+| @ | `/` | `subvol=@` |
+| @home (optional) | `/home` | `subvol=@home` |
+| @.snapshots | `/.snapshots` | `subvol=@.snapshots` |
+
+NOTE: The names can be different; you do not need to rename your existing subvolumes.
+
+Tips -
+- Mount by `subvol=NAME`, instead of `subvolid=NUMERIC_ID`. This is necessary to allow rollbacks without touching the fstab.
+- Create a top level subvolume for all snapshots.
+
+To set this up in shell, mount the top volume and create a @.snapshot subvolume -
+```sh
+# Mount the top level subvolume (id 5) into a temporary mount dir.
+TOP=/run/mount/btrfs_top  # Temporary path to mount subvol.
+mkdir $TOP
+mount /dev/sdX $TOP -t btrfs -o subvolid=5
+# Assuming @ (or root) and optionally @home already exists,
+# all you need is a new subvolume for snapshots.
+btrfs subvolume create $TOP/.snapshot
+```
+
+And then add a line to your `fstab` to mount the @.snapshots subvolume on every boot.
+
 ## Config File
 
 Once you create a config, automated snapshots should start running.
