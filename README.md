@@ -1,6 +1,7 @@
 Yet Another Btrfs Snapshotter
 
-NOTE This is currently only tested and meant for Arch Linux.
+Note: Currently this is tested on Arch and Fedora, but should work in most other
+distributions.
 
 # Installing
 
