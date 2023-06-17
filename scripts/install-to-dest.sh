@@ -25,13 +25,14 @@ readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 cd $MY_PATH/..
 
 mkdir -p $PKGDIR/usr/share
-rsync -aAXHSv src/ $PKGDIR/usr/share/yabsnap \
+rsync -rltXHSv src/ $PKGDIR/usr/share/yabsnap \
+  --chown=root:root \
+  --chmod=u=rwX,go=rX \
   --exclude '*_test.py' \
   --include '*/' --include '*.py' --include '*.sh' --include '*.conf' \
   --exclude '*' \
   --prune-empty-dirs \
   --delete
-chmod -R g-w,a-w src/ $PKGDIR/usr/share/yabsnap
 if $(which selinuxenabled 2>/dev/null); then
   restorecon -R src/ $PKGDIR/usr/share/yabsnap
 fi
