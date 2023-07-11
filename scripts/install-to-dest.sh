@@ -38,7 +38,11 @@ if $(which selinuxenabled 2>/dev/null); then
 fi
 
 mkdir -p $PKGDIR/usr/bin
-ln -sf $PKGDIR/usr/share/yabsnap/yabsnap.sh $PKGDIR/usr/bin/yabsnap
+# Link needs to be to /usr/share/yabsnap/yabsnap.sh (without $PKGDIR/).
+# That's where the file will reside after installation.
+# Note: Do not use chmod on the symlink. A chmod on symlink is unnecessary,
+# and also it will cause an error if the file does not exist.
+ln -sf /usr/share/yabsnap/yabsnap.sh $PKGDIR/usr/bin/yabsnap
 
 mkdir -p $PKGDIR/usr/lib/systemd/system
 install -Z artifacts/services/yabsnap.service $PKGDIR/usr/lib/systemd/system
