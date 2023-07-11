@@ -38,8 +38,7 @@ if $(which selinuxenabled 2>/dev/null); then
 fi
 
 mkdir -p $PKGDIR/usr/bin
-ln -sf /usr/share/yabsnap/yabsnap.sh $PKGDIR/usr/bin/yabsnap
-chmod 755 $PKGDIR/usr/bin/yabsnap
+ln -sf $PKGDIR/usr/share/yabsnap/yabsnap.sh $PKGDIR/usr/bin/yabsnap
 
 mkdir -p $PKGDIR/usr/lib/systemd/system
 install -Z artifacts/services/yabsnap.service $PKGDIR/usr/lib/systemd/system
