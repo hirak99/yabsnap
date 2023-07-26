@@ -106,10 +106,12 @@ class Config:
 def iterate_configs(source: Optional[str]) -> Iterator[Config]:
     if not _CONFIG_PATH.is_dir():
         os_utils.eprint(
-            "No config found. Use 'create-config' command to create a config."
+            "Config directory does not exist. Use 'create-config' command to create a config."
         )
         return
+    configs_found = False
     for fname in _CONFIG_PATH.iterdir():
+        logging.info(f'Reading config {fname}')
         config = Config.from_configfile(str(fname))
         if not config.source or not config.dest_prefix:
             os_utils.eprint(
@@ -118,13 +120,18 @@ def iterate_configs(source: Optional[str]) -> Iterator[Config]:
             )
             continue
         if not source or config.source == source:
+            configs_found = True
             yield config
+    if source is not None and not configs_found:
+        logging.warning(f"No config file found with source={source}")
 
 
 def is_schedule_enabled() -> bool:
     for config in iterate_configs(None):
         if config.is_schedule_enabled():
+            logging.info('Schedule is enabled.')
             return True
+    logging.info('Schedule is not enabled.')
     return False
 
 
