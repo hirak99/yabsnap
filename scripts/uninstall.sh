@@ -33,3 +33,5 @@ rm -f /usr/lib/systemd/system/yabsnap.timer
 
 rm -f /usr/bin/yabsnap
 rm -rf /usr/share/yabsnap 2> /dev/null
+
+rm -f /usr/share/man/man1/yabsnap.1.gz

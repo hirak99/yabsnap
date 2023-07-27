@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import tempfile
 import unittest
 
 from . import configs
@@ -29,6 +31,19 @@ class ConfigsTest(unittest.TestCase):
             config_file=config_file, source="", dest_prefix=""
         )
         self.assertEqual(config, expected_config)
+
+    def test_create_config(self):
+        with tempfile.NamedTemporaryFile(prefix="yabsnap_config_test_") as file:
+            configs.USER_CONFIG_FILE = file.name
+            os.remove(file.name)
+            # Create -
+            configs.create_config("configname", "source")
+
+            # Read back -
+            read_config = configs.Config.from_configfile(file.name)
+            self.assertEqual(read_config.source, "source")
+            self.assertEqual(read_config.dest_prefix, "/.snapshots/@configname-")
+            self.assertEqual(read_config.config_file, file.name)
 
 
 if __name__ == "__main__":

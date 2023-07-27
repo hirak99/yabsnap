@@ -3,13 +3,38 @@
 .SH NAME
 yabsnap \- manage scheduled btrfs snapshots
 .SH SYNOPSIS
-usage: main.py [-h] [--sync] [--source SOURCE] [--dry-run]
+usage: main.py [-h] [--sync] [--config-file CONFIGFILE]
+               [--source SOURCE] [--dry-run]
                {list,create,create-config,delete,rollback-gen} ...
 .SH DESCRIPTION
 yabsnap is a btrfs snapshot manager.
-.SH OPTIONS
 
-.SS create-config [-h] config_name
+.SH GLOBAL OPTIONS
+
+.SS yabsnap -h
+
+View the inbuilt help.
+
+.SS yabsnap ... -h
+
+View the inbuilt help for a particular command.
+
+.SS yabsnap --sync ...
+
+Returns only after all btrfs operations finish.
+
+.SS yabsnap --config-file CONFIGFILE ...
+
+Use a specified config file, instead of scanning the directory
+/etc/config/yabsnap for configs.
+
+.SS yabsnap --source SOURCE ...
+
+Only operate on the config which specifies the source.
+
+.SH COMMANDS
+
+.SS yabsnap create-config [-h] config_name
 
 Bootstraps a new configuration in /etc/yabsnap/configs/config_name.conf. The
 config is an ini file with directives that control yabsnap schedule and
@@ -18,23 +43,23 @@ triggers.
 Minimally after the config is created, the source and dest_prefix must be filled
 in by editing the file manually.
 
-.SS list [-h]
+.SS yabsnap list [-h]
 
 Lists all existing snapshots managed by yabsnap.
 
-.SS [--dry-run] [--sync] create [-h] [--comment COMMENT]
+.SS yabsnap [--dry-run] [--sync] create [-h] [--comment COMMENT]
 
 Creates a new backup for all configs. Can be disabled per config by setting
 `keep_user = 0`.
 
-.SS [--dry-run] [--sync] delete [-h] target_suffix
+.SS yabsnap [--dry-run] [--sync] delete [-h] target_suffix
 
 Deletes a snap. You can either specify full path to snapshot, e.g. `yabsnap
 delete /.snapshots/@root-20221006183032`, or specify just the suffix, e.g.
 `yabsnap delete 20221006183032`. If you specify just the suffix, it will delete
-the snapshot from all configs.
+matching snapshots from all configs.
 
-.SS [--dry-run] rollback-gen [-h] target_suffix
+.SS yabsnap [--dry-run] rollback-gen [-h] target_suffix
 
 Generates a script to roll back to a particular snapshot.
 

@@ -22,7 +22,7 @@ import os
 from . import human_interval
 from . import os_utils
 
-from typing import Iterator, Optional
+from typing import Iterable, Iterator, Optional
 
 # Shortens the scheduled times by this amount. This ensures that sheduled backup
 # happens, even if previous backup didn't expire by this much time.
@@ -30,6 +30,10 @@ from typing import Iterator, Optional
 # Since the scheduled job runs once per hour, this will not result in denser
 # snapshots; just the deletion check will be lineant.
 DURATION_BUFFER = datetime.timedelta(minutes=3)
+
+# User specified config file to use.
+# If set, _CONFIG_PATH will be ignored.
+USER_CONFIG_FILE: Optional[str] = None
 
 # Where config files are stored.
 _CONFIG_PATH = pathlib.Path("/etc/yabsnap/configs")
@@ -104,15 +108,24 @@ class Config:
 
 
 def iterate_configs(source: Optional[str]) -> Iterator[Config]:
-    if not _CONFIG_PATH.is_dir():
-        os_utils.eprint(
-            "Config directory does not exist. Use 'create-config' command to create a config."
-        )
-        return
+    config_iterator: Iterable[str]
+    if USER_CONFIG_FILE is not None:
+        if not os.path.isfile(USER_CONFIG_FILE):
+            logging.warn(f'Could not find specified config file: {USER_CONFIG_FILE}')
+            return
+        config_iterator = [USER_CONFIG_FILE]
+        logging.info(f"Using user-supplied config {USER_CONFIG_FILE}")
+    else:
+        if not _CONFIG_PATH.is_dir():
+            os_utils.eprint(
+                "Config directory does not exist. Use 'create-config' command to create a config."
+            )
+            return
+        config_iterator = (str(path) for path in _CONFIG_PATH.iterdir())
     configs_found = False
-    for fname in _CONFIG_PATH.iterdir():
-        logging.info(f'Reading config {fname}')
-        config = Config.from_configfile(str(fname))
+    for fname in config_iterator:
+        logging.info(f"Reading config {fname}")
+        config = Config.from_configfile(fname)
         if not config.source or not config.dest_prefix:
             os_utils.eprint(
                 f"WARNING: Skipping invalid configuration {fname}"
@@ -127,11 +140,15 @@ def iterate_configs(source: Optional[str]) -> Iterator[Config]:
 
 
 def is_schedule_enabled() -> bool:
+    if USER_CONFIG_FILE is not None:
+        # User-specified config indicates advanced usage, with possibly self
+        # managed automation. Do not check for schedule if it is present.
+        return True
     for config in iterate_configs(None):
         if config.is_schedule_enabled():
-            logging.info('Schedule is enabled.')
+            logging.info("Schedule is enabled.")
             return True
-    logging.info('Schedule is not enabled.')
+    logging.info("Schedule is not enabled.")
     return False
 
 
@@ -149,6 +166,9 @@ def create_config(name: str, source: str | None):
         return
 
     _config_fname = _CONFIG_PATH / f"{name}.conf"
+    if USER_CONFIG_FILE is not None:
+        _config_fname = pathlib.Path(USER_CONFIG_FILE)
+
     if _config_fname.exists():
         os_utils.eprint(f"Already exists: {_config_fname}")
         return

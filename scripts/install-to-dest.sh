@@ -58,4 +58,7 @@ else
 fi
 
 mkdir -p $PKGDIR/usr/share/man/man1
-install artifacts/yabsnap.manpage $PKGDIR/usr/share/man/man1/yabsnap.1
+# Note: makepkg will gzip automatically for Arch, but we gzip explicitly to
+# support other distributions.
+install -m 644 artifacts/yabsnap.manpage $PKGDIR/usr/share/man/man1/yabsnap.1
+gzip -f $PKGDIR/usr/share/man/man1/yabsnap.1

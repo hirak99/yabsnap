@@ -15,6 +15,7 @@
 import argparse
 import datetime
 import logging
+from typing import Iterable
 
 from . import colored_logs
 from . import configs
@@ -22,8 +23,6 @@ from . import global_flags
 from . import rollbacker
 from . import os_utils
 from . import snap_operator
-
-from typing import Iterable
 
 
 def _parse_args() -> argparse.Namespace:
@@ -33,6 +32,7 @@ def _parse_args() -> argparse.Namespace:
         help="Wait for btrfs to sync for any delete operations.",
         action="store_true",
     )
+    parser.add_argument("--config-file", help="Specify a config file to use.")
     parser.add_argument("--source", help="Restrict to config with this source path.")
     parser.add_argument(
         "--dry-run",
@@ -135,6 +135,7 @@ def main():
 
     if args.dry_run:
         global_flags.FLAGS.dryrun = True
+    configs.USER_CONFIG_FILE = args.config_file
 
     colored_logs.setup_logging(level=logging.INFO if args.verbose else logging.WARNING)
 
