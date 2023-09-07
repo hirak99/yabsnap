@@ -141,7 +141,7 @@ keep_user = 1
 # Will also work for AUR managers such as yay, since AUR managers also use pacman.
 keep_preinstall = 1
 
-# How much time must have bassed from last installation to trigger a snap.
+# How much time must have passed from last installation to trigger a snap.
 # This prevents snaps multiple installations from a script to each trigger snap in short succession.
 preinstall_interval = 5 minutes
 
