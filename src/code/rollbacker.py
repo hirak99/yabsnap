@@ -23,6 +23,9 @@ from . import snap_operator
 
 from typing import Iterable, Optional
 
+# This will be cleaned up if it exists by rollback script.
+_PACMAN_LOCK_FILE = "/var/lib/pacman/db.lck"
+
 
 @dataclasses.dataclass
 class _MountAttributes:
@@ -122,7 +125,9 @@ def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
     current_dir: Optional[str] = None
     for snap in to_rollback:
         if not os_utils.is_btrfs_volume(snap.metadata.source):
-            raise ValueError(f'Mount point may no longer be a btrfs volume: {snap.metadata.source}')
+            raise ValueError(
+                f"Mount point may no longer be a btrfs volume: {snap.metadata.source}"
+            )
         source_mount = _get_mount_attributes_from_mtab(snap.metadata.source)
         target_mount = _get_mount_attributes_from_mtab(os.path.dirname(snap.target))
         # The snapshot must be on the same block device as the original (target) volume.
@@ -140,6 +145,8 @@ def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
         sh_lines.append(f"mv {live_path[1:]} {backup_path}")
         backup_paths.append(backup_path_after_reboot)
         sh_lines.append(f"btrfs subvolume snapshot {snap.target} {live_path[1:]}")
+        if os.path.isfile(snap.target + _PACMAN_LOCK_FILE):
+            sh_lines.append(f"rm {live_path[1:]}{_PACMAN_LOCK_FILE}")
         sh_lines.append("")
     sh_lines += ["echo Please reboot to complete the rollback.", "echo"]
     sh_lines.append("echo After reboot you may delete -")

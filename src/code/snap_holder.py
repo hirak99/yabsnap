@@ -72,6 +72,7 @@ class _Metadata:
 class Snapshot:
     def __init__(self, target: str) -> None:
         # The full pathname of the snapshot directory.
+        # Also exposed as a public property .target.
         self._target = target
         timestr = self._target[-TIME_FORMAT_LEN:]
         self._snaptime = datetime.datetime.strptime(timestr, TIME_FORMAT)
