@@ -1,0 +1,12 @@
+[tool.pyright]
+include = ["src"]
+exclude = [
+    "**/__pycache__",
+]
+ignore = []
+defineConstant = {}
+
+reportPrivateUsage = true
+
+pythonVersion = "3.10"
+pythonPlatform = "Linux"

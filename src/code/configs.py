@@ -111,7 +111,7 @@ def iterate_configs(source: Optional[str]) -> Iterator[Config]:
     config_iterator: Iterable[str]
     if USER_CONFIG_FILE is not None:
         if not os.path.isfile(USER_CONFIG_FILE):
-            logging.warn(f'Could not find specified config file: {USER_CONFIG_FILE}')
+            logging.warn(f"Could not find specified config file: {USER_CONFIG_FILE}")
             return
         config_iterator = [USER_CONFIG_FILE]
         logging.info(f"Using user-supplied config {USER_CONFIG_FILE}")

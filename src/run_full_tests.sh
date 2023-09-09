@@ -21,7 +21,11 @@ readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 
 cd ${MY_PATH}
 
-flake8 --ignore=E203,E501,W503 code/
+black --check code/
+
+pyright code/
+
+# flake8 --ignore=E203,E501,W503 code/
 
 mypy --ignore-missing-imports --show-column-numbers --check-untyped-defs --show-error-codes code/
 
