@@ -47,7 +47,11 @@ ln -sf /usr/share/yabsnap/yabsnap.sh $PKGDIR/usr/bin/yabsnap
 mkdir -p $PKGDIR/usr/lib/systemd/system
 install -Z artifacts/services/yabsnap.service $PKGDIR/usr/lib/systemd/system
 install -Z artifacts/services/yabsnap.timer $PKGDIR/usr/lib/systemd/system
-sudo systemctl daemon-reload
+if [[ -z "$PKGDIR" ]]; then
+    # Reload if installed as root (i.e. $PKGDIR should be empty).
+    # But not during AUR PKGBUILD, since it doesn't have system access.
+    sudo systemctl daemon-reload
+fi
 
 readonly HOOKDIR=/usr/share/libalpm/hooks/
 if [[ -d "$HOOKDIR" ]]; then

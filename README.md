@@ -65,7 +65,7 @@ pacman command used.
 
 - Create a config:
 `yabsnap create-config CONFIGNAME`
-  - This will create a file `/etc/configs/yabsnap/CONFIGNAME.conf`
+  - This will create a file `/etc/yabsnap/configs/CONFIGNAME.conf`
 - Edit the config to change the `source` field, to point to a btrfs mounted directory. E.g. `source = /`, or `source = /home`.
 
 Also, ensure that the service is enabled,
