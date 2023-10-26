@@ -174,13 +174,14 @@ def create_config(name: str, source: str | None):
         return
 
     lines: list[str] = []
-    for line in open(_example_config_fname()):
-        line = line.strip()
-        if source and line.startswith("source ="):
-            line = f"source = {source}"
-        elif line.startswith("dest_prefix ="):
-            line = f"dest_prefix = /.snapshots/@{name}-"
-        lines.append(line)
+    with open(_example_config_fname()) as f:
+        for line in f:
+            line = line.strip()
+            if source and line.startswith("source ="):
+                line = f"source = {source}"
+            elif line.startswith("dest_prefix ="):
+                line = f"dest_prefix = /.snapshots/@{name}-"
+            lines.append(line)
 
     try:
         _config_fname.parent.mkdir(parents=True, exist_ok=True)
