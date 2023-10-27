@@ -23,14 +23,16 @@ View the inbuilt help for a particular command.
 
 Returns only after all btrfs operations finish.
 
-.SS yabsnap --config-file CONFIGFILE ...
+.SS yabsnap --config-file CONFIG-FILE ...
 
 Use a specified config file, instead of scanning the directory
 /etc/config/yabsnap for configs.
 
 .SS yabsnap --source SOURCE ...
 
-Only operate on the config which specifies the source.
+Restricts to the config which has the specified source, for example `--source
+/home`. The source must be specified in one of the config files. Alternatively,
+a config-file directly may also be specified with `--config-file CONFIG-FILE`.
 
 .SH COMMANDS
 

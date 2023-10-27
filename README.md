@@ -159,7 +159,8 @@ keep_yearly = 0
 ## Global flags
 
 * `--dry-run` Disables all snapshot changes. Shows what it would do instead.
-* `--source` Restricts to the config which has the specified source.
+* `--config-file CONFIG-FILE` Specify which config file to operate on.
+* `--source SOURCE` Restricts to the config which has the specified source, for example `--source /home`. The source must be specified in one of the config files. Alternatively, a config-file directly may also be specified with `--config-file CONFIG-FILE`.
 
 ## Commands
 ### `yabsnap create-config NAME`
