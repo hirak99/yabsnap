@@ -114,8 +114,7 @@ class SnapOperatorTest(unittest.TestCase):
     def test_list_json(self):
         self._old_snaps = [
             snap_holder.Snapshot(
-                "/tmp/nodir/@home-"
-                + _utc_to_local_str("20230213" "001000")
+                "/tmp/nodir/@home-" + _utc_to_local_str("20230213" "001000")
             )
         ]
         self._old_snaps[-1].metadata.trigger = "S"
