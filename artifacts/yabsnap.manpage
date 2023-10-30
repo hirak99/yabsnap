@@ -49,6 +49,11 @@ in by editing the file manually.
 
 Lists all existing snapshots managed by yabsnap.
 
+.SS yabsnap list [-h]
+
+Machine readable lists of all snapshots managed by yabsnap. With bash, this may
+be piped into jq for further filtering or restructuring.
+
 .SS yabsnap [--dry-run] [--sync] create [-h] [--comment COMMENT]
 
 Creates a new backup for all configs. Can be disabled per config by setting

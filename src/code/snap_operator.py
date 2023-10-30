@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import datetime
+import json
 import logging
 import os
 
@@ -22,7 +23,7 @@ from . import human_interval
 from . import os_utils
 from . import snap_holder
 
-from typing import Iterable, Iterator, Optional
+from typing import Any, Iterable, Iterator, Optional
 
 
 def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
@@ -179,7 +180,8 @@ class SnapOperator:
             snapshot.metadata.trigger = "S"
             snapshot.create_from(self._config.source)
 
-    def list_backups(self):
+    def list_snaps(self):
+        """Print the backups for humans."""
         print(f"Config: {self._config.config_file} (source={self._config.source})")
         # Just display the log if it's not a btrfs volume.
         _ = os_utils.is_btrfs_volume(self._config.source)
@@ -198,3 +200,24 @@ class SnapOperator:
             columns.append(snap.metadata.comment)
             print("  ".join(columns))
         print("")
+
+    def _snaps_json_iter(self) -> Iterator[str]:
+        result: dict[str, Any] = {
+            "config_file": self._config.config_file,
+            "source": self._config.source,
+        }
+        # Just display the log if it's not a btrfs volume.
+        _ = os_utils.is_btrfs_volume(self._config.source)
+        result["file"] = {"prefix": self._config.dest_prefix}
+        for snap in _get_old_backups(self._config):
+            result["file"]["timestamp"] = snap.target.removeprefix(
+                self._config.dest_prefix
+            )
+            result["trigger"] = snap.metadata.trigger
+            result["comment"] = snap.metadata.comment
+            yield json.dumps(result, sort_keys=True, separators=(",", ":"))
+
+    def list_snaps_json(self):
+        """Print snaps for machine readable code."""
+        for line in self._snaps_json_iter():
+            print(line)

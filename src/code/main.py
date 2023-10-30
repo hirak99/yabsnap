@@ -45,7 +45,10 @@ def _parse_args() -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command")
 
     # User commands.
-    subparsers.add_parser("list")
+    subparsers.add_parser("list", help="List all managed snaps.")
+    subparsers.add_parser(
+        "list-json", help="Machine readable list of all managed snaps."
+    )
     create = subparsers.add_parser("create", help="Create new snapshots.")
     create.add_argument("--comment", help="Comment attached to this snapshot.")
     create_config = subparsers.add_parser(
@@ -113,7 +116,9 @@ def _config_operation(command: str, source: str, comment: str, sync: bool):
         elif command == "internal-preupdate":
             snapper.on_pacman()
         elif command == "list":
-            snapper.list_backups()
+            snapper.list_snaps()
+        elif command == "list-json":
+            snapper.list_snaps_json()
         elif command == "create":
             snapper.create(comment)
         else:
@@ -168,7 +173,10 @@ def main():
     else:
         comment = getattr(args, "comment", "")
         _config_operation(
-            command=args.command, source=args.source, comment=comment, sync=args.sync
+            command=args.command,
+            source=args.source,
+            comment=comment,
+            sync=args.sync,
         )
 
 

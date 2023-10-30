@@ -186,6 +186,26 @@ Snaps at: /.snapshots/@root-...
 
  The indicators `S`, `I`, `U` respectively indicate scheduled, installation, user snapshots.
 
+### `yabsnap list-json`
+
+Similar to list, but as a machine readable json.
+
+This can be useful to build commands. For instance, with bash you could use `jq` to filter -
+
+```
+# Filter all snaps created during installation.
+yabsnap list-json | jq -c 'select(.trigger=="I")'
+# Filter all snaps created during installation, and using home.conf.
+yabsnap list-json | jq -c 'select(.trigger=="I" and (.config_file | endswith("/home.conf")))'
+```
+
+Or restructure -
+```
+# Show only the timestamps.
+yabsnap list-json | jq '.file.timestamp'
+```
+
+
 ### `yabsnap create`
  Creates an user snapshot.
 
