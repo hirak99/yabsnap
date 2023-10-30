@@ -112,11 +112,7 @@ class SnapOperatorTest(unittest.TestCase):
         self._mock_create_from.assert_called_with("snap_source")
 
     def test_list_json(self):
-        self._old_snaps = [
-            snap_holder.Snapshot(
-                "/tmp/nodir/@home-" + _utc_to_local_str("20230213" "001000")
-            )
-        ]
+        self._old_snaps = [snap_holder.Snapshot("/tmp/nodir/@home-20230213001000")]
         self._old_snaps[-1].metadata.trigger = "S"
         self._old_snaps[-1].metadata.comment = "comment"
         snapper = snap_operator.SnapOperator(
@@ -131,7 +127,7 @@ class SnapOperatorTest(unittest.TestCase):
             list(snapper._snaps_json_iter()),
             [
                 '{"comment":"comment","config_file":"config_file",'
-                '"file":{"prefix":"/tmp/nodir/@home-","timestamp":"20230213054000"},'
+                '"file":{"prefix":"/tmp/nodir/@home-","timestamp":"20230213001000"},'
                 '"source":"snap_source","trigger":"S"}'
             ],
         )
