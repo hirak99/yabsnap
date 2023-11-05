@@ -88,7 +88,9 @@ class SnapOperator:
     def _create_and_maintain_n_backups(
         self, count: int, trigger: str, comment: Optional[str]
     ):
+        logging.info(f"Maintain {count} volumes of type {trigger}.")
         if not os_utils.is_btrfs_volume(self._config.source):
+            logging.warning(f"Not a btrfs volume {self._config.source}.")
             return
         # Find previous snaps.
         # Doing this before the update handles dryrun (where no new snap is created).
