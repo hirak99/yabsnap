@@ -140,8 +140,11 @@ class SnapOperatorTest(unittest.TestCase):
         self.assertEqual(
             list(snap_operator._all_but_last_k([1, 2, 3, 4], 0)), [1, 2, 3, 4]
         )
+        # Leave -2 out of 4 elements - causes an error.
         with self.assertRaisesRegex(ValueError, r"k = .+ < 0"):
             list(snap_operator._all_but_last_k([1, 2, 3, 4], -2))
+        # Leave 5 out of 2 elements. Succeeds.
+        self.assertEqual(list(snap_operator._all_but_last_k([1, 2], 5)), [])
 
     def setUp(self) -> None:
         super().setUp()

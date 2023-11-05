@@ -57,6 +57,7 @@ _GenericT = TypeVar("_GenericT")
 
 
 def _all_but_last_k(array: list[_GenericT], k: int) -> Iterator[_GenericT]:
+    """All but at most k last elements."""
     if k < 0:
         raise ValueError(f"k = {k} < 0")
     yield from array[: len(array) - k]
