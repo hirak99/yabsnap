@@ -132,6 +132,17 @@ class SnapOperatorTest(unittest.TestCase):
             ],
         )
 
+    def test_all_but_k(self):
+        self.assertEqual(list(snap_operator._all_but_last_k([1, 2, 3, 4], 2)), [1, 2])
+        self.assertEqual(
+            list(snap_operator._all_but_last_k([1, 2, 3, 4], 1)), [1, 2, 3]
+        )
+        self.assertEqual(
+            list(snap_operator._all_but_last_k([1, 2, 3, 4], 0)), [1, 2, 3, 4]
+        )
+        with self.assertRaisesRegex(ValueError, r"k = .+ < 0"):
+            list(snap_operator._all_but_last_k([1, 2, 3, 4], -2))
+
     def setUp(self) -> None:
         super().setUp()
         self._exit_stack = contextlib.ExitStack()

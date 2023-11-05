@@ -23,14 +23,14 @@ from . import human_interval
 from . import os_utils
 from . import snap_holder
 
-from typing import Any, Iterable, Iterator, Optional
+from typing import Any, Iterable, Iterator, Optional, TypeVar
 
 
 def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
     """Returns existing backups in chronological order."""
-    configdir = os.path.dirname(config.dest_prefix)
-    for fname in os.listdir(configdir):
-        pathname = os.path.join(configdir, fname)
+    destdir = os.path.dirname(config.dest_prefix)
+    for fname in os.listdir(destdir):
+        pathname = os.path.join(destdir, fname)
         if not os.path.isdir(pathname):
             continue
         if not pathname.startswith(config.dest_prefix):
@@ -51,6 +51,15 @@ def find_target(config: configs.Config, suffix: str) -> Optional[snap_holder.Sna
         if snap.target.endswith(suffix):
             return snap_holder.Snapshot(snap.target)
     return None
+
+
+_GenericT = TypeVar("_GenericT")
+
+
+def _all_but_last_k(array: list[_GenericT], k: int) -> Iterator[_GenericT]:
+    if k < 0:
+        raise ValueError(f"k = {k} < 0")
+    yield from array[: len(array) - k]
 
 
 class SnapOperator:
@@ -106,7 +115,7 @@ class SnapOperator:
             snapshot.create_from(self._config.source)
 
         # Clean up old snaps; leave count-1 previous snaps (plus the one now created).
-        for expired in previous_snaps[: -count + 1]:
+        for expired in _all_but_last_k(previous_snaps, count - 1):
             expired.delete()
             self.need_sync = True
 
