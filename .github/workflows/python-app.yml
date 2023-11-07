@@ -31,3 +31,4 @@ jobs:
     - name: Tests
       run: |
         src/run_full_tests.sh
+        scripts/test_install-to-dest.sh
