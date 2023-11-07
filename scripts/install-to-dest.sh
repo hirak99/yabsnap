@@ -56,7 +56,7 @@ fi
 readonly HOOKDIR=/usr/share/libalpm/hooks/
 if [[ -d "$HOOKDIR" ]]; then
   mkdir -p $PKGDIR/$HOOKDIR
-  install -Z artifacts/pacman/05-yabsnap-pacman-pre.hook $PKGDIR/$HOOKDIR
+  install -Z artifacts/pacman/01-yabsnap-pacman-pre.hook $PKGDIR/$HOOKDIR
 else
   printf 'Not an Arch based distro, will not install hook.\n' >&2
 fi
