@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest import mock
 import os
 import tempfile
 import unittest
@@ -32,12 +33,32 @@ class ConfigsTest(unittest.TestCase):
         )
         self.assertEqual(config, expected_config)
 
+    def test_post_transaction_scripts(self):
+        with tempfile.NamedTemporaryFile(prefix="yabsnap_config_test_") as file:
+            with open(configs._example_config_fname()) as example_file:
+                for line in example_file:
+                    file.write(line.encode())
+
+            # Add a new line.
+            file.write(
+                'post_transaction_scripts = script1.sh "/my directory/script2.sh"\n'.encode(),
+            )
+            file.flush()
+
+            read_config = configs.Config.from_configfile(file.name)
+            self.assertEqual(
+                read_config.post_transaction_scripts,
+                ["script1.sh", "/my directory/script2.sh"],
+            )
+
     def test_create_config(self):
         with tempfile.NamedTemporaryFile(prefix="yabsnap_config_test_") as file:
-            configs.USER_CONFIG_FILE = file.name
+            # Don't need the file; in fact if it exists we cannot create it.
             os.remove(file.name)
-            # Create -
-            configs.create_config("configname", "source")
+
+            # Create (i.e write to file.name) -
+            with mock.patch.object(configs, "USER_CONFIG_FILE", file.name):
+                configs.create_config("configname", "source")
 
             # Read back -
             read_config = configs.Config.from_configfile(file.name)

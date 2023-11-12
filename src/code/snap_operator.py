@@ -68,8 +68,10 @@ class SnapOperator:
         self._config = config
         self._now = now
         self._now_str = self._now.strftime(snap_holder.TIME_FORMAT)
-        # Set to true on any delete operation.
-        self.need_sync = False
+        # Set to true on any create operation.
+        self.snaps_created = False
+        # Set to true on any delete operation. If True, may run a btrfs subv sync.
+        self.snaps_deleted = False
 
     def _apply_deletion_rules(self, snaps: Iterable[snap_holder.Snapshot]) -> bool:
         """Deletes old backups. Returns True if new backup is needed."""
@@ -89,7 +91,7 @@ class SnapOperator:
             elapsed_secs = (self._now - when).total_seconds()
             if elapsed_secs > self._config.min_keep_secs:
                 snap_holder.Snapshot(target).delete()
-                self.need_sync = True
+                self.snaps_deleted = True
             else:
                 logging.info(f"Not enough time passed, not deleting {target}")
 
@@ -114,11 +116,12 @@ class SnapOperator:
             if comment:
                 snapshot.metadata.comment = comment
             snapshot.create_from(self._config.source)
+            self.snaps_created = True
 
         # Clean up old snaps; leave count-1 previous snaps (plus the one now created).
         for expired in _all_but_last_k(previous_snaps, count - 1):
             expired.delete()
-            self.need_sync = True
+            self.snaps_deleted = True
 
     def create(self, comment: Optional[str]):
         try:
@@ -191,6 +194,7 @@ class SnapOperator:
             snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
             snapshot.metadata.trigger = "S"
             snapshot.create_from(self._config.source)
+            self.snaps_created = True
 
     def list_snaps(self):
         """Print the backups for humans."""

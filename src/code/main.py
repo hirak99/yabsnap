@@ -15,6 +15,7 @@
 import argparse
 import datetime
 import logging
+import subprocess
 from typing import Iterable
 
 from . import colored_logs
@@ -94,6 +95,8 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync:
             snap.delete()
             mount_paths.add(config.mount_path)
 
+        config.call_post_hooks()
+
     if sync:
         _btrfs_sync(mount_paths)
 
@@ -124,8 +127,10 @@ def _config_operation(command: str, source: str, comment: str, sync: bool):
         else:
             raise ValueError(f"Command not implemented: {command}")
 
-        if snapper.need_sync:
+        if snapper.snaps_deleted:
             mount_paths_to_sync.add(config.mount_path)
+        if snapper.snaps_created or snapper.snaps_deleted:
+            config.call_post_hooks()
 
     if sync:
         _btrfs_sync(mount_paths_to_sync)

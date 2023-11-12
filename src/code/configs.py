@@ -16,8 +16,9 @@ import configparser
 import dataclasses
 import datetime
 import logging
-import pathlib
 import os
+import pathlib
+import shlex
 
 from . import human_interval
 from . import os_utils
@@ -64,6 +65,8 @@ class Config:
     keep_monthly: int = 0
     keep_yearly: int = 0
 
+    post_transaction_scripts: list[str] = dataclasses.field(default_factory=list)
+
     def is_schedule_enabled(self) -> bool:
         return (
             self.keep_hourly > 0
@@ -84,6 +87,9 @@ class Config:
             dest_prefix=section["dest_prefix"],
         )
         for key, value in section.items():
+            if key == "post_transaction_scripts":
+                result.post_transaction_scripts = shlex.split(value)
+                continue
             if not hasattr(result, key):
                 logging.warning(f"Invalid field {key=} found in {config_file=}")
             if key.endswith("_interval"):
@@ -105,6 +111,10 @@ class Config:
     @property
     def mount_path(self) -> str:
         return os.path.dirname(self.dest_prefix)
+
+    def call_post_hooks(self) -> None:
+        for script in self.post_transaction_scripts:
+            os_utils.run_user_script(script, [self.source])
 
 
 def iterate_configs(source: Optional[str]) -> Iterator[Config]:

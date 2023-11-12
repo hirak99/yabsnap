@@ -36,6 +36,18 @@ def execute_sh(command: str, error_ok: bool = False) -> Optional[str]:
         return None
 
 
+def run_user_script(script_name: str, args: list[str]) -> bool:
+    try:
+        subprocess.check_call([script_name] + args)
+    except FileNotFoundError:
+        logging.warning(f"User script {script_name=} does not exist.")
+        return False
+    except subprocess.CalledProcessError:
+        logging.warning(f"User script {script_name=} with {args=} resulted in error.")
+        return False
+    return True
+
+
 def is_btrfs_volume(mount_point: str) -> bool:
     """Test if directory is a btrfs volume."""
     # Based on https://stackoverflow.com/a/32865333/196462
