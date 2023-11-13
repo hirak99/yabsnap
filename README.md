@@ -154,8 +154,8 @@ keep_monthly = 0
 keep_yearly = 0
 
 # Uncomment example to specify scripts to run after yabsnap creates or deletes any snap.
-# If any creation / deletion operation occurs, each script will be called with the `source` as an
-# argument. Use space as delimiter to specify multiple scripts.
+# Use space as delimiter to specify multiple scripts if desired.
+# If any creation / deletion operation occurs, each script will be called once.
 # Example -
 # post_transaction_scripts = "/home/me/script1.sh" "/home/me/script2.sh"
 ```

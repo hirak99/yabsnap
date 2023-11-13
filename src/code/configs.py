@@ -114,7 +114,7 @@ class Config:
 
     def call_post_hooks(self) -> None:
         for script in self.post_transaction_scripts:
-            os_utils.run_user_script(script, [self.source])
+            os_utils.run_user_script(script, [self.config_file])
 
 
 def iterate_configs(source: Optional[str]) -> Iterator[Config]:
