@@ -58,6 +58,9 @@ _GenericT = TypeVar("_GenericT")
 
 def _all_but_last_k(array: list[_GenericT], k: int) -> Iterator[_GenericT]:
     """All but at most k last elements."""
+    # Edge cases -
+    #   k > len(array): Returns empty array.
+    #   k < 0: Error.
     if k < 0:
         raise ValueError(f"k = {k} < 0")
     yield from array[: len(array) - k]
@@ -111,15 +114,22 @@ class SnapOperator:
         ]
 
         if count > 0:
+            # From previously existing snaps, leave count - 1 snaps (since we
+            # will create one more).
+            n_snaps_to_leave = count - 1
+            # Create a new snap.
             snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
             snapshot.metadata.trigger = trigger
             if comment:
                 snapshot.metadata.comment = comment
             snapshot.create_from(self._config.source)
             self.snaps_created = True
+        else:
+            # From existing snaps, delete all.
+            n_snaps_to_leave = 0
 
-        # Clean up old snaps; leave count-1 previous snaps (plus the one now created).
-        for expired in _all_but_last_k(previous_snaps, count - 1):
+        # Clean up old snaps.
+        for expired in _all_but_last_k(previous_snaps, n_snaps_to_leave):
             expired.delete()
             self.snaps_deleted = True
 

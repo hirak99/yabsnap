@@ -111,6 +111,58 @@ class SnapOperatorTest(unittest.TestCase):
         self._mock_delete.assert_called_once_with()
         self._mock_create_from.assert_called_with("snap_source")
 
+    def test_pachook(self):
+        def setup_n_snaps(n: int):
+            self._old_snaps = [
+                snap_holder.Snapshot(f"/tmp/nodir/@home-202311150{k}0000")
+                for k in range(n)
+            ]
+            for snap in self._old_snaps:
+                snap.metadata.trigger = "I"
+            trigger_interval = datetime.timedelta(hours=12).total_seconds()
+            snapper = snap_operator.SnapOperator(
+                config=configs.Config(
+                    config_file="config_file",
+                    source="snap_source",
+                    dest_prefix="dest_prefix",
+                    trigger_interval=trigger_interval,
+                ),
+                now=_utc_to_local("20230213" "130000"),
+            )
+            self._mock_delete.reset_mock()
+            self._mock_create_from.reset_mock()
+            return snapper
+
+        # Have 0, need 0 => Create 0, delete 0.
+        setup_n_snaps(0)._create_and_maintain_n_backups(0, "I", None)
+        self._mock_create_from.assert_not_called()
+        self._mock_delete.assert_not_called()
+
+        # Have 0, need 3 => Create 1, delete 0.
+        setup_n_snaps(0)._create_and_maintain_n_backups(3, "I", None)
+        self._mock_create_from.assert_called_once_with("snap_source")
+        self._mock_delete.assert_not_called()
+
+        # Have 3, need 4 => Create 1, delete 0.
+        setup_n_snaps(3)._create_and_maintain_n_backups(4, "I", None)
+        self._mock_create_from.assert_called_once_with("snap_source")
+        self._mock_delete.assert_not_called()
+
+        # Have 3, need 3 => Create 1, delete 1.
+        setup_n_snaps(3)._create_and_maintain_n_backups(3, "I", None)
+        self._mock_create_from.assert_called_once_with("snap_source")
+        self._mock_delete.assert_called_once_with()
+
+        # Have 3, need 2 => Create 1, delete 2.
+        setup_n_snaps(3)._create_and_maintain_n_backups(2, "I", None)
+        self._mock_create_from.assert_called_once_with("snap_source")
+        self.assertEqual(self._mock_delete.call_count, 2)
+
+        # Have 3, need 0 => Create 0, delete 3.
+        setup_n_snaps(3)._create_and_maintain_n_backups(0, "I", None)
+        self._mock_create_from.assert_not_called()
+        self.assertEqual(self._mock_delete.call_count, 3)
+
     def test_list_json(self):
         self._old_snaps = [snap_holder.Snapshot("/tmp/nodir/@home-20230213001000")]
         self._old_snaps[-1].metadata.trigger = "S"
