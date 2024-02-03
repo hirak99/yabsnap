@@ -87,8 +87,8 @@ def _get_now_str():
     return datetime.datetime.now().strftime(snap_holder.TIME_FORMAT)
 
 
-def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
-    if not to_rollback:
+def _rollback_snapshots(snapshots: list[snap_holder.Snapshot]) -> list[str]:
+    if not snapshots:
         return ["# No snapshot matched to rollback."]
 
     sh_lines = [
@@ -101,19 +101,19 @@ def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
 
     # Mount all required volumes at root.
     mount_points: dict[str, str] = {}
-    for snap in to_rollback:
-        source_mount = _get_mount_attributes_from_mtab(snap.metadata.source)
-        if source_mount.device not in mount_points:
+    for snap in snapshots:
+        live_subvolume = _get_mount_attributes_from_mtab(snap.metadata.source)
+        if live_subvolume.device not in mount_points:
             mount_pt = f"/run/mount/_yabsnap_internal_{len(mount_points)}"
-            mount_points[source_mount.device] = mount_pt
+            mount_points[live_subvolume.device] = mount_pt
             sh_lines += [
                 f"mkdir -p {mount_pt}",
-                f"mount {source_mount.device} {mount_pt} -o subvolid=5",
+                f"mount {live_subvolume.device} {mount_pt} -o subvolid=5",
             ]
 
     now_str = _get_now_str()
 
-    def drop_slash(s: str) -> str:
+    def drop_root_slash(s: str) -> str:
         if s[0] != "/":
             raise RuntimeError(f"Could not drop initial / from {s!r}")
         if "/" in s[1:]:
@@ -123,30 +123,30 @@ def _rollback_snapshots(to_rollback: list[snap_holder.Snapshot]) -> list[str]:
     sh_lines.append("")
     backup_paths: list[str] = []
     current_dir: Optional[str] = None
-    for snap in to_rollback:
+    for snap in snapshots:
         if not os_utils.is_btrfs_volume(snap.metadata.source):
             raise ValueError(
                 f"Mount point may no longer be a btrfs volume: {snap.metadata.source}"
             )
-        source_mount = _get_mount_attributes_from_mtab(snap.metadata.source)
-        target_mount = _get_mount_attributes_from_mtab(os.path.dirname(snap.target))
+        live_subvolume = _get_mount_attributes_from_mtab(snap.metadata.source)
+        backup_subvolume = _get_mount_attributes_from_mtab(os.path.dirname(snap.target))
         # The snapshot must be on the same block device as the original (target) volume.
-        assert target_mount.device == source_mount.device
-        mount_pt = mount_points[source_mount.device]
+        assert backup_subvolume.device == live_subvolume.device
+        mount_pt = mount_points[live_subvolume.device]
         if current_dir != mount_pt:
             sh_lines += [f"cd {mount_pt}", ""]
             current_dir = mount_pt
-        live_path = source_mount.subvol_name
-        backup_path = f"{drop_slash(target_mount.subvol_name)}/rollback_{now_str}_{drop_slash(live_path)}"
+        live_path = drop_root_slash(live_subvolume.subvol_name)
+        backup_path = f"{drop_root_slash(backup_subvolume.subvol_name)}/rollback_{now_str}_{live_path}"
         backup_path_after_reboot = (
-            f"{os.path.dirname(snap.target)}/rollback_{now_str}_{drop_slash(live_path)}"
+            f"{os.path.dirname(snap.target)}/rollback_{now_str}_{live_path}"
         )
         # sh_lines.append(f'[[ -e {backup_path} ]] && btrfs subvolume delete {backup_path}')
-        sh_lines.append(f"mv {live_path[1:]} {backup_path}")
+        sh_lines.append(f"mv {live_path} {backup_path}")
         backup_paths.append(backup_path_after_reboot)
-        sh_lines.append(f"btrfs subvolume snapshot {snap.target} {live_path[1:]}")
+        sh_lines.append(f"btrfs subvolume snapshot {snap.target} {live_path}")
         if os.path.isfile(snap.target + _PACMAN_LOCK_FILE):
-            sh_lines.append(f"rm {live_path[1:]}{_PACMAN_LOCK_FILE}")
+            sh_lines.append(f"rm {live_path}{_PACMAN_LOCK_FILE}")
         sh_lines.append("")
     sh_lines += ["echo Please reboot to complete the rollback.", "echo"]
     sh_lines.append("echo After reboot you may delete -")

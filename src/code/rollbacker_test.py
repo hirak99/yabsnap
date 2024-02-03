@@ -77,7 +77,7 @@ class TestRollbacker(unittest.TestCase):
             "_get_mount_attributes_from_mtab",
             side_effect=_mock_get_mount_attributes_from_mtab,
         ):
-            generated = rollbacker._rollback_snapshots(to_rollback=snaps_list)
+            generated = rollbacker._rollback_snapshots(snapshots=snaps_list)
 
         self.assertEqual(
             mock_is_btrfs_volume.call_args_list,
