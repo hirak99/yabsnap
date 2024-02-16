@@ -18,14 +18,20 @@ import re
 import subprocess
 import sys
 
-from typing import Any, Optional
+from typing import Any
 
 
 class CommandError(Exception):
     """Raised when a command is unsuccesful."""
 
 
-def execute_sh(command: str, error_ok: bool = False) -> Optional[str]:
+def execute_sh(command: str, error_ok: bool = False) -> str | None:
+    """Runs a shell command.
+
+    Args:
+      command: Command to run, e.g. "pacman-conf LogFile".
+      error_ok: If True, returns None on error.
+    """
     logging.info(f"Running {command}")
     try:
         return subprocess.check_output(command.split(" ")).decode()
@@ -70,16 +76,16 @@ def is_btrfs_volume(mount_point: str) -> bool:
     return True
 
 
-def get_pacman_log_path() -> str:
-    try:
-        return execute_sh("pacman-conf LogFile").strip()
-    except CommandError:
+def _get_pacman_log_path() -> str:
+    logfile = execute_sh("pacman-conf LogFile", error_ok=True)
+    if logfile is None:
         logging.warning("Unable to determine pacman log path. Using default.")
         return "/var/log/pacman.log"
+    return logfile.strip()
 
 
 def last_pacman_command() -> str:
-    logfile = get_pacman_log_path()
+    logfile = _get_pacman_log_path()
     matcher = re.compile(r"\[[\d\-:T+]*\] \[PACMAN\] Running \'(?P<cmd>.*)\'")
     with open(logfile) as f:
         for line in reversed(f.readlines()):
