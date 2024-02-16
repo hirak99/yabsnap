@@ -70,8 +70,16 @@ def is_btrfs_volume(mount_point: str) -> bool:
     return True
 
 
+def get_pacman_log_path() -> str:
+    try:
+        return execute_sh("pacman-conf LogFile").strip()
+    except CommandError:
+        logging.warning("Unable to determine pacman log path. Using default.")
+        return "/var/log/pacman.log"
+
+
 def last_pacman_command() -> str:
-    logfile = "/var/log/pacman.log"
+    logfile = get_pacman_log_path()
     matcher = re.compile(r"\[[\d\-:T+]*\] \[PACMAN\] Running \'(?P<cmd>.*)\'")
     with open(logfile) as f:
         for line in reversed(f.readlines()):
