@@ -91,7 +91,9 @@ Tips -
 - Mount by `subvol=NAME`, instead of `subvolid=NUMERIC_ID`. This is necessary to allow rollbacks without touching the fstab.
 - Create a top level subvolume for all snapshots.
 
-To set this up in shell, mount the top volume and create a @.snapshot subvolume -
+### Example Shell commands to set up
+
+To set this up in shell, mount the top volume and create a @.snapshots subvolume -
 ```sh
 # Mount the top level subvolume (id 5) into a temporary mount dir.
 TOP=/run/mount/btrfs_top  # Temporary path to mount subvol.
@@ -99,10 +101,23 @@ mkdir $TOP
 mount /dev/sdX $TOP -t btrfs -o subvolid=5
 # Assuming @ (or root) and optionally @home already exists,
 # all you need is a new subvolume for snapshots.
-btrfs subvolume create $TOP/.snapshot
+btrfs subvolume create $TOP/.snapshots
 ```
 
+### fstab
 And then add a line to your `fstab` to mount the @.snapshots subvolume on every boot.
+
+Example lines for fstab -
+```fstab
+# fstab: Example for root. Notably, use subvol=/@, do not use subvolid.
+UUID=BTRFS_VOL_UUID  /  btrfs  rw,noatime,ssd,space_cache=v2,subvol=/@,compress=zstd  0  1
+
+# fstab: Example for /.snapshots.
+UUID=BTRFS_VOL_UUID  /.snapshots  btrfs  rw,noatime,ssd,space_cache=v2,subvolid=260,subvol=/@.snapshots  0  2
+```
+
+Replace `BTRFS_VOL_UUID` with the uuid from `lsblk
+-f`, for the partition where the subvolumes reside.
 
 ## Config File
 
