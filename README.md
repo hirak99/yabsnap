@@ -101,7 +101,9 @@ mkdir $TOP
 mount /dev/sdX $TOP -t btrfs -o subvolid=5
 # Assuming @ (or root) and optionally @home already exists,
 # all you need is a new subvolume for snapshots.
-btrfs subvolume create $TOP/.snapshots
+btrfs subvolume create $TOP/@.snapshots
+# Also need directory to mount @.snapshots into -
+mkdir $TOP/.snapshots
 ```
 
 ### fstab
