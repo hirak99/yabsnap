@@ -23,6 +23,7 @@ from . import configs
 from . import deletion_logic
 from . import os_utils
 from . import snap_holder
+from . import snap_mechanisms
 from . import snap_operator
 
 # For testing, we can access private methods.
@@ -63,7 +64,9 @@ class SnapOperatorTest(unittest.TestCase):
             now=_FAKE_NOW,
         )
         snapper.scheduled()
-        self._mock_create_from.assert_called_with("snap_source")
+        self._mock_create_from.assert_called_once_with(
+            snap_mechanisms.SnapType.BTRFS, "snap_source"
+        )
 
     def test_scheduled_not_triggered(self):
         self._old_snaps = [
@@ -109,7 +112,9 @@ class SnapOperatorTest(unittest.TestCase):
         )
         snapper.scheduled()
         self._mock_delete.assert_called_once_with()
-        self._mock_create_from.assert_called_with("snap_source")
+        self._mock_create_from.assert_called_once_with(
+            snap_mechanisms.SnapType.BTRFS, "snap_source"
+        )
 
     def test_pachook(self):
         def setup_n_snaps(n: int):
@@ -140,22 +145,30 @@ class SnapOperatorTest(unittest.TestCase):
 
         # Have 0, need 3 => Create 1, delete 0.
         setup_n_snaps(0)._create_and_maintain_n_backups(3, "I", None)
-        self._mock_create_from.assert_called_once_with("snap_source")
+        self._mock_create_from.assert_called_once_with(
+            snap_mechanisms.SnapType.BTRFS, "snap_source"
+        )
         self._mock_delete.assert_not_called()
 
         # Have 3, need 4 => Create 1, delete 0.
         setup_n_snaps(3)._create_and_maintain_n_backups(4, "I", None)
-        self._mock_create_from.assert_called_once_with("snap_source")
+        self._mock_create_from.assert_called_once_with(
+            snap_mechanisms.SnapType.BTRFS, "snap_source"
+        )
         self._mock_delete.assert_not_called()
 
         # Have 3, need 3 => Create 1, delete 1.
         setup_n_snaps(3)._create_and_maintain_n_backups(3, "I", None)
-        self._mock_create_from.assert_called_once_with("snap_source")
+        self._mock_create_from.assert_called_once_with(
+            snap_mechanisms.SnapType.BTRFS, "snap_source"
+        )
         self._mock_delete.assert_called_once_with()
 
         # Have 3, need 2 => Create 1, delete 2.
         setup_n_snaps(3)._create_and_maintain_n_backups(2, "I", None)
-        self._mock_create_from.assert_called_once_with("snap_source")
+        self._mock_create_from.assert_called_once_with(
+            snap_mechanisms.SnapType.BTRFS, "snap_source"
+        )
         self.assertEqual(self._mock_delete.call_count, 2)
 
         # Have 3, need 0 => Create 0, delete 3.
@@ -202,7 +215,11 @@ class SnapOperatorTest(unittest.TestCase):
         super().setUp()
         self._exit_stack = contextlib.ExitStack()
         self._exit_stack.enter_context(
-            mock.patch.object(os_utils, "is_btrfs_volume", lambda _: True)
+            mock.patch.object(
+                snap_mechanisms._BtrfsSnapMechanism,
+                "verify_volume",
+                lambda self, _: True,
+            )
         )
         self._mock_delete = mock.MagicMock()
         self._exit_stack.enter_context(

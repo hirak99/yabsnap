@@ -24,21 +24,17 @@ import logging
 import os
 
 from . import global_flags
+from . import snap_mechanisms
 from . import os_utils
 
 TIME_FORMAT = r"%Y%m%d%H%M%S"
 TIME_FORMAT_LEN = 14
 
 
-def _execute_sh(cmd: str):
-    if global_flags.FLAGS.dryrun:
-        os_utils.eprint("Would run " + cmd)
-    else:
-        os_utils.execute_sh(cmd)
-
-
 @dataclasses.dataclass
 class _Metadata:
+    # Snapshot type. If empty, assumed btrfs.
+    snap_type: str = snap_mechanisms.SnapType.UNKNOWN.value
     # Name of the subvolume from whcih this snap was taken.
     source: str = ""
     # Can be one of -
@@ -62,8 +58,12 @@ class _Metadata:
     def load_file(cls, fname: str) -> "_Metadata":
         if os.path.isfile(fname):
             with open(fname) as f:
+                all_args = json.load(f)
+                if "snap_type" not in all_args:
+                    # For back compatibility. Older snaps will not have snap_type.
+                    all_args["snap_type"] = "BTRFS"
                 try:
-                    return cls(**json.load(f))
+                    return cls(**all_args)
                 except json.JSONDecodeError:
                     logging.warning(f"Unable to parse metadata file: {fname}")
         return cls()
@@ -88,24 +88,26 @@ class Snapshot:
     def snaptime(self) -> datetime.datetime:
         return self._snaptime
 
-    def create_from(self, parent: str) -> None:
-        if not os_utils.is_btrfs_volume(parent):
-            logging.error("Unable to validate source as btrfs - aborting snapshot!")
+    @property
+    def _snap_type(self) -> snap_mechanisms.SnapType:
+        return snap_mechanisms.SnapType[self.metadata.snap_type]
+
+    def create_from(self, snap_type: snap_mechanisms.SnapType, parent: str) -> None:
+        if not snap_mechanisms.get(snap_type).verify_volume(parent):
+            logging.error("Unable to validate source volume - aborting snapshot!")
             return
+        # Create the metadata before the snapshot.
+        # Thus we leave trace even if snapshotting fails.
+        self.metadata.snap_type = snap_type.value
         self.metadata.source = parent
         self.metadata.save_file(self._metadata_fname)
-        try:
-            _execute_sh("btrfs subvolume snapshot -r " f"{parent} {self._target}")
-        except os_utils.CommandError:
-            logging.error("Unable to create; are you running as root?")
-            raise
+        # Create the snap.
+        snap_mechanisms.get(snap_type).create(parent, self._target)
 
     def delete(self) -> None:
-        try:
-            _execute_sh(f"btrfs subvolume delete {self._target}")
-        except os_utils.CommandError:
-            logging.error("Unable to delete; are you running as root?")
-            raise
+        # First delete the snapshot.
+        snap_mechanisms.get(self._snap_type).delete(self._target)
+        # Then delete the metadata.
         if not global_flags.FLAGS.dryrun:
             if os.path.exists(self._metadata_fname):
                 os.remove(self._metadata_fname)

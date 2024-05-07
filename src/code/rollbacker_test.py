@@ -18,6 +18,7 @@ from unittest import mock
 from . import rollbacker
 from . import os_utils
 from . import snap_holder
+from . import snap_mechanisms
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -69,7 +70,7 @@ class TestRollbacker(unittest.TestCase):
         snaps_list[1].metadata.source = "/root"
 
         with mock.patch.object(
-            os_utils, "is_btrfs_volume", return_value=True
+            snap_mechanisms._BtrfsSnapMechanism, "verify_volume", return_value=True
         ) as mock_is_btrfs_volume, mock.patch.object(
             rollbacker, "_get_now_str", return_value="20220202220000"
         ), mock.patch.object(

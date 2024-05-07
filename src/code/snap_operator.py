@@ -22,6 +22,7 @@ from . import deletion_logic
 from . import human_interval
 from . import os_utils
 from . import snap_holder
+from . import snap_mechanisms
 
 from typing import Any, Iterable, Iterator, Optional, TypeVar
 
@@ -122,7 +123,7 @@ class SnapOperator:
             snapshot.metadata.trigger = trigger
             if comment:
                 snapshot.metadata.comment = comment
-            snapshot.create_from(self._config.source)
+            snapshot.create_from(self._config.snap_type, self._config.source)
             self.snaps_created = True
         else:
             # From existing snaps, delete all.
@@ -203,7 +204,7 @@ class SnapOperator:
         if need_new:
             snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
             snapshot.metadata.trigger = "S"
-            snapshot.create_from(self._config.source)
+            snapshot.create_from(self._config.snap_type, self._config.source)
             self.snaps_created = True
 
     def list_snaps(self):

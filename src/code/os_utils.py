@@ -54,28 +54,6 @@ def run_user_script(script_name: str, args: list[str]) -> bool:
     return True
 
 
-def is_btrfs_volume(mount_point: str) -> bool:
-    """Test if directory is a btrfs volume."""
-    # Based on https://stackoverflow.com/a/32865333/196462
-    fstype = execute_sh("stat -f --format=%T " + mount_point, error_ok=True)
-    if not fstype:
-        logging.warning(f"Not btrfs (cannot determine filesystem): {mount_point}")
-        return False
-    if fstype.strip() != "btrfs":
-        logging.warning(f"Not btrfs (filesystem not btrfs): {mount_point}")
-        return False
-    inodenum = execute_sh("stat --format=%i " + mount_point, error_ok=True)
-    if not inodenum:
-        logging.warning(f"Not btrfs (cannot determine inode): {mount_point}")
-        return False
-    if inodenum.strip() != "256":
-        logging.warning(
-            f"Not btrfs (inode not 256, possibly a subdirectory of a btrfs mount): {mount_point}"
-        )
-        return False
-    return True
-
-
 def _get_pacman_log_path() -> str:
     logfile = execute_sh("pacman-conf LogFile", error_ok=True)
     if logfile is None:

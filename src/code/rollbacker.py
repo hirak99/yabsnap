@@ -19,6 +19,7 @@ import os
 from . import configs
 from . import os_utils
 from . import snap_holder
+from . import snap_mechanisms
 from . import snap_operator
 
 from typing import Iterable, Optional
@@ -124,7 +125,9 @@ def _rollback_snapshots(snapshots: list[snap_holder.Snapshot]) -> list[str]:
     backup_paths: list[str] = []
     current_dir: Optional[str] = None
     for snap in snapshots:
-        if not os_utils.is_btrfs_volume(snap.metadata.source):
+        if not snap_mechanisms.get(snap_mechanisms.SnapType.BTRFS).verify_volume(
+            snap.metadata.source
+        ):
             raise ValueError(
                 f"Mount point may no longer be a btrfs volume: {snap.metadata.source}"
             )

@@ -93,7 +93,7 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync:
         snap = snap_operator.find_target(config, path_suffix)
         if snap:
             snap.delete()
-            if config.snapshot_type == snap_mechanisms.SnapType.BTRFS:
+            if config.snap_type == snap_mechanisms.SnapType.BTRFS:
                 mount_paths.add(config.mount_path)
 
         config.call_post_hooks()
@@ -129,7 +129,7 @@ def _config_operation(command: str, source: str, comment: str, sync: bool):
             raise ValueError(f"Command not implemented: {command}")
 
         if snapper.snaps_deleted:
-            if config.snapshot_type == snap_mechanisms.SnapType.BTRFS:
+            if config.snap_type == snap_mechanisms.SnapType.BTRFS:
                 mount_paths_to_sync.add(config.mount_path)
         if snapper.snaps_created or snapper.snaps_deleted:
             config.call_post_hooks()
