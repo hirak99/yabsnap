@@ -22,6 +22,7 @@ import shlex
 
 from . import human_interval
 from . import os_utils
+from . import snap_mechanisms
 
 from typing import Iterable, Iterator, Optional
 
@@ -67,6 +68,9 @@ class Config:
 
     post_transaction_scripts: list[str] = dataclasses.field(default_factory=list)
 
+    # If empty, btrfs is assumed.
+    snapshot_type: snap_mechanisms.SnapType = snap_mechanisms.SnapType.BTRFS
+
     def is_schedule_enabled(self) -> bool:
         return (
             self.keep_hourly > 0
@@ -89,6 +93,11 @@ class Config:
         for key, value in section.items():
             if key == "post_transaction_scripts":
                 result.post_transaction_scripts = shlex.split(value)
+                continue
+            if key == "snapshot_type":
+                if not value:
+                    value = "btrfs"
+                result.snapshot_type = snap_mechanisms.SnapType[value.upper()]
                 continue
             if not hasattr(result, key):
                 logging.warning(f"Invalid field {key=} found in {config_file=}")
@@ -115,6 +124,11 @@ class Config:
     def call_post_hooks(self) -> None:
         for script in self.post_transaction_scripts:
             os_utils.run_user_script(script, [self.config_file])
+
+    def is_compatible_volume(self) -> bool:
+        if self.snapshot_type == snap_mechanisms.SnapType.BTRFS:
+            return os_utils.is_btrfs_volume(self.source)
+        raise RuntimeError(f"Unclear how to check volume type for {self.snapshot_type}")
 
 
 def iterate_configs(source: Optional[str]) -> Iterator[Config]:

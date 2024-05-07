@@ -104,8 +104,8 @@ class SnapOperator:
         self, count: int, trigger: str, comment: Optional[str]
     ):
         logging.info(f"Maintain {count} volumes of type {trigger}.")
-        if not os_utils.is_btrfs_volume(self._config.source):
-            logging.warning(f"Not a btrfs volume {self._config.source}.")
+        if not self._config.is_compatible_volume():
+            logging.warning(f"Not a compatible volume {self._config.source}.")
             return
         # Find previous snaps.
         # Doing this before the update handles dryrun (where no new snap is created).
@@ -185,7 +185,7 @@ class SnapOperator:
 
     def scheduled(self):
         """Triggers periodically by the system timer."""
-        if not os_utils.is_btrfs_volume(self._config.source):
+        if not self._config.is_compatible_volume():
             return
         wait_until = self._next_trigger_time()
         if wait_until is not None:
@@ -210,7 +210,7 @@ class SnapOperator:
         """Print the backups for humans."""
         print(f"Config: {self._config.config_file} (source={self._config.source})")
         # Just display the log if it's not a btrfs volume.
-        _ = os_utils.is_btrfs_volume(self._config.source)
+        _ = self._config.is_compatible_volume()
         print(f"Snaps at: {self._config.dest_prefix}...")
         for snap in _get_old_backups(self._config):
             columns: list[str] = []
@@ -233,7 +233,7 @@ class SnapOperator:
             "source": self._config.source,
         }
         # Just display the log if it's not a btrfs volume.
-        _ = os_utils.is_btrfs_volume(self._config.source)
+        _ = self._config.is_compatible_volume()
         result["file"] = {"prefix": self._config.dest_prefix}
         for snap in _get_old_backups(self._config):
             result["file"]["timestamp"] = snap.target.removeprefix(

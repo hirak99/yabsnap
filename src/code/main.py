@@ -15,7 +15,6 @@
 import argparse
 import datetime
 import logging
-import subprocess
 from typing import Iterable
 
 from . import colored_logs
@@ -23,6 +22,7 @@ from . import configs
 from . import global_flags
 from . import rollbacker
 from . import os_utils
+from . import snap_mechanisms
 from . import snap_operator
 
 
@@ -93,7 +93,8 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync:
         snap = snap_operator.find_target(config, path_suffix)
         if snap:
             snap.delete()
-            mount_paths.add(config.mount_path)
+            if config.snapshot_type == snap_mechanisms.SnapType.BTRFS:
+                mount_paths.add(config.mount_path)
 
         config.call_post_hooks()
 
@@ -128,7 +129,8 @@ def _config_operation(command: str, source: str, comment: str, sync: bool):
             raise ValueError(f"Command not implemented: {command}")
 
         if snapper.snaps_deleted:
-            mount_paths_to_sync.add(config.mount_path)
+            if config.snapshot_type == snap_mechanisms.SnapType.BTRFS:
+                mount_paths_to_sync.add(config.mount_path)
         if snapper.snaps_created or snapper.snaps_deleted:
             config.call_post_hooks()
 
