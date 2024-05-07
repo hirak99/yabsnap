@@ -19,10 +19,10 @@ import os
 
 from . import configs
 from . import deletion_logic
+from . import global_flags
 from . import human_interval
 from . import os_utils
 from . import snap_holder
-from . import snap_mechanisms
 
 from typing import Any, Iterable, Iterator, Optional, TypeVar
 
@@ -43,10 +43,10 @@ def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
 
 
 def find_target(config: configs.Config, suffix: str) -> Optional[snap_holder.Snapshot]:
-    if len(suffix) < snap_holder.TIME_FORMAT_LEN:
+    if len(suffix) < global_flags.TIME_FORMAT_LEN:
         raise ValueError(
             "Length of snapshot identifier suffix "
-            f"must be at least {snap_holder.TIME_FORMAT_LEN}."
+            f"must be at least {global_flags.TIME_FORMAT_LEN}."
         )
     for snap in _get_old_backups(config):
         if snap.target.endswith(suffix):
@@ -71,7 +71,7 @@ class SnapOperator:
     def __init__(self, config: configs.Config, now: datetime.datetime) -> None:
         self._config = config
         self._now = now
-        self._now_str = self._now.strftime(snap_holder.TIME_FORMAT)
+        self._now_str = self._now.strftime(global_flags.TIME_FORMAT)
         # Set to true on any create operation.
         self.snaps_created = False
         # Set to true on any delete operation. If True, may run a btrfs subv sync.

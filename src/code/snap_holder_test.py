@@ -19,7 +19,8 @@ import unittest
 from unittest import mock
 
 from . import snap_holder
-from . import snap_mechanisms
+from .mechanisms import btrfs_mechanism
+from .mechanisms import snap_mechanisms
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -33,9 +34,11 @@ class SnapHolderTest(unittest.TestCase):
             self.assertEqual(snap._snap_type, snap_mechanisms.SnapType.UNKNOWN)
 
             with mock.patch.object(
-                snap_mechanisms._BtrfsSnapMechanism, "verify_volume", return_value=True
+                btrfs_mechanism.BtrfsSnapMechanism,
+                "verify_volume",
+                return_value=True,
             ) as mock_verify_volume, mock.patch.object(
-                snap_mechanisms._BtrfsSnapMechanism, "create", return_value=None
+                btrfs_mechanism.BtrfsSnapMechanism, "create", return_value=None
             ) as mock_create:
                 snap.create_from(snap_mechanisms.SnapType.BTRFS, "parent")
             mock_verify_volume.assert_called_once_with("parent")
@@ -50,7 +53,7 @@ class SnapHolderTest(unittest.TestCase):
                 )
 
             with mock.patch.object(
-                snap_mechanisms._BtrfsSnapMechanism, "delete", return_value=None
+                btrfs_mechanism.BtrfsSnapMechanism, "delete", return_value=None
             ) as mock_delete:
                 snap2.delete()
             mock_delete.assert_called_once_with(snap_destination)

@@ -21,10 +21,10 @@ from typing import Iterator
 
 from . import configs
 from . import deletion_logic
-from . import os_utils
 from . import snap_holder
-from . import snap_mechanisms
 from . import snap_operator
+from .mechanisms import btrfs_mechanism
+from .mechanisms import snap_mechanisms
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -216,7 +216,7 @@ class SnapOperatorTest(unittest.TestCase):
         self._exit_stack = contextlib.ExitStack()
         self._exit_stack.enter_context(
             mock.patch.object(
-                snap_mechanisms._BtrfsSnapMechanism,
+                btrfs_mechanism.BtrfsSnapMechanism,
                 "verify_volume",
                 lambda self, _: True,
             )

@@ -22,7 +22,7 @@ import shlex
 
 from . import human_interval
 from . import os_utils
-from . import snap_mechanisms
+from .mechanisms import snap_mechanisms
 
 from typing import Iterable, Iterator, Optional
 

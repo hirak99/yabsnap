@@ -12,17 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dataclasses
+import enum
+import functools
 
-# Format of time used for files.
-TIME_FORMAT = r"%Y%m%d%H%M%S"
-# Length of the string produced by this format.
-TIME_FORMAT_LEN = 14
-
-
-@dataclasses.dataclass
-class _Flags:
-    dryrun: bool = False
+from . import abstract_mechanism
+from . import btrfs_mechanism
 
 
-FLAGS = _Flags()
+# The type of snapshot is maintained in two places -
+# 1. Config
+# 2. Snapshot
+class SnapType(enum.Enum):
+    UNKNOWN = "UNKNOWN"
+    BTRFS = "BTRFS"
+
+
+@functools.cache
+def get(snap_type: SnapType) -> abstract_mechanism.SnapMechanism:
+    """Singleton factory implementation."""
+    if snap_type == SnapType.BTRFS:
+        return btrfs_mechanism.BtrfsSnapMechanism()
+    raise RuntimeError(f"Unknown snap_type {snap_type}")

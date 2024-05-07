@@ -20,10 +20,10 @@ from typing import Iterable
 from . import colored_logs
 from . import configs
 from . import global_flags
-from . import rollbacker
 from . import os_utils
-from . import snap_mechanisms
+from . import rollbacker
 from . import snap_operator
+from .mechanisms import snap_mechanisms
 
 
 def _parse_args() -> argparse.Namespace:

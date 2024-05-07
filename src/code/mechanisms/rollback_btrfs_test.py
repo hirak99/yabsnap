@@ -15,10 +15,9 @@
 import unittest
 from unittest import mock
 
-from . import rollbacker
-from . import os_utils
-from . import snap_holder
-from . import snap_mechanisms
+from . import rollback_btrfs
+from . import btrfs_mechanism
+from .. import snap_holder
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -31,7 +30,7 @@ _MOUNT_LOOKUP = {
 
 
 def _mock_get_mount_attributes_from_mtab(mount_pt: str):
-    return rollbacker._MountAttributes(
+    return rollback_btrfs._MountAttributes(
         device=_MOUNT_LOOKUP[mount_pt][0], subvol_name=_MOUNT_LOOKUP[mount_pt][1]
     )
 
@@ -48,19 +47,21 @@ class TestRollbacker(unittest.TestCase):
         ]
         # Assertiions.
         self.assertEqual(
-            rollbacker._MountAttributes("/dev/mapper/luksdev", "/@home"),
-            rollbacker._get_mount_attributes("/home", lines),
+            rollback_btrfs._MountAttributes("/dev/mapper/luksdev", "/@home"),
+            rollback_btrfs._get_mount_attributes("/home", lines),
         )
         self.assertEqual(
-            rollbacker._MountAttributes("/dev/mapper/myhome", "/@special_home"),
-            rollbacker._get_mount_attributes("/home/myhome", lines),
+            rollback_btrfs._MountAttributes("/dev/mapper/myhome", "/@special_home"),
+            rollback_btrfs._get_mount_attributes("/home/myhome", lines),
         )
         self.assertEqual(
-            rollbacker._MountAttributes("/dev/mapper/opened_rootbtrfs", "/@nestedvol"),
-            rollbacker._get_mount_attributes("/mnt/rootbtrfs/@nestedvol", lines),
+            rollback_btrfs._MountAttributes(
+                "/dev/mapper/opened_rootbtrfs", "/@nestedvol"
+            ),
+            rollback_btrfs._get_mount_attributes("/mnt/rootbtrfs/@nestedvol", lines),
         )
 
-    def test_rollback_for_two_snaps(self):
+    def test_rollback_btrfs_for_two_snaps(self):
         # config_list = [configs.Config('test.conf', source='/home', dest_prefix='/snaps/@home-')]
         snaps_list = [
             snap_holder.Snapshot("/snaps/@home-20220101130000"),
@@ -70,15 +71,17 @@ class TestRollbacker(unittest.TestCase):
         snaps_list[1].metadata.source = "/root"
 
         with mock.patch.object(
-            snap_mechanisms._BtrfsSnapMechanism, "verify_volume", return_value=True
+            btrfs_mechanism.BtrfsSnapMechanism, "verify_volume", return_value=True
         ) as mock_is_btrfs_volume, mock.patch.object(
-            rollbacker, "_get_now_str", return_value="20220202220000"
+            rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ), mock.patch.object(
-            rollbacker,
+            rollback_btrfs,
             "_get_mount_attributes_from_mtab",
             side_effect=_mock_get_mount_attributes_from_mtab,
         ):
-            generated = rollbacker._rollback_snapshots(snapshots=snaps_list)
+            generated = rollback_btrfs.rollback_gen(
+                source_dests=[(s.metadata.source, s.target) for s in snaps_list]
+            )
 
         self.assertEqual(
             mock_is_btrfs_volume.call_args_list,

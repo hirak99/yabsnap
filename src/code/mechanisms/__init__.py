@@ -11,18 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import dataclasses
-
-# Format of time used for files.
-TIME_FORMAT = r"%Y%m%d%H%M%S"
-# Length of the string produced by this format.
-TIME_FORMAT_LEN = 14
-
-
-@dataclasses.dataclass
-class _Flags:
-    dryrun: bool = False
-
-
-FLAGS = _Flags()

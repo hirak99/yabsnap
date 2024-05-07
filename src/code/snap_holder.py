@@ -24,11 +24,8 @@ import logging
 import os
 
 from . import global_flags
-from . import snap_mechanisms
 from . import os_utils
-
-TIME_FORMAT = r"%Y%m%d%H%M%S"
-TIME_FORMAT_LEN = 14
+from .mechanisms import snap_mechanisms
 
 
 @dataclasses.dataclass
@@ -74,8 +71,8 @@ class Snapshot:
         # The full pathname of the snapshot directory.
         # Also exposed as a public property .target.
         self._target = target
-        timestr = self._target[-TIME_FORMAT_LEN:]
-        self._snaptime = datetime.datetime.strptime(timestr, TIME_FORMAT)
+        timestr = self._target[-global_flags.TIME_FORMAT_LEN :]
+        self._snaptime = datetime.datetime.strptime(timestr, global_flags.TIME_FORMAT)
         self._metadata_fname = target + "-meta.json"
         self.metadata = _Metadata.load_file(self._metadata_fname)
         self._dryrun = False
