@@ -44,5 +44,16 @@ class SnapMechanism(abc.ABC):
 
     @abc.abstractmethod
     def rollback_gen(self, source_dests: list[tuple[str, str]]) -> list[str]:
-        """Returns shell lines which when executed will result in a rollback of snapshots."""
-        # It is okay to leave unimplemented, and raise NotImplementedError().
+        """Returns shell lines which when executed will result in a rollback of snapshots.
+
+        If it is not possible to roll back this type of snap, or if it is unimplemented,
+        raise an error such as NotImplementedError().
+        """
+
+    @abc.abstractmethod
+    def sync_paths(self, paths: set[str]):
+        """Syncs with a set of mount paths that may have been modified.
+
+        Create a no-op implementation in case sync is not applicable.
+        This will be called if the user passes the --sync flag.
+        """

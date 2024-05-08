@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import collections
 import datetime
 import logging
 from typing import Iterable
@@ -78,30 +79,31 @@ def _parse_args() -> argparse.Namespace:
     return args
 
 
-def _btrfs_sync(mount_paths: set[str]) -> None:
-    for mount_path in sorted(mount_paths):
-        if global_flags.FLAGS.dryrun:
-            os_utils.eprint(f"Would sync {mount_path}")
-            continue
-        os_utils.eprint("Syncing ...", flush=True)
-        os_utils.execute_sh(f"btrfs subvolume sync {mount_path}")
+def _sync(configs_to_sync: list[configs.Config]):
+    paths_to_sync: dict[snap_mechanisms.SnapType, set[str]] = collections.defaultdict(
+        set
+    )
+    for config in configs_to_sync:
+        paths_to_sync[config.snap_type].add(config.mount_path)
+    for snap_type, paths in sorted(paths_to_sync.items()):
+        snap_mechanisms.get(snap_type).sync_paths(paths)
 
 
 def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync: bool):
-    mount_paths: set[str] = set()
+    to_sync: list[configs.Config] = []
     for config in configs_iter:
         snap = snap_operator.find_target(config, path_suffix)
         if snap:
             snap.delete()
             if config.snap_type == snap_mechanisms.SnapType.BTRFS:
-                mount_paths.add(config.mount_path)
+                to_sync.append(config)
 
         config.call_post_hooks()
 
     if sync:
-        _btrfs_sync(mount_paths)
+        _sync(to_sync)
 
-    if not mount_paths:
+    if not to_sync:
         os_utils.eprint(f"Target {path_suffix} not found in any config.")
 
 
@@ -110,7 +112,7 @@ def _config_operation(command: str, source: str, comment: str, sync: bool):
     now = datetime.datetime.now()
 
     # Which mount paths to sync.
-    mount_paths_to_sync: set[str] = set()
+    to_sync: list[configs.Config] = []
 
     # Commands that need to access existing config.
     for config in configs.iterate_configs(source=source):
@@ -130,12 +132,12 @@ def _config_operation(command: str, source: str, comment: str, sync: bool):
 
         if snapper.snaps_deleted:
             if config.snap_type == snap_mechanisms.SnapType.BTRFS:
-                mount_paths_to_sync.add(config.mount_path)
+                to_sync.append(config)
         if snapper.snaps_created or snapper.snaps_deleted:
             config.call_post_hooks()
 
     if sync:
-        _btrfs_sync(mount_paths_to_sync)
+        _sync(to_sync)
 
 
 def main():

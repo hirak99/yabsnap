@@ -71,3 +71,11 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
                     f"Mount point may no longer be a btrfs volume: {source}"
                 )
         return rollback_btrfs.rollback_gen(source_dests)
+
+    def sync_paths(self, paths: set[str]):
+        for mount_path in sorted(paths):
+            if global_flags.FLAGS.dryrun:
+                os_utils.eprint(f"Would sync {mount_path}")
+                continue
+            os_utils.eprint("Syncing ...", flush=True)
+            os_utils.execute_sh(f"btrfs subvolume sync {mount_path}")
