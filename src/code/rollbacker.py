@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
+
 from . import configs
 from . import snap_operator
 from .mechanisms import snap_mechanisms
@@ -20,20 +22,14 @@ from typing import Iterable
 
 
 def rollback(configs_iter: Iterable[configs.Config], path_suffix: str):
-    source_dests: list[tuple[str, str]] = []
+    source_dests_by_snaptype: dict[snap_mechanisms.SnapType, list[tuple[str, str]]] = (
+        collections.defaultdict(list)
+    )
     for config in configs_iter:
         snap = snap_operator.find_target(config, path_suffix)
         if snap:
-            if snap.metadata.snap_type == snap_mechanisms.SnapType.BTRFS:
-                source_dests.append((snap.metadata.source, snap.target))
-            else:
-                raise RuntimeError(
-                    f"Cannot rollback snap of type {snap.metadata.snap_type} yet"
-                )
-    print("\n".join(_rollback_btrfs_snapshots(source_dests)))
-
-
-def _rollback_btrfs_snapshots(source_dests: list[tuple[str, str]]) -> list[str]:
-    return snap_mechanisms.get(snap_mechanisms.SnapType.BTRFS).rollback_gen(
-        source_dests
-    )
+            source_dests_by_snaptype[config.snap_type].append(
+                (snap.metadata.source, snap.target)
+            )
+    for snap_type, source_dests in sorted(source_dests_by_snaptype.items()):
+        print("\n".join(snap_mechanisms.get(snap_type).rollback_gen(source_dests)))

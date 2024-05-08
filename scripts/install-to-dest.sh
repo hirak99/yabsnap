@@ -27,11 +27,16 @@ cd $MY_PATH/..
 readonly PKGNAME=yabsnap
 
 # This mirrors PKGBUILD with slight modifications.
+pushd src/
+tar -cf - \
+  $(find -type f -not -name "*_test.py" \( -name "*.py" -o -name "*.conf" \)) |
+  tar -xf - -C "$PKGDIR"/usr/share/"$PKGNAME"/
+pushd "$PKGDIR"/usr/share/"$PKGNAME"/
+chown -R root:root .
+chmod -R u=rwX,go=rX .
+popd
+popd
 
-for file in $(ls -A src/code/*.{py,conf} | grep -v "_test.py")
-do
-  install -Dm 644 "$file" "$PKGDIR"/usr/share/"$PKGNAME"/code/"${file##*/}"
-done
 cd artifacts
 install -Dm 644 services/"$PKGNAME".{service,timer}      -t "$PKGDIR"/usr/lib/systemd/system/
 install -Dm 664 pacman/*.hook     -t "$PKGDIR"/usr/share/libalpm/hooks/
