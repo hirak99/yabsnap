@@ -27,12 +27,14 @@ cd $MY_PATH/..
 readonly PKGNAME=yabsnap
 
 # This mirrors PKGBUILD with slight modifications.
+readonly DEST="$PKGDIR"/usr/share/"$PKGNAME"
+
+mkdir -p "$DEST"
 pushd src/
 tar -cf - \
   $(find -type f -not -name "*_test.py" \( -name "*.py" -o -name "*.conf" \)) |
-  tar -xf - -C "$PKGDIR"/usr/share/"$PKGNAME"/
-pushd "$PKGDIR"/usr/share/"$PKGNAME"/
-chown -R root:root .
+  tar -xf - -C "$DEST"/ --no-same-owner
+pushd "$DEST"/
 chmod -R u=rwX,go=rX .
 popd
 popd
@@ -43,6 +45,6 @@ install -Dm 664 pacman/*.hook     -t "$PKGDIR"/usr/share/libalpm/hooks/
 install -Dm 644 yabsnap.manpage   "$PKGDIR"/usr/share/man/man1/yabsnap.1
 gzip -f "$PKGDIR"/usr/share/man/man1/"$PKGNAME".1
 cd ../src
-install -Dm 755 "$PKGNAME".sh -t "$PKGDIR"/usr/share/"$PKGNAME"/
+install -Dm 755 "$PKGNAME".sh -t "$DEST"/
 install -d "$PKGDIR"/usr/bin
 ln -sf /usr/share/"$PKGNAME"/"$PKGNAME".sh "$PKGDIR"/usr/bin/"$PKGNAME"
