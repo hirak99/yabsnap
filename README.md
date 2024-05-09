@@ -1,9 +1,13 @@
 ## Yet Another Btrfs Snapshotter
 
-Note: You can now [port](https://github.com/hirak99/yabsnap/issues/32#issuecomment-2101080256) yabsnap to other backends also. 
-
-Note: Currently this is tested on Arch and Fedora, and should work in most other
+Currently this is tested on Arch and Fedora, and should work in most other
 distributions.
+
+Note: Preliminary work has began to support non-btrfs (e.g. rsync, BCacheFS)
+based snapshots. If you are a developer, [this
+comment](https://github.com/hirak99/yabsnap/issues/32#issuecomment-2101080256)
+explains the abstraction for implementing a new backend.
+
 
 # Installing
 
