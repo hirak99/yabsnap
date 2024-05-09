@@ -1,6 +1,8 @@
-Yet Another Btrfs Snapshotter
+## Yet Another Btrfs Snapshotter
 
-Note: Currently this is tested on Arch and Fedora, but should work in most other
+Note: You can now [port](https://github.com/hirak99/yabsnap/issues/32#issuecomment-2101080256) yabsnap to other backends also. 
+
+Note: Currently this is tested on Arch and Fedora, and should work in most other
 distributions.
 
 # Installing
