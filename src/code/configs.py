@@ -94,10 +94,10 @@ class Config:
             if key == "post_transaction_scripts":
                 result.post_transaction_scripts = shlex.split(value)
                 continue
-            if key == "snapshot_type":
+            if key == "snap_type":
                 if not value:
-                    value = "btrfs"
-                result.snap_type = snap_mechanisms.SnapType[value.upper()]
+                    value = "BTRFS"
+                result.snap_type = snap_mechanisms.SnapType[value]
                 continue
             if not hasattr(result, key):
                 logging.warning(f"Invalid field {key=} found in {config_file=}")

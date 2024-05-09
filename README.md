@@ -176,6 +176,9 @@ keep_weekly = 0
 keep_monthly = 0
 keep_yearly = 0
 
+# Snapshot mechanism. Only BTRFS is supported as of now.
+snap_type = BTRFS
+
 # Uncomment example to specify scripts to run after yabsnap creates or deletes any snap.
 # Use space as delimiter to specify multiple scripts if desired.
 # If any creation / deletion operation occurs, each script will be called once.
