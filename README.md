@@ -13,11 +13,19 @@ explains the abstraction for implementing a new backend.
 
 ## Arch Linux: Install from AUR
 
+Use your preferred AUR handler -
+
 ```bash
-# Use your favorite AUR manager. E.g. -
 yay -S yabsnap
-# OR,
-pamac install yabsnap
+# OR
+paru -S yabsnap
+```
+
+Or install manually from AUR -
+```sh
+mkdir yabsnap_tmp && cd yabsnap_tmp
+curl 'https://aur.archlinux.org/cgit/aur.git/plain/PKGBUILD?h=yabsnap' -o PKGBUILD
+mkpkg -si
 ```
 
 ## Other Distributions: Install from git
