@@ -290,3 +290,12 @@ The script must be stored and executed to perform the rollback operation.
 - How do I delete multiple snaps?
   - The quickest way is to delete them manually. Remove the snaps with `btrfs
     subvolume snapshot del YOUR_SNAP`, and corresponding `-meta.json` files.
+
+- Why Python?
+  - Python, when written with high code quality, serves as an excellent
+    orchestrator. This is precisely what we needed for Yabsnap, with a focus on
+    (1) expressiveness, (2) ease of maintenance, and (3) accessibility for
+    contributors. While low-level speed or efficiency is not a primary concern
+    for us, modern Python supports static type checking, making it a robust
+    choice for our needs. To ensure code health and maintainability, we
+    emphasize strict adherence to code style and readability standards.
