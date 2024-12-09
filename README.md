@@ -260,6 +260,26 @@ E.g.
 Or,
 `yabsnap delete 20221006143047  # Deletes all snapshots with this timestamp.`
 
+### `yabsnap batch-delete --start START_TIMESTAMP --end END_TIMESTAMP [--indicator S|I|U]`
+Batch delete snapshots.
+
+Assume there is a snapshot as shown in the above `yabsnap list` command:
+
+\# Delete all snapshots including and after 2022-10-06_14:30.
+\
+\# Only root.conf's 20221006122312 will not be deleted.
+\
+E.g. `yabsnap batch-delete --start 20221006143047`
+\
+Or,
+`yabsnap batch-delete --start 2022-10-06_14:30`
+
+\# Delete snapshots before 2022-10-06_16:46 (excluding that snapshot) where the indicator is U.
+\
+\# Only root.conf's 20221006122312 will be deleted.
+\
+E.g. `yabsnap batch-delete --end 2022-10-06_16:46 --indicator U`
+
 ### `yabsnap rollback-gen PATH|TIMESTAMP`
 Generates a script for rolling back.
 
