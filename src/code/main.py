@@ -16,8 +16,8 @@ import argparse
 import collections
 import datetime
 import logging
+import pathlib
 from typing import Iterable
-from pathlib import Path
 
 from . import colored_logs
 from . import configs
@@ -159,7 +159,7 @@ def _batch_delete_snaps(
                     config = [
                         config
                         for config in configs_list
-                        if Path(config.config_file).stem == config_name
+                        if pathlib.Path(config.config_file).stem == config_name
                     ][0]
                 except IndexError:
                     pass
