@@ -140,8 +140,8 @@ def _batch_delete_snaps(
     indicator: str,
     sync: bool,
 ):
-    configs_iter = list(configs_iter)
-    targets = snap_operator.find_multi_targets(configs_iter, scope, indicator)
+    configs_list = list(configs_iter)
+    targets = snap_operator.find_multi_targets(configs_list, scope, indicator)
     if not targets:
         os_utils.eprint("No snapshots matching the criteria were found.")
         return
@@ -158,7 +158,7 @@ def _batch_delete_snaps(
                 try:
                     config = [
                         config
-                        for config in configs_iter
+                        for config in configs_list
                         if Path(config.config_file).stem == config_name
                     ][0]
                 except IndexError:
