@@ -152,20 +152,17 @@ def _batch_delete_snaps(
 
     confirm_deletion = snap_operator.confirm_deletion_snapshots(targets)
     if confirm_deletion is True:
+        # Delete snapshots one by one based on the configuration file,
+        # and try to find the configuration file to add it to the `to_sync` list.
         for config_name, datetime_and_snapshots in targets.items():
             for snap in datetime_and_snapshots.values():
                 snap.delete()
-                try:
-                    config = [
-                        config
-                        for config in configs_list
-                        if pathlib.Path(config.config_file).stem == config_name
-                    ][0]
-                except IndexError:
-                    pass
-                else:
-                    if config.snap_type == snap_mechanisms.SnapType.BTRFS:
-                        to_sync.append(config)
+            # Try to find the configuration file and add it to the `to_sync` list.
+            for config in configs_list:
+                config_exist = pathlib.Path(config.config_file).stem == config_name
+                snap_type_is_btrfs = config.snap_type == snap_mechanisms.SnapType.BTRFS
+                if config_exist and snap_type_is_btrfs:
+                    to_sync.append(config)
 
     if sync:
         _sync(to_sync)
