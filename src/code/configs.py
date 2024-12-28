@@ -131,9 +131,11 @@ class Config:
 
 def iterate_configs(source: Optional[str]) -> Iterator[Config]:
     config_iterator: Iterable[str]
+    # Try to add the user-specified configuration file to the `config_iterator`
+    # or try to add the configuration file from the `_CONFIG_PATH` to the `config_iterator`.
     if USER_CONFIG_FILE is not None:
         if not os.path.isfile(USER_CONFIG_FILE):
-            logging.warn(f"Could not find specified config file: {USER_CONFIG_FILE}")
+            logging.warning(f"Could not find specified config file: {USER_CONFIG_FILE}")
             return
         config_iterator = [USER_CONFIG_FILE]
         logging.info(f"Using user-supplied config {USER_CONFIG_FILE}")
@@ -144,11 +146,14 @@ def iterate_configs(source: Optional[str]) -> Iterator[Config]:
             )
             return
         config_iterator = (str(path) for path in _CONFIG_PATH.iterdir())
+
+    # Check whether the necessary fields in the configuration file are filled in
+    # and append the configurations with filled necessary fields to `config_iterator`
     configs_found = False
     for fname in config_iterator:
         logging.info(f"Reading config {fname}")
         config = Config.from_configfile(fname)
-        if not config.source or not config.dest_prefix:
+        if not (config.source and config.dest_prefix):
             os_utils.eprint(
                 f"WARNING: Skipping invalid configuration {fname}"
                 " (please specify source and dest_prefix)"
@@ -157,6 +162,7 @@ def iterate_configs(source: Optional[str]) -> Iterator[Config]:
         if not source or config.source == source:
             configs_found = True
             yield config
+
     if source is not None and not configs_found:
         logging.warning(f"No config file found with source={source}")
 

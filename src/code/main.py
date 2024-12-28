@@ -16,6 +16,7 @@ import argparse
 import collections
 import datetime
 import logging
+import pathlib
 from typing import Iterable
 
 from . import colored_logs
@@ -51,17 +52,43 @@ def _parse_args() -> argparse.Namespace:
     subparsers.add_parser(
         "list-json", help="Machine readable list of all managed snaps."
     )
+
+    # Creates an user snapshot.
     create = subparsers.add_parser("create", help="Create new snapshots.")
     create.add_argument("--comment", help="Comment attached to this snapshot.")
+
+    # Creates a new config by NAME.
     create_config = subparsers.add_parser(
         "create-config", help="Bootstrap a config for new filesystem to snapshot."
     )
     create_config.add_argument(
         "config_name", help='Name to be given to config file, e.g. "home".'
     )
+
+    # Delete a snapshot.
     delete = subparsers.add_parser(
         "delete", help="Delete a snapshot created by yabsnap."
     )
+
+    # Batch delete snapshots.
+    batch_delete = subparsers.add_parser(
+        "batch-delete", help="Batch delete snapshots created by yabsnap."
+    )
+    batch_delete.add_argument(
+        "--indicator",
+        type=str,
+        choices=("S", "I", "U"),
+        default="",
+        help="Filter out snapshots that have a specific indicator identifier.",
+    )
+    batch_delete.add_argument(
+        "--start", type=str, default="", help="Where to start deleting snapshots."
+    )
+    batch_delete.add_argument(
+        "--end", type=str, default="", help="Where to stop deleting snapshots."
+    )
+
+    # Generates a script for rolling back.
     rollback = subparsers.add_parser(
         "rollback-gen", help="Generate script to rollback one or more snaps."
     )
@@ -107,7 +134,43 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync:
         os_utils.eprint(f"Target {path_suffix} not found in any config.")
 
 
-def _config_operation(command: str, source: str, comment: str, sync: bool):
+def _batch_delete_snaps(
+    configs_iter: Iterable[configs.Config],
+    scope: tuple[str, str],
+    indicator: str,
+    sync: bool,
+):
+    configs_list = list(configs_iter)
+    targets = snap_operator.find_multi_targets(configs_list, scope, indicator)
+    if not targets:
+        os_utils.eprint("No snapshots matching the criteria were found.")
+        return
+
+    # TODO(thR CIrcU5): Sort the snapshot list by old date to new date?
+
+    to_sync: list[configs.Config] = []
+
+    confirm_deletion = snap_operator.confirm_deletion_snapshots(targets)
+    if confirm_deletion is True:
+        # Delete snapshots one by one based on the configuration file,
+        # and try to find the configuration file to add it to the `to_sync` list.
+        for config_name, datetime_and_snapshots in targets.items():
+            for snap in datetime_and_snapshots.values():
+                snap.delete()
+            # Try to find the configuration file and add it to the `to_sync` list.
+            for config in configs_list:
+                config_exist = pathlib.Path(config.config_file).stem == config_name
+                snap_type_is_btrfs = config.snap_type == snap_mechanisms.SnapType.BTRFS
+                if config_exist and snap_type_is_btrfs:
+                    to_sync.append(config)
+
+    if sync:
+        _sync(to_sync)
+
+
+def _config_operation(
+    command: str, source: str | None, comment: str | None, sync: bool
+):
     # Single timestamp for all operations.
     now = datetime.datetime.now()
 
@@ -153,19 +216,18 @@ def main():
 
     colored_logs.setup_logging(level=logging.INFO if args.verbose else logging.WARNING)
 
-    if configs.is_schedule_enabled():
-        if not os_utils.timer_enabled():
-            os_utils.eprint(
-                "\n".join(
-                    [
-                        "",
-                        "*** NOTE - Backup schedule exists but yabsnap.timer is not active ***",
-                        "To enable scheduled backups, please run -",
-                        "  sudo systemctl enable --now yabsnap.timer",
-                        "",
-                    ]
-                )
+    if configs.is_schedule_enabled() and not os_utils.timer_enabled():
+        os_utils.eprint(
+            "\n".join(
+                [
+                    "",
+                    "*** NOTE - Backup schedule exists but yabsnap.timer is not active ***",
+                    "To enable scheduled backups, please run -",
+                    "  sudo systemctl enable --now yabsnap.timer",
+                    "",
+                ]
             )
+        )
 
     if command == "create-config":
         configs.create_config(args.config_name, args.source)
@@ -173,6 +235,13 @@ def main():
         _delete_snap(
             configs.iterate_configs(source=args.source),
             path_suffix=args.target_suffix,
+            sync=args.sync,
+        )
+    elif command == "batch-delete":
+        _batch_delete_snaps(
+            configs.iterate_configs(source=args.source),
+            scope=(args.start, args.end),
+            indicator=args.indicator,
             sync=args.sync,
         )
     elif command == "rollback-gen":

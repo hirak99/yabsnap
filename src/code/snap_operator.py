@@ -16,6 +16,7 @@ import datetime
 import json
 import logging
 import os
+import re
 
 from . import configs
 from . import deletion_logic
@@ -25,6 +26,7 @@ from . import os_utils
 from . import snap_holder
 
 from typing import Any, Iterable, Iterator, Optional, TypeVar
+from pathlib import Path
 
 
 def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
@@ -52,6 +54,170 @@ def find_target(config: configs.Config, suffix: str) -> Optional[snap_holder.Sna
         if snap.target.endswith(suffix):
             return snap_holder.Snapshot(snap.target)
     return None
+
+
+def find_multi_targets(
+    configs_iter: Iterable[configs.Config], scope: tuple[str, str], indicator: str = ""
+) -> Optional[dict[str, dict[datetime.datetime, snap_holder.Snapshot]]]:
+    """Filter out snapshots that meet the criteria."""
+    time_scope = tuple(map(_convert_to_timestamp, scope))
+    targets = _snapshots_of_configs(configs_iter)
+
+    if indicator:
+        targets = _indicator_filter(targets, indicator)
+
+    # The pattern matching has a lot of duplicate code, with only the filtering conditions being different!
+    match time_scope:
+        # Delete snapshots within a certain time range (inclusive of the left endpoint and exclusive of the right endpoint).
+        case (start, end) if start and end:
+            start_datetime = datetime.datetime.strptime(start, global_flags.TIME_FORMAT)
+            end_datetime = datetime.datetime.strptime(end, global_flags.TIME_FORMAT)
+            return {
+                config_name: {
+                    datetime_: snapshot
+                    for datetime_, snapshot in datetime_and_snapshots.items()
+                    if start_datetime <= datetime_ < end_datetime
+                }
+                for config_name, datetime_and_snapshots in targets.items()
+            }
+        # Delete all snapshots after a certain point in time (including the specified point in time).
+        case (start, ""):
+            start_datetime = datetime.datetime.strptime(start, global_flags.TIME_FORMAT)
+            return {
+                config_name: {
+                    datetime_: snapshot
+                    for datetime_, snapshot in datetime_and_snapshots.items()
+                    if datetime_ >= start_datetime
+                }
+                for config_name, datetime_and_snapshots in targets.items()
+            }
+        # Delete all snapshots before a certain point in time.
+        case ("", end):
+            end_datetime = datetime.datetime.strptime(end, global_flags.TIME_FORMAT)
+            return {
+                config_name: {
+                    datetime_: snapshot
+                    for datetime_, snapshot in datetime_and_snapshots.items()
+                    if datetime_ < end_datetime
+                }
+                for config_name, datetime_and_snapshots in targets.items()
+            }
+        # No deletion scope provided.
+        case _:
+            os_utils.eprint("Use --start and --end to specify the deletion scope.")
+            return None
+
+
+def confirm_deletion_snapshots(
+    snapshots_of_configs: dict[str, dict[datetime.datetime, snap_holder.Snapshot]],
+) -> bool:
+    """List the snapshots to be deleted and ask if they really want to delete them."""
+    now = datetime.datetime.now()
+
+    for config_name, datetime_and_snapshots in snapshots_of_configs.items():
+        print(f"Config: {config_name}.conf")
+        print("Snaps:")
+
+        for datetime_, snapshot in datetime_and_snapshots.items():
+            columns = []
+            snap_timestamp = datetime_.strftime(global_flags.TIME_FORMAT)
+            columns.append(f"  {snap_timestamp}")
+
+            trigger_str = "".join(
+                c if snapshot.metadata.trigger == c else " " for c in "SIU"
+            )
+            columns.append(trigger_str)
+
+            elapsed = (now - snapshot.snaptime).total_seconds()
+            elapsed_str = f"({human_interval.humanize(elapsed)} ago)"
+            columns.append(f"{elapsed_str:<20}")
+            columns.append(snapshot.metadata.comment)
+
+            print("  ".join(columns))
+
+        print()
+
+    confirm = input("Are you sure you want to delete the above snapshots?  [y/N]")
+    match confirm:
+        case "y" | "Y" | "yes" | "Yes" | "YES":
+            return True
+        case _:
+            return False
+
+
+def _indicator_filter(
+    snapshots_of_configs: dict[str, dict[datetime.datetime, snap_holder.Snapshot]],
+    indicator: str,
+) -> dict[str, dict[datetime.datetime, snap_holder.Snapshot]]:
+    return {
+        config_name: {
+            datetime_: snapshot
+            for datetime_, snapshot in datetime_and_snapshots.items()
+            if snapshot.metadata.trigger == indicator.upper()
+        }
+        for config_name, datetime_and_snapshots in snapshots_of_configs.items()
+    }
+
+
+def _snapshots_of_configs(
+    configs_iter: Iterable[configs.Config],
+) -> dict[str, dict[datetime.datetime, snap_holder.Snapshot]]:
+    """Find the snapshots held by each configuration file."""
+    mapping: dict[str, dict[datetime.datetime, snap_holder.Snapshot]] = {}
+
+    # Create a mapping between configuration files and snapshots.
+    for config in configs_iter:
+        config_name = Path(config.config_file).stem
+        mapping[config_name] = {}
+        # Create a mapping between snapshot timestamps and snapshots
+        # to facilitate later filtering and sorting of the snapshots.
+        for snapshot in _get_old_backups(config):
+            mapping[config_name][snapshot.snaptime] = snapshot
+
+    return mapping
+
+
+def _convert_to_timestamp(suffix: str) -> str:
+    """Convert human-readable time format into a timestamp."""
+    if not _human_friendly_timestamp(suffix):
+        return suffix
+
+    try:
+        # "2024-11-19_15:30".split("_") -> ["2024-11-19", "15:30"]
+        date, time = suffix.split("_")
+    except ValueError:  # unpack error
+        date = suffix
+        # If the user does not provide the hour and minute, it defaults to 23:59
+        hour_minute = "2359"
+    else:
+        # "15:30".split(":") -> ["15", "30"] -> "1530"
+        # "1530".split(":") -> ["1530"] -> "1530"
+        hour_minute = "".join(time.split(":"))
+        suffix_not_minutes = len(hour_minute) == 2
+        if suffix_not_minutes:
+            hour_minute += "00"
+
+    days_not_padded_zeros = r"^\d{4}-\d{2}-\d$"
+    pad_days_with_zeros = r"^\d{4}-\d{2}-0\d$"
+    year_month_day = re.sub(days_not_padded_zeros, pad_days_with_zeros, date)
+    return year_month_day + hour_minute
+
+
+def _human_friendly_timestamp(suffix: str) -> bool:
+    """Determine whether the suffix provided by the user is a human-readable timestamp."""
+
+    # Match the following format:
+    # - 2024-11-01_14:20
+    # - 2024-11-1_14:20
+    # - 2024-11-01
+    # - 2024-11-1
+    format_match = re.match(
+        r"^\d{4}-(0[1-9]|1[0-2]|[1-9])-(0[1-9]|[12]\d|3[01]|[1-9])(_\d{2}:\d{2})?$",
+        suffix,
+    )
+    if format_match:
+        return True
+    return False
 
 
 _GenericT = TypeVar("_GenericT")
