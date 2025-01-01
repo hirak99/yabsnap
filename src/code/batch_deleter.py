@@ -1,4 +1,5 @@
 import contextlib
+import dataclasses
 import datetime
 import logging
 import os
@@ -12,11 +13,18 @@ from . import snap_holder
 from .mechanisms import snap_mechanisms
 
 
-def config_snapshots_mapping(
+@dataclasses.dataclass(frozen=True)
+class ConfigSnapshotsRelation:
+    config: configs.Config
+    snaps: tuple[snap_holder.Snapshot, ...]
+
+
+def create_config_snapshots_mapping(
     configs_iter: Iterable[configs.Config],
-) -> dict[configs.Config, list[snap_holder.Snapshot]]:
-    """Find the snapshots owned by each configuration file."""
-    return {config: list(_get_old_backups(config)) for config in configs_iter}
+) -> Iterator[ConfigSnapshotsRelation]:
+    """Create a configuration file and its associated snapshot relationship mapping."""
+    for config in configs_iter:
+        yield ConfigSnapshotsRelation(config, tuple(_get_old_backups(config)))
 
 
 # src/code/snap_operator.py has same function
@@ -41,7 +49,7 @@ _filters: dict[str, type["SnapshotFilterProtocol"]] = {}
 def get_filters(args: dict[str, Any]) -> Iterator["SnapshotFilterProtocol"]:
     for arg_name, arg_value in args.items():
         if arg_name in _filters:
-            yield _filters[arg_name](arg_value)
+            yield _filters[arg_name](**{arg_name: arg_value})
 
 
 def _register_filter(cls: type["SnapshotFilterProtocol"]):
@@ -52,7 +60,7 @@ def _register_filter(cls: type["SnapshotFilterProtocol"]):
 class SnapshotFilterProtocol(Protocol):
     arg_name_set: tuple[str, ...]
 
-    def __init__(self, status: Any): ...
+    def __init__(self, **kwargs): ...
 
     def _filter(self, snap: snap_holder.Snapshot) -> bool: ...
 
@@ -64,12 +72,20 @@ class SnapshotFilterProtocol(Protocol):
 class IndicatorFilter(SnapshotFilterProtocol):
     arg_name_set = ("indicator",)
 
-    def __init__(self, indicator: str):
+    def __init__(self, *, indicator: str):
         self._available = True
         if not indicator:
             self._available = False
 
         self._indicator = indicator.upper()
+
+    @property
+    def available(self) -> bool:
+        return self._available
+
+    @property
+    def indicator(self) -> str:
+        return self._indicator
 
     def _filter(self, snap: snap_holder.Snapshot) -> bool:
         return snap.metadata.trigger == self._indicator
@@ -84,21 +100,37 @@ class IndicatorFilter(SnapshotFilterProtocol):
 class TimeScopeFilter(SnapshotFilterProtocol):
     arg_name_set = ("start", "end")
 
-    def __init__(self, start_date_string: str = "", end_date_string: str = ""):
+    def __init__(self, *, start: str = "", end: str = ""):
         self._available = True
-        if not (start_date_string and end_date_string):
+        if all([start, end]):
             self._available = False
 
         self._start_datetime = (
-            datetime.datetime.strptime(start_date_string, global_flags.TIME_FORMAT)
-            if start_date_string
+            datetime.datetime.strptime(start, global_flags.TIME_FORMAT)
+            if start
             else datetime.datetime.min
         )
         self._end_datetime = (
-            datetime.datetime.strptime(end_date_string, global_flags.TIME_FORMAT)
-            if end_date_string
+            datetime.datetime.strptime(end, global_flags.TIME_FORMAT)
+            if end
             else datetime.datetime.max
         )
+
+    @property
+    def available(self) -> bool:
+        return self._available
+
+    @property
+    def start_datetime(self) -> datetime.datetime:
+        return self._start_datetime
+
+    start = start_datetime
+
+    @property
+    def end_datetime(self) -> datetime.datetime:
+        return self._end_datetime
+
+    end = end_datetime
 
     def _filter(self, snap: snap_holder.Snapshot) -> bool:
         return self._start_datetime <= snap.snaptime < self._end_datetime
@@ -110,27 +142,22 @@ class TimeScopeFilter(SnapshotFilterProtocol):
 
 
 def apply_snapshot_filters(
-    config_snaps_mapping: dict[configs.Config, list[snap_holder.Snapshot]],
+    config_snaps_mapping: Iterable[ConfigSnapshotsRelation],
     *filters: SnapshotFilterProtocol,
-) -> dict[configs.Config, list[snap_holder.Snapshot]]:
+) -> Iterator[ConfigSnapshotsRelation]:
     """Use the filter to select the snapshots\
        that actually need to be processed for each configuration."""
-    filted_mapping: dict[configs.Config, list[snap_holder.Snapshot]] = {
-        config: [] for config in config_snaps_mapping
-    }
+    for mapping in config_snaps_mapping:
+        snaps_set = set(mapping.snaps)
+        for func in filters:
+            snaps_set.intersection_update(filter(func, mapping.snaps))
 
-    for config, snaps in config_snaps_mapping.items():
-        filted_snaps_set = set(snaps)
-        filted_snaps_set.intersection_update(filter(func, snaps) for func in filters)
-
-        filted_mapping[config] = sorted(
-            filted_snaps_set, key=lambda snap: snap.snaptime
-        )
-    return filted_mapping
+        sorted_snaps = sorted(snaps_set, key=lambda snap: snap.snaptime)
+        yield ConfigSnapshotsRelation(mapping.config, tuple(sorted_snaps))
 
 
 def show_snapshots_to_be_deleted(
-    config_snaps_mapping: dict[configs.Config, list[snap_holder.Snapshot]],
+    config_snaps_mapping: Iterable[ConfigSnapshotsRelation],
 ):
     banner = "=== THE SNAPSHOTS TO BE DELETED ===\n"
     print(banner)
@@ -139,16 +166,16 @@ def show_snapshots_to_be_deleted(
 
 
 def list_snapshots(
-    config_snaps_mapping: dict[configs.Config, list[snap_holder.Snapshot]],
+    config_snaps_mapping: Iterable[ConfigSnapshotsRelation],
 ):
     now = datetime.datetime.now()
 
-    for config, snaps in config_snaps_mapping.items():
-        config_abs_path = pathlib.Path(config.config_file).resolve()
-        print(f"Config: {str(config_abs_path)} (source={config.source})")
-        print(f"Snaps at: {config.dest_prefix}...")
+    for mapping in config_snaps_mapping:
+        config_abs_path = pathlib.Path(mapping.config.config_file).resolve()
+        print(f"Config: {str(config_abs_path)} (source={mapping.config.source})")
+        print(f"Snaps at: {mapping.config.dest_prefix}...")
 
-        for snap in snaps:
+        for snap in mapping.snaps:
             columns = []
             snap_timestamp = snap.snaptime.strftime(global_flags.TIME_FORMAT)
             columns.append(f"  {snap_timestamp}")

@@ -146,22 +146,24 @@ def _batch_delete_snaps(
     subparser_args: dict[str, Any],
     sync: bool,
 ):
-    config_snaps_mapping = batch_deleter.config_snapshots_mapping(configs_iter)
+    config_snaps_mapping_tuple = tuple(
+        batch_deleter.create_config_snapshots_mapping(configs_iter)
+    )
     filters = batch_deleter.get_filters(subparser_args)
 
-    targets = batch_deleter.apply_snapshot_filters(config_snaps_mapping, *filters)
+    targets = batch_deleter.apply_snapshot_filters(config_snaps_mapping_tuple, *filters)
     if not targets:
         os_utils.eprint("No snapshots matching the criteria were found.")
         return
 
-    batch_deleter.show_snapshots_to_be_deleted(config_snaps_mapping)
+    batch_deleter.show_snapshots_to_be_deleted(config_snaps_mapping_tuple)
 
     if batch_deleter.confirm_deletion_snapshots():
-        snaps = itertools.chain(*targets.values())
+        snaps = itertools.chain.from_iterable(mapping.snaps for mapping in targets)
         batch_deleter.delete_snapshots(snaps)
 
     if sync:
-        to_sync = batch_deleter.get_to_sync_list(targets.keys())
+        to_sync = batch_deleter.get_to_sync_list(mapping.config for mapping in targets)
         _sync(to_sync)
 
 
