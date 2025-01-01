@@ -217,7 +217,7 @@ def get_to_sync_list(configs: Iterable[configs.Config]) -> list[configs.Config]:
 
 
 def iso8601_to_timestamp_string(suffix: str) -> str:
-    """Convert an ISO 8601 compliant string to a timestamp string"""
+    """Convert an ISO 8601 compliant datetime string to a timestamp string"""
     with contextlib.suppress(ValueError):
         dt = datetime.datetime.strptime(suffix, global_flags.TIME_FORMAT)
         return suffix
@@ -231,4 +231,4 @@ def iso8601_to_timestamp_string(suffix: str) -> str:
             "  2. ISO 8601 compliant timestamp string (e.g. 2024-11-01_20:10:15)"
         )
     else:
-        return dt.strftime(global_flags.TIME_FORMAT)  # %Y%m%d%H%M%S
+        return dt.strftime(global_flags.TIME_FORMAT)

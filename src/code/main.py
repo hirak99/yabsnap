@@ -86,13 +86,13 @@ def _parse_args() -> argparse.Namespace:
         "--start",
         type=batch_deleter.iso8601_to_timestamp_string,
         default="",
-        help="Where to start deleting snapshots.",
+        help="Where to start deleting snapshots. Timestamp can be 'YYYY-MM-DD HH:MM[:SS]'",
     )
     batch_delete.add_argument(
         "--end",
         type=batch_deleter.iso8601_to_timestamp_string,
         default="",
-        help="Where to stop deleting snapshots.",
+        help="Where to stop deleting snapshots. Timestamp can be 'YYYY-MM-DD HH:MM[:SS]'",
     )
 
     # Generates a script for rolling back.
