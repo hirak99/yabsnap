@@ -4,7 +4,6 @@ from . import batch_deleter
 from . import configs
 from . import snap_holder
 
-
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
 
@@ -103,14 +102,15 @@ class TestSnapshotFilters(unittest.TestCase):
         return snaps
 
     def setUp(self):
-        self._snaps_of_config: dict[configs.Config, list[snap_holder.Snapshot]] = {}
+        self._config_snaps_mapping: dict[configs.Config, list[snap_holder.Snapshot]]
+        self._config_snaps_mapping = {}
 
         config_s_and_u = configs.Config(
             config_file="config_in_s_and_u_path",
             source="to_be_backup_up_s_and_u_subvolume",
             dest_prefix="s_and_u-",
         )
-        self._snaps_of_config[config_s_and_u].append(
+        self._config_snaps_mapping[config_s_and_u].append(
             *self._ten_indicator_s_snaps(), *self._two_indicator_u_snaps()
         )
 
@@ -119,12 +119,12 @@ class TestSnapshotFilters(unittest.TestCase):
             source="to_be_backup_up_only_s_subvolume",
             dest_prefix="only_s-",
         )
-        self._snaps_of_config[config_only_s].extend(self._ten_indicator_s_snaps())
+        self._config_snaps_mapping[config_only_s].extend(self._ten_indicator_s_snaps())
 
     def test_use_indicator_arg(self):
         filter_iter = batch_deleter.get_filters({"indicator": "U"})
         filted_snapshots = batch_deleter.apply_snapshot_filters(
-            self._snaps_of_config, *filter_iter
+            self._config_snaps_mapping, *filter_iter
         )
 
         for snap_list in filted_snapshots.values():
@@ -135,7 +135,7 @@ class TestSnapshotFilters(unittest.TestCase):
     def test_use_start_arg_to_find_all_snaps(self):
         filter_iter = batch_deleter.get_filters({"start": "20241101" + "000000"})
         filted_snapshots = batch_deleter.apply_snapshot_filters(
-            self._snaps_of_config, *filter_iter
+            self._config_snaps_mapping, *filter_iter
         )
 
         # Refer to the `setUp` function
@@ -153,7 +153,7 @@ class TestSnapshotFilters(unittest.TestCase):
     def test_use_end_arg_to_find_two_snaps(self):
         filter_iter = batch_deleter.get_filters({"end": "20241109" + "053019"})
         filted_snapshots = batch_deleter.apply_snapshot_filters(
-            self._snaps_of_config, *filter_iter
+            self._config_snaps_mapping, *filter_iter
         )
 
         snaps_total_number = sum(
@@ -169,7 +169,7 @@ class TestSnapshotFilters(unittest.TestCase):
         }
         filter_iter = batch_deleter.get_filters(mininal_args)
         filted_snapshots = batch_deleter.apply_snapshot_filters(
-            self._snaps_of_config, *filter_iter
+            self._config_snaps_mapping, *filter_iter
         )
 
         snaps_total_number = sum(
