@@ -1,12 +1,38 @@
 import contextlib
 import datetime
+import logging
+import os
 import pathlib
-from typing import Any, Protocol, Iterator
+from typing import Any, Iterable, Iterator, Protocol
 
 from . import configs
 from . import global_flags
 from . import human_interval
 from . import snap_holder
+from .mechanisms import snap_mechanisms
+
+
+def config_snapshots_mapping(
+    configs_iter: Iterable[configs.Config],
+) -> dict[configs.Config, list[snap_holder.Snapshot]]:
+    """Find the snapshots owned by each configuration file."""
+    return {config: list(_get_old_backups(config)) for config in configs_iter}
+
+
+# src/code/snap_operator.py has same function
+def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
+    """Returns existing backups in chronological order."""
+    destdir = os.path.dirname(config.dest_prefix)
+    for fname in os.listdir(destdir):
+        pathname = os.path.join(destdir, fname)
+        if not os.path.isdir(pathname):
+            continue
+        if not pathname.startswith(config.dest_prefix):
+            continue
+        try:
+            yield snap_holder.Snapshot(pathname)
+        except ValueError:
+            logging.warning(f"Could not parse timestamp, ignoring: {pathname}")
 
 
 _filters: dict[str, type["SnapshotFilterProtocol"]] = {}
@@ -84,15 +110,16 @@ class TimeScopeFilter(SnapshotFilterProtocol):
 
 
 def apply_snapshot_filters(
-    snaps_of_config: dict[configs.Config, list[snap_holder.Snapshot]],
+    config_snaps_mapping: dict[configs.Config, list[snap_holder.Snapshot]],
     *filters: SnapshotFilterProtocol,
 ) -> dict[configs.Config, list[snap_holder.Snapshot]]:
     """Use the filter to select the snapshots\
        that actually need to be processed for each configuration."""
-    filted_mapping: dict[configs.Config, list[snap_holder.Snapshot]]
-    filted_mapping = {config: [] for config in snaps_of_config}
+    filted_mapping: dict[configs.Config, list[snap_holder.Snapshot]] = {
+        config: [] for config in config_snaps_mapping
+    }
 
-    for config, snaps in snaps_of_config.items():
+    for config, snaps in config_snaps_mapping.items():
         filted_snaps_set = set(snaps)
         filted_snaps_set.intersection_update(filter(func, snaps) for func in filters)
 
@@ -102,10 +129,21 @@ def apply_snapshot_filters(
     return filted_mapping
 
 
-def list_snapshots(snaps_of_config: dict[configs.Config, list[snap_holder.Snapshot]]):
+def show_snapshots_to_be_deleted(
+    config_snaps_mapping: dict[configs.Config, list[snap_holder.Snapshot]],
+):
+    banner = "=== THE SNAPSHOTS TO BE DELETED ===\n"
+    print(banner)
+    list_snapshots(config_snaps_mapping)
+    print(banner)
+
+
+def list_snapshots(
+    config_snaps_mapping: dict[configs.Config, list[snap_holder.Snapshot]],
+):
     now = datetime.datetime.now()
 
-    for config, snaps in snaps_of_config.items():
+    for config, snaps in config_snaps_mapping.items():
         config_abs_path = pathlib.Path(config.config_file).resolve()
         print(f"Config: {str(config_abs_path)} (source={config.source})")
         print(f"Snaps at: {config.dest_prefix}...")
@@ -136,6 +174,19 @@ def confirm_deletion_snapshots() -> bool:
             return True
         case _:
             return False
+
+
+def delete_snapshots(snaps: Iterable[snap_holder.Snapshot]):
+    for snap in snaps:
+        snap.delete()
+
+
+def get_to_sync_list(configs: Iterable[configs.Config]) -> list[configs.Config]:
+    return [
+        config
+        for config in configs
+        if config.snap_type == snap_mechanisms.SnapType.BTRFS
+    ]
 
 
 def iso8601_to_timestamp_string(suffix: str) -> str:

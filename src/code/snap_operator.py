@@ -16,6 +16,7 @@ import datetime
 import json
 import logging
 import os
+from typing import Any, Iterable, Iterator, Optional, TypeVar
 
 from . import configs
 from . import deletion_logic
@@ -23,8 +24,6 @@ from . import global_flags
 from . import human_interval
 from . import os_utils
 from . import snap_holder
-
-from typing import Any, Iterable, Iterator, Optional, TypeVar
 
 
 def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
@@ -52,13 +51,6 @@ def find_target(config: configs.Config, suffix: str) -> Optional[snap_holder.Sna
         if snap.target.endswith(suffix):
             return snap_holder.Snapshot(snap.target)
     return None
-
-
-def config_snapshots_mapping(
-    configs_iter: Iterable[configs.Config],
-) -> dict[configs.Config, list[snap_holder.Snapshot]]:
-    """Find the snapshots owned by each configuration file."""
-    return {config: list(_get_old_backups(config)) for config in configs_iter}
 
 
 _GenericT = TypeVar("_GenericT")

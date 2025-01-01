@@ -15,6 +15,7 @@
 import argparse
 import collections
 import datetime
+import itertools
 import logging
 from typing import Any, Iterable
 
@@ -145,7 +146,7 @@ def _batch_delete_snaps(
     subparser_args: dict[str, Any],
     sync: bool,
 ):
-    config_snaps_mapping = snap_operator.config_snapshots_mapping(configs_iter)
+    config_snaps_mapping = batch_deleter.config_snapshots_mapping(configs_iter)
     filters = batch_deleter.get_filters(subparser_args)
 
     targets = batch_deleter.apply_snapshot_filters(config_snaps_mapping, *filters)
@@ -153,21 +154,14 @@ def _batch_delete_snaps(
         os_utils.eprint("No snapshots matching the criteria were found.")
         return
 
-    banner = "=== THE SNAPSHOTS TO BE DELETED ===\n"
-    print(banner)
-    batch_deleter.list_snapshots(config_snaps_mapping)
-    print(banner)
-
-    to_sync: list[configs.Config] = []
+    batch_deleter.show_snapshots_to_be_deleted(config_snaps_mapping)
 
     if batch_deleter.confirm_deletion_snapshots():
-        for config, snaps in targets.items():
-            for snap in snaps:
-                snap.delete()
-            if config.snap_type == snap_mechanisms.SnapType.BTRFS:
-                to_sync.append(config)
+        snaps = itertools.chain(*targets.values())
+        batch_deleter.delete_snapshots(snaps)
 
     if sync:
+        to_sync = batch_deleter.get_to_sync_list(targets.keys())
         _sync(to_sync)
 
 
