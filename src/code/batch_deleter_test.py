@@ -45,7 +45,7 @@ class TestISO8601ToTimestampString(unittest.TestCase):
 
 
 class TestRegisterFilter(unittest.TestCase):
-    class NothingFilter(batch_deleter.SnapshotFilterProtocol):
+    class NothingFilter(batch_deleter._SnapshotFilterProtocol):
         arg_name_set = ("test",)
 
         def __init__(self, take_none: None): ...
@@ -56,9 +56,9 @@ class TestRegisterFilter(unittest.TestCase):
     def test_register(self):
         batch_deleter._register_filter(self.NothingFilter)
         nothing_filter_arg_name = self.NothingFilter.arg_name_set[-1]
-        self.assertIn(nothing_filter_arg_name, batch_deleter._filters)
+        self.assertIn(nothing_filter_arg_name, batch_deleter._FILTERS)
 
-        del batch_deleter._filters["test"]
+        del batch_deleter._FILTERS["test"]
 
     def test_no_arg_name_set(self):
         del self.NothingFilter.arg_name_set
@@ -159,16 +159,16 @@ class TestSnapshotFilters(unittest.TestCase):
         self.assertEqual(snaps_total_number, 4)
 
     # Create a test version of config_snapshots_mapping
-    def _only_s_indicator_mapping(self) -> batch_deleter.ConfigSnapshotsRelation:
+    def _only_s_indicator_mapping(self) -> batch_deleter._ConfigSnapshotsRelation:
         config = configs.Config(
             config_file="config_in_only_s_path",
             source="to_be_backup_up_only_s_subvolume",
             dest_prefix="only_s-",
         )
         snaps = tuple(self._ten_indicator_s_snaps())
-        return batch_deleter.ConfigSnapshotsRelation(config, snaps)
+        return batch_deleter._ConfigSnapshotsRelation(config, snaps)
 
-    def _s_and_u_indicator_mapping(self) -> batch_deleter.ConfigSnapshotsRelation:
+    def _s_and_u_indicator_mapping(self) -> batch_deleter._ConfigSnapshotsRelation:
         config = configs.Config(
             config_file="config_in_s_and_u_path",
             source="to_be_backup_up_s_and_u_subvolume",
@@ -179,7 +179,7 @@ class TestSnapshotFilters(unittest.TestCase):
                 self._ten_indicator_s_snaps(), self._two_indicator_u_snaps()
             )
         )
-        return batch_deleter.ConfigSnapshotsRelation(config, snaps)
+        return batch_deleter._ConfigSnapshotsRelation(config, snaps)
 
     # Create a test version of snapshots
     def _ten_indicator_s_snaps(self) -> list[snap_holder.Snapshot]:

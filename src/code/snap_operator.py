@@ -16,7 +16,6 @@ import datetime
 import json
 import logging
 import os
-from typing import Any, Iterable, Iterator, Optional, TypeVar
 
 from . import configs
 from . import deletion_logic
@@ -24,6 +23,8 @@ from . import global_flags
 from . import human_interval
 from . import os_utils
 from . import snap_holder
+
+from typing import Any, Iterable, Iterator, Optional, TypeVar
 
 
 def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:

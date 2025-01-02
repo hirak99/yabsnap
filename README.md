@@ -263,20 +263,18 @@ Or,
 ### `yabsnap batch-delete [--start TIMESTAMP] [--end TIMESTAMP] [--indicator S|I|U]`
 Batch delete snapshots.
 
-Assume there is a snapshot as shown in the above `yabsnap list` command:
+```sh
+# Note: For these examples, assume there is a snapshot as shown in the above `yabsnap list` command.
 
-\# Delete all snapshots including and after 2022-09-25_17:21.
-\
-E.g. `yabsnap batch-delete --start 20220925172100`
-\
-Or,
-`yabsnap batch-delete --start 2022-09-25_17:21`
+# Delete all snapshots including and after 2022-09-25_17:21.
+yabsnap batch-delete --start 20220925172100
+# Or,
+yabsnap batch-delete --start 2022-09-25_17:21
 
-\# Delete snapshots before 2022-10-06_15:30 (excluding that snapshot) where the indicator is S.
-\
-\# Only root.conf's `20221006143047` will be deleted.
-\
-E.g. `yabsnap batch-delete --indicator S --end 2022-10-06_15:30`(:00)
+# Delete snapshots before 2022-10-06_15:30 (excluding that snapshot) where the indicator is S.
+# Only root.conf's `20221006143047` will be deleted.
+yabsnap batch-delete --indicator S --end 2022-10-06_15:30  # :00 is understood
+```
 
 ### `yabsnap rollback-gen PATH|TIMESTAMP`
 Generates a script for rolling back.

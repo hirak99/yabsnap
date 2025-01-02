@@ -158,7 +158,7 @@ def _batch_delete_snaps(
 
     batch_deleter.show_snapshots_to_be_deleted(config_snaps_mapping_tuple)
 
-    if batch_deleter.confirm_deletion_snapshots():
+    if batch_deleter.interactive_confirm():
         snaps = itertools.chain.from_iterable(mapping.snaps for mapping in targets)
         batch_deleter.delete_snapshots(snaps)
 

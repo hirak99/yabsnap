@@ -13,18 +13,21 @@ from . import snap_holder
 from .mechanisms import snap_mechanisms
 
 
+_FILTERS: dict[str, type["_SnapshotFilterProtocol"]] = {}
+
+
 @dataclasses.dataclass(frozen=True)
-class ConfigSnapshotsRelation:
+class _ConfigSnapshotsRelation:
     config: configs.Config
     snaps: tuple[snap_holder.Snapshot, ...]
 
 
 def create_config_snapshots_mapping(
     configs_iter: Iterable[configs.Config],
-) -> Iterator[ConfigSnapshotsRelation]:
+) -> Iterator[_ConfigSnapshotsRelation]:
     """Create a configuration file and its associated snapshot relationship mapping."""
     for config in configs_iter:
-        yield ConfigSnapshotsRelation(config, tuple(_get_old_backups(config)))
+        yield _ConfigSnapshotsRelation(config, tuple(_get_old_backups(config)))
 
 
 # src/code/snap_operator.py has same function
@@ -43,21 +46,18 @@ def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
             logging.warning(f"Could not parse timestamp, ignoring: {pathname}")
 
 
-_filters: dict[str, type["SnapshotFilterProtocol"]] = {}
-
-
-def get_filters(args: dict[str, Any]) -> Iterator["SnapshotFilterProtocol"]:
+def get_filters(args: dict[str, Any]) -> Iterator["_SnapshotFilterProtocol"]:
     for arg_name, arg_value in args.items():
-        if arg_name in _filters:
-            yield _filters[arg_name](**{arg_name: arg_value})
+        if arg_name in _FILTERS:
+            yield _FILTERS[arg_name](**{arg_name: arg_value})
 
 
-def _register_filter(cls: type["SnapshotFilterProtocol"]):
+def _register_filter(cls: type["_SnapshotFilterProtocol"]):
     for name in cls.arg_name_set:
-        _filters[name] = cls
+        _FILTERS[name] = cls
 
 
-class SnapshotFilterProtocol(Protocol):
+class _SnapshotFilterProtocol(Protocol):
     arg_name_set: tuple[str, ...]
 
     def __init__(self, **kwargs): ...
@@ -69,7 +69,7 @@ class SnapshotFilterProtocol(Protocol):
 
 
 @_register_filter
-class IndicatorFilter(SnapshotFilterProtocol):
+class _IndicatorFilter(_SnapshotFilterProtocol):
     arg_name_set = ("indicator",)
 
     def __init__(self, *, indicator: str):
@@ -97,7 +97,7 @@ class IndicatorFilter(SnapshotFilterProtocol):
 
 
 @_register_filter
-class TimeScopeFilter(SnapshotFilterProtocol):
+class _TimeScopeFilter(_SnapshotFilterProtocol):
     arg_name_set = ("start", "end")
 
     def __init__(self, *, start: str = "", end: str = ""):
@@ -142,9 +142,9 @@ class TimeScopeFilter(SnapshotFilterProtocol):
 
 
 def apply_snapshot_filters(
-    config_snaps_mapping: Iterable[ConfigSnapshotsRelation],
-    *filters: SnapshotFilterProtocol,
-) -> Iterator[ConfigSnapshotsRelation]:
+    config_snaps_mapping: Iterable[_ConfigSnapshotsRelation],
+    *filters: _SnapshotFilterProtocol,
+) -> Iterator[_ConfigSnapshotsRelation]:
     """Use the filter to select the snapshots\
        that actually need to be processed for each configuration."""
     for mapping in config_snaps_mapping:
@@ -153,20 +153,20 @@ def apply_snapshot_filters(
             snaps_set.intersection_update(filter(func, mapping.snaps))
 
         sorted_snaps = sorted(snaps_set, key=lambda snap: snap.snaptime)
-        yield ConfigSnapshotsRelation(mapping.config, tuple(sorted_snaps))
+        yield _ConfigSnapshotsRelation(mapping.config, tuple(sorted_snaps))
 
 
 def show_snapshots_to_be_deleted(
-    config_snaps_mapping: Iterable[ConfigSnapshotsRelation],
+    config_snaps_mapping: Iterable[_ConfigSnapshotsRelation],
 ):
     banner = "=== THE SNAPSHOTS TO BE DELETED ===\n"
     print(banner)
-    list_snapshots(config_snaps_mapping)
+    _list_snapshots(config_snaps_mapping)
     print(banner)
 
 
-def list_snapshots(
-    config_snaps_mapping: Iterable[ConfigSnapshotsRelation],
+def _list_snapshots(
+    config_snaps_mapping: Iterable[_ConfigSnapshotsRelation],
 ):
     now = datetime.datetime.now()
 
@@ -194,7 +194,8 @@ def list_snapshots(
         print()
 
 
-def confirm_deletion_snapshots() -> bool:
+def interactive_confirm() -> bool:
+    """Interactively confirm deleteions"""
     confirm = input("Are you sure you want to delete the above snapshots?  [y/N]")
     match confirm:
         case "y" | "Y" | "yes" | "Yes" | "YES":
