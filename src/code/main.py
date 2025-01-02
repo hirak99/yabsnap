@@ -15,10 +15,11 @@
 import argparse
 import collections
 import datetime
+import itertools
 import logging
-import pathlib
-from typing import Iterable
+from typing import Any, Iterable
 
+from . import batch_deleter
 from . import colored_logs
 from . import configs
 from . import global_flags
@@ -82,10 +83,16 @@ def _parse_args() -> argparse.Namespace:
         help="Filter out snapshots that have a specific indicator identifier.",
     )
     batch_delete.add_argument(
-        "--start", type=str, default="", help="Where to start deleting snapshots."
+        "--start",
+        type=batch_deleter.iso8601_to_timestamp_string,
+        default="",
+        help="Where to start deleting snapshots. Timestamp can be 'YYYY-MM-DD HH:MM[:SS]'",
     )
     batch_delete.add_argument(
-        "--end", type=str, default="", help="Where to stop deleting snapshots."
+        "--end",
+        type=batch_deleter.iso8601_to_timestamp_string,
+        default="",
+        help="Where to stop deleting snapshots. Timestamp can be 'YYYY-MM-DD HH:MM[:SS]'",
     )
 
     # Generates a script for rolling back.
@@ -136,35 +143,27 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync:
 
 def _batch_delete_snaps(
     configs_iter: Iterable[configs.Config],
-    scope: tuple[str, str],
-    indicator: str,
+    subparser_args: dict[str, Any],
     sync: bool,
 ):
-    configs_list = list(configs_iter)
-    targets = snap_operator.find_multi_targets(configs_list, scope, indicator)
+    config_snaps_mapping_tuple = tuple(
+        batch_deleter.create_config_snapshots_mapping(configs_iter)
+    )
+    filters = batch_deleter.get_filters(subparser_args)
+
+    targets = batch_deleter.apply_snapshot_filters(config_snaps_mapping_tuple, *filters)
     if not targets:
         os_utils.eprint("No snapshots matching the criteria were found.")
         return
 
-    # TODO(thR CIrcU5): Sort the snapshot list by old date to new date?
+    batch_deleter.show_snapshots_to_be_deleted(config_snaps_mapping_tuple)
 
-    to_sync: list[configs.Config] = []
-
-    confirm_deletion = snap_operator.confirm_deletion_snapshots(targets)
-    if confirm_deletion is True:
-        # Delete snapshots one by one based on the configuration file,
-        # and try to find the configuration file to add it to the `to_sync` list.
-        for config_name, datetime_and_snapshots in targets.items():
-            for snap in datetime_and_snapshots.values():
-                snap.delete()
-            # Try to find the configuration file and add it to the `to_sync` list.
-            for config in configs_list:
-                config_exist = pathlib.Path(config.config_file).stem == config_name
-                snap_type_is_btrfs = config.snap_type == snap_mechanisms.SnapType.BTRFS
-                if config_exist and snap_type_is_btrfs:
-                    to_sync.append(config)
+    if batch_deleter.confirm_deletion_snapshots():
+        snaps = itertools.chain.from_iterable(mapping.snaps for mapping in targets)
+        batch_deleter.delete_snapshots(snaps)
 
     if sync:
+        to_sync = batch_deleter.get_to_sync_list(mapping.config for mapping in targets)
         _sync(to_sync)
 
 
@@ -238,10 +237,10 @@ def main():
             sync=args.sync,
         )
     elif command == "batch-delete":
+        subparser_args = vars(args.batch_delete)
         _batch_delete_snaps(
             configs.iterate_configs(source=args.source),
-            scope=(args.start, args.end),
-            indicator=args.indicator,
+            subparser_args=subparser_args,
             sync=args.sync,
         )
     elif command == "rollback-gen":
