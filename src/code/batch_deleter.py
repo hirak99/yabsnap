@@ -4,7 +4,6 @@ import datetime
 import logging
 import os
 import pathlib
-from typing import Any, Iterable, Iterator, Protocol
 
 from . import configs
 from . import global_flags
@@ -12,6 +11,7 @@ from . import human_interval
 from . import snap_holder
 from .mechanisms import snap_mechanisms
 
+from typing import Any, Iterable, Iterator, Protocol
 
 _FILTERS: dict[str, type["_SnapshotFilterProtocol"]] = {}
 
@@ -19,7 +19,7 @@ _FILTERS: dict[str, type["_SnapshotFilterProtocol"]] = {}
 @dataclasses.dataclass(frozen=True)
 class _ConfigSnapshotsRelation:
     config: configs.Config
-    snaps: tuple[snap_holder.Snapshot, ...]
+    snaps: list[snap_holder.Snapshot]
 
 
 def create_config_snapshots_mapping(
@@ -27,7 +27,7 @@ def create_config_snapshots_mapping(
 ) -> Iterator[_ConfigSnapshotsRelation]:
     """Create a configuration file and its associated snapshot relationship mapping."""
     for config in configs_iter:
-        yield _ConfigSnapshotsRelation(config, tuple(_get_old_backups(config)))
+        yield _ConfigSnapshotsRelation(config, list(_get_old_backups(config)))
 
 
 # src/code/snap_operator.py has same function
@@ -48,7 +48,7 @@ def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
 
 def get_filters(args: dict[str, Any]) -> Iterator["_SnapshotFilterProtocol"]:
     for arg_name, arg_value in args.items():
-        if arg_name in _FILTERS:
+        if arg_name in _FILTERS and arg_value is not None:
             yield _FILTERS[arg_name](**{arg_name: arg_value})
 
 
@@ -62,10 +62,7 @@ class _SnapshotFilterProtocol(Protocol):
 
     def __init__(self, **kwargs): ...
 
-    def _filter(self, snap: snap_holder.Snapshot) -> bool: ...
-
-    def __call__(self, *args, **kwargs):
-        return self._filter(*args, **kwargs)
+    def __call__(self, snap: snap_holder.Snapshot) -> bool: ...
 
 
 @_register_filter
@@ -73,27 +70,15 @@ class _IndicatorFilter(_SnapshotFilterProtocol):
     arg_name_set = ("indicator",)
 
     def __init__(self, *, indicator: str):
-        self._available = True
-        if not indicator:
-            self._available = False
-
         self._indicator = indicator.upper()
-
-    @property
-    def available(self) -> bool:
-        return self._available
+        logging.info(f"Added _IndicatorFilter: {self._indicator}")
 
     @property
     def indicator(self) -> str:
         return self._indicator
 
-    def _filter(self, snap: snap_holder.Snapshot) -> bool:
+    def __call__(self, snap: snap_holder.Snapshot) -> bool:
         return snap.metadata.trigger == self._indicator
-
-    def __call__(self, *args, **kwargs):
-        if self._available is False:
-            return False
-        return self._filter(*args, **kwargs)
 
 
 @_register_filter
@@ -101,10 +86,6 @@ class _TimeScopeFilter(_SnapshotFilterProtocol):
     arg_name_set = ("start", "end")
 
     def __init__(self, *, start: str = "", end: str = ""):
-        self._available = True
-        if all([start, end]):
-            self._available = False
-
         self._start_datetime = (
             datetime.datetime.strptime(start, global_flags.TIME_FORMAT)
             if start
@@ -115,30 +96,20 @@ class _TimeScopeFilter(_SnapshotFilterProtocol):
             if end
             else datetime.datetime.max
         )
-
-    @property
-    def available(self) -> bool:
-        return self._available
+        logging.info(
+            f"Added _TimeScopeFilter: ({self._start_datetime}, {self._end_datetime})"
+        )
 
     @property
     def start_datetime(self) -> datetime.datetime:
         return self._start_datetime
 
-    start = start_datetime
-
     @property
     def end_datetime(self) -> datetime.datetime:
         return self._end_datetime
 
-    end = end_datetime
-
-    def _filter(self, snap: snap_holder.Snapshot) -> bool:
+    def __call__(self, snap: snap_holder.Snapshot) -> bool:
         return self._start_datetime <= snap.snaptime < self._end_datetime
-
-    def __call__(self, *args, **kwargs):
-        if self._available is False:
-            return False
-        return self._filter(*args, **kwargs)
 
 
 def apply_snapshot_filters(
@@ -148,21 +119,21 @@ def apply_snapshot_filters(
     """Use the filter to select the snapshots\
        that actually need to be processed for each configuration."""
     for mapping in config_snaps_mapping:
-        snaps_set = set(mapping.snaps)
-        for func in filters:
-            snaps_set.intersection_update(filter(func, mapping.snaps))
+        filtered_snaps: list[snap_holder.Snapshot] = []
+        for snap in mapping.snaps:
+            if all(func(snap) for func in filters):
+                filtered_snaps.append(snap)
 
-        sorted_snaps = sorted(snaps_set, key=lambda snap: snap.snaptime)
-        yield _ConfigSnapshotsRelation(mapping.config, tuple(sorted_snaps))
+        yield _ConfigSnapshotsRelation(mapping.config, filtered_snaps)
 
 
 def show_snapshots_to_be_deleted(
     config_snaps_mapping: Iterable[_ConfigSnapshotsRelation],
 ):
-    banner = "=== THE SNAPSHOTS TO BE DELETED ===\n"
+    banner = "=== THE SNAPSHOTS TO BE DELETED ==="
     print(banner)
+    print()
     _list_snapshots(config_snaps_mapping)
-    print(banner)
 
 
 def _list_snapshots(
@@ -171,6 +142,9 @@ def _list_snapshots(
     now = datetime.datetime.now()
 
     for mapping in config_snaps_mapping:
+        if not mapping.snaps:
+            # Skip displaying config with no matched snapshot to be deleted.
+            continue
         config_abs_path = pathlib.Path(mapping.config.config_file).resolve()
         print(f"Config: {str(config_abs_path)} (source={mapping.config.source})")
         print(f"Snaps at: {mapping.config.dest_prefix}...")
@@ -196,11 +170,12 @@ def _list_snapshots(
 
 def interactive_confirm() -> bool:
     """Interactively confirm deleteions"""
-    confirm = input("Are you sure you want to delete the above snapshots?  [y/N]")
+    confirm = input("Are you sure you want to delete the above snapshots?  [y/N] ")
     match confirm:
         case "y" | "Y" | "yes" | "Yes" | "YES":
             return True
         case _:
+            print("Aborted.")
             return False
 
 

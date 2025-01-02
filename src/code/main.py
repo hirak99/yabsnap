@@ -17,7 +17,8 @@ import collections
 import datetime
 import itertools
 import logging
-from typing import Any, Iterable
+from typing import Iterable
+
 
 from . import batch_deleter
 from . import colored_logs
@@ -79,19 +80,19 @@ def _parse_args() -> argparse.Namespace:
         "--indicator",
         type=str,
         choices=("S", "I", "U"),
-        default="",
+        default=None,
         help="Filter out snapshots that have a specific indicator identifier.",
     )
     batch_delete.add_argument(
         "--start",
         type=batch_deleter.iso8601_to_timestamp_string,
-        default="",
+        default=None,
         help="Where to start deleting snapshots. Timestamp can be 'YYYY-MM-DD HH:MM[:SS]'",
     )
     batch_delete.add_argument(
         "--end",
         type=batch_deleter.iso8601_to_timestamp_string,
-        default="",
+        default=None,
         help="Where to stop deleting snapshots. Timestamp can be 'YYYY-MM-DD HH:MM[:SS]'",
     )
 
@@ -143,20 +144,23 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync:
 
 def _batch_delete_snaps(
     configs_iter: Iterable[configs.Config],
-    subparser_args: dict[str, Any],
+    args: argparse.Namespace,
     sync: bool,
 ):
-    config_snaps_mapping_tuple = tuple(
+    config_snaps_mapping_tuple = list(
         batch_deleter.create_config_snapshots_mapping(configs_iter)
     )
-    filters = batch_deleter.get_filters(subparser_args)
+    args_as_dict = vars(args)
+    filters = batch_deleter.get_filters(args_as_dict)
 
-    targets = batch_deleter.apply_snapshot_filters(config_snaps_mapping_tuple, *filters)
-    if not targets:
+    targets = list(
+        batch_deleter.apply_snapshot_filters(config_snaps_mapping_tuple, *filters)
+    )
+    if sum(len(mapping.snaps) for mapping in targets) == 0:
         os_utils.eprint("No snapshots matching the criteria were found.")
         return
 
-    batch_deleter.show_snapshots_to_be_deleted(config_snaps_mapping_tuple)
+    batch_deleter.show_snapshots_to_be_deleted(targets)
 
     if batch_deleter.interactive_confirm():
         snaps = itertools.chain.from_iterable(mapping.snaps for mapping in targets)
@@ -237,10 +241,9 @@ def main():
             sync=args.sync,
         )
     elif command == "batch-delete":
-        subparser_args = vars(args.batch_delete)
         _batch_delete_snaps(
             configs.iterate_configs(source=args.source),
-            subparser_args=subparser_args,
+            args=args,
             sync=args.sync,
         )
     elif command == "rollback-gen":

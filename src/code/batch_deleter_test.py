@@ -50,7 +50,7 @@ class TestRegisterFilter(unittest.TestCase):
 
         def __init__(self, take_none: None): ...
 
-        def _filter(self, snap: snap_holder.Snapshot) -> bool:
+        def __call__(self, snap: snap_holder.Snapshot) -> bool:
             return False
 
     def test_register(self):
@@ -75,21 +75,21 @@ class TestGetFilters(unittest.TestCase):
             "start": "202411012010",
             "end": "202411022010",
         }
-        filters_iter = batch_deleter.get_filters(mininal_args)
+        filters_list = list(batch_deleter.get_filters(mininal_args))
+        self.assertEqual(len(filters_list), 3)
 
-        excepted_filters_attr_key = list(mininal_args.keys())
-        excepted_filters_attr_value = [
+        self.assertEqual(
+            getattr(filters_list[0], "_indicator"),
             mininal_args["indicator"],
+        )
+        self.assertEqual(
+            getattr(filters_list[1], "_start_datetime"),
             datetime.datetime.strptime(mininal_args["start"], global_flags.TIME_FORMAT),
+        )
+        self.assertEqual(
+            getattr(filters_list[2], "_end_datetime"),
             datetime.datetime.strptime(mininal_args["end"], global_flags.TIME_FORMAT),
-        ]
-
-        for index, filter in enumerate(filters_iter):
-            with self.subTest(filter=filter):
-                self.assertEqual(
-                    getattr(filter, excepted_filters_attr_key[index]),
-                    excepted_filters_attr_value[index],
-                )
+        )
 
     def test_get_no_registed_filter(self):
         filter_iter = batch_deleter.get_filters({"test": None})
@@ -165,7 +165,7 @@ class TestSnapshotFilters(unittest.TestCase):
             source="to_be_backup_up_only_s_subvolume",
             dest_prefix="only_s-",
         )
-        snaps = tuple(self._ten_indicator_s_snaps())
+        snaps = list(self._ten_indicator_s_snaps())
         return batch_deleter._ConfigSnapshotsRelation(config, snaps)
 
     def _s_and_u_indicator_mapping(self) -> batch_deleter._ConfigSnapshotsRelation:
@@ -174,7 +174,7 @@ class TestSnapshotFilters(unittest.TestCase):
             source="to_be_backup_up_s_and_u_subvolume",
             dest_prefix="s_and_u-",
         )
-        snaps = tuple(
+        snaps = list(
             itertools.chain(
                 self._ten_indicator_s_snaps(), self._two_indicator_u_snaps()
             )
