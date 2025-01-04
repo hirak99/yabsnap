@@ -36,9 +36,9 @@ a config-file directly may also be specified with `--config-file CONFIG-FILE`.
 
 .SH COMMANDS
 
-.SS yabsnap create-config [-h] config_name
+.SS yabsnap create-config [-h] CONFIG_NAME
 
-Bootstraps a new configuration in /etc/yabsnap/configs/config_name.conf. The
+Bootstraps a new configuration in /etc/yabsnap/configs/CONFIG_NAME.conf. The
 config is an ini file with directives that control yabsnap schedule and
 triggers.
 
@@ -59,14 +59,14 @@ be piped into jq for further filtering or restructuring.
 Creates a new backup for all configs. Can be disabled per config by setting
 `keep_user = 0`.
 
-.SS yabsnap [--dry-run] [--sync] delete [-h] target_suffix
+.SS yabsnap [--dry-run] [--sync] delete [-h] TARGET_SUFFIX
 
 Deletes a snap. You can either specify full path to snapshot, e.g. `yabsnap
 delete /.snapshots/@root-20221006183032`, or specify just the suffix, e.g.
 `yabsnap delete 20221006183032`. If you specify just the suffix, it will delete
 matching snapshots from all configs.
 
-.SS yabsnap [--dry-run] rollback-gen [-h] target_suffix
+.SS yabsnap [--dry-run] rollback-gen [-h] TARGET_SUFFIX
 
 Generates a script to roll back to a particular snapshot.
 
