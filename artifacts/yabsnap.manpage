@@ -66,6 +66,12 @@ delete /.snapshots/@root-20221006183032`, or specify just the suffix, e.g.
 `yabsnap delete 20221006183032`. If you specify just the suffix, it will delete
 matching snapshots from all configs.
 
+.SS yabsnap batch-delete [--start TIMESTAMP] [--end TIMESTAMP] [--indicator S|I|U]
+
+Batch delete snapshots. All snaps with start <= snap.time < end, optionally
+matching the `--indicator` will be deleted. Matching snapshots will be displayed
+and confirmed interactively before deletion.
+
 .SS yabsnap [--dry-run] rollback-gen [-h] TARGET_SUFFIX
 
 Generates a script to roll back to a particular snapshot.
