@@ -45,7 +45,7 @@ a config-file directly may also be specified with `--config-file CONFIG-FILE`.
 
 .SH COMMANDS
 
-.SS yabsnap create-config [-h] CONFIG_NAME
+.SS yabsnap create-config CONFIG_NAME
 
 Bootstraps a new configuration in /etc/yabsnap/configs/CONFIG_NAME.conf. The
 config is an ini file with directives that control yabsnap schedule and
@@ -54,21 +54,21 @@ triggers.
 Minimally after the config is created, the source and dest_prefix must be filled
 in by editing the file manually.
 
-.SS yabsnap list [-h]
+.SS yabsnap list
 
 Lists all existing snapshots managed by yabsnap.
 
-.SS yabsnap list [-h]
+.SS yabsnap list-json
 
 Machine readable lists of all snapshots managed by yabsnap. With bash, this may
 be piped into jq for further filtering or restructuring.
 
-.SS yabsnap [--dry-run] [--sync] create [-h] [--comment COMMENT]
+.SS yabsnap [--dry-run] [--sync] create [--comment COMMENT]
 
 Creates a new backup for all configs. Can be disabled per config by setting
 `keep_user = 0`.
 
-.SS yabsnap [--dry-run] [--sync] delete [-h] TARGET_SUFFIX
+.SS yabsnap [--dry-run] [--sync] delete TARGET_SUFFIX
 
 Deletes a snap. You can either specify full path to snapshot, e.g. `yabsnap
 delete /.snapshots/@root-20221006183032`, or specify just the suffix, e.g.
@@ -81,13 +81,11 @@ Batch delete snapshots. All snaps with start <= snap.time < end, optionally
 matching the `--indicator` will be deleted. Matching snapshots will be displayed
 and confirmed interactively before deletion.
 
-.SS yabsnap [--dry-run] rollback-gen [-h] TARGET_SUFFIX
+.SS yabsnap [--dry-run] rollback-gen TARGET_SUFFIX
 
 Generates a script to roll back to a particular snapshot.
 
+.SH BUGS
+Please see or raise issues at: https://github.com/hirak99/yabsnap/issues
 .SH SEE ALSO
 btrfs(8)
-.SH BUGS
-No known bugs.
-.SH AUTHOR
-Arnab Bose (hirak99+linux@gmail.com)
