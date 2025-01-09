@@ -77,8 +77,23 @@ class SnapOperator:
         # Set to true on any delete operation. If True, may run a btrfs subv sync.
         self.snaps_deleted = False
 
-    def _apply_deletion_rules(self, snaps: Iterable[snap_holder.Snapshot]) -> bool:
+    def _delete_expired_ttl(
+        self, snaps: list[snap_holder.Snapshot]
+    ):
+        """Deletes snapshots with expired TTL."""
+        for snap in snaps:
+            if snap.metadata.is_expired(self._now):
+                logging.info(f"Expired snapshot: {snap.target}")
+                snap.delete()
+
+    def _apply_deletion_rules(self, snaps: list[snap_holder.Snapshot]) -> bool:
         """Deletes old backups. Returns True if new backup is needed."""
+
+        # Handle snaps with TTL.
+        self._delete_expired_ttl(snaps)
+        # Henceforth, we only deal with snaps without expiry.
+        snaps = [x for x in snaps if x.metadata.expiry is None]
+
         # Only consider scheduled backups for expiry.
         candidates = [
             (x.snaptime, x.target) for x in snaps if x.metadata.trigger in {"", "S"}
@@ -228,6 +243,13 @@ class SnapOperator:
             elapsed = (self._now - snap.snaptime).total_seconds()
             elapsed_str = "(" + human_interval.humanize(elapsed) + " ago)"
             columns.append(f"{elapsed_str:<20}")
+
+            ttl_str = ""
+            if snap.metadata.expiry != None:
+                ttl = snap.metadata.expiry - self._now.timestamp()
+                ttl_str = "TTL: " + human_interval.humanize(ttl)
+            columns.append(f"{ttl_str:<18}")
+
             columns.append(snap.metadata.comment)
             print("  ".join(columns))
         print("")

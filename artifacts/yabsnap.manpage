@@ -68,6 +68,16 @@ be piped into jq for further filtering or restructuring.
 Creates a new backup for all configs. Can be disabled per config by setting
 `keep_user = 0`.
 
+.SS yabsnap set-ttl TARGET_SUFFIX --ttl TTL
+
+Set a TTL (or Time-To-Live) for matching snapshots. The TTL argument must be a
+number followed by a time unit, e.g. '1 day' or '2 months'.
+
+To erase a TTL, pass an empty string, e.g. `yabsnap set-ttl TARGET_SUFFIX --ttl ''`.
+
+If a snapshot has a TTL, it will be automatically deleted soon after the TTL
+expires. Snapshots with TTL will be exempt from any other automated operations.
+
 .SS yabsnap [--dry-run] [--sync] delete TARGET_SUFFIX
 
 Deletes a snap. You can either specify full path to snapshot, e.g. `yabsnap

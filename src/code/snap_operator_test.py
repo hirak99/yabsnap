@@ -176,6 +176,30 @@ class SnapOperatorTest(unittest.TestCase):
         self._mock_create_from.assert_not_called()
         self.assertEqual(self._mock_delete.call_count, 3)
 
+    def test_delete_expired_ttl(self):
+        self._old_snaps = [
+            snap_holder.Snapshot("/tmp/nodir/@home-20230213001000"),
+            snap_holder.Snapshot("/tmp/nodir/@home-20230214001000"),
+        ]
+        self._old_snaps[-1].metadata.trigger = "S"
+        self._old_snaps[-1].metadata.comment = "snap1"
+
+        self._old_snaps[-2].metadata.trigger = "I"
+        self._old_snaps[-2].metadata.comment = "snap2"
+        # Expired 100 seconds ago.
+        self._old_snaps[-2].metadata.expiry = _FAKE_NOW.timestamp() - 100
+
+        snapper = snap_operator.SnapOperator(
+            config=configs.Config(
+                config_file="config_file",
+                source="snap_source",
+                dest_prefix="/tmp/nodir/@home-",
+            ),
+            now=_FAKE_NOW,
+        )
+        snapper._delete_expired_ttl(self._old_snaps)
+        self._mock_delete.assert_called_once_with()
+
     def test_list_json(self):
         self._old_snaps = [snap_holder.Snapshot("/tmp/nodir/@home-20230213001000")]
         self._old_snaps[-1].metadata.trigger = "S"

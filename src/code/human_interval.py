@@ -68,6 +68,10 @@ _ACCURACY = 0.01
 def humanize(seconds: int | float) -> str:
     result: list[str] = []
     largest_duration: Optional[float] = None
+    prefix = ""
+    if seconds < 0:
+        seconds = -seconds
+        prefix = "-"
     for duration, suffix in _SUFFIXES:
         if seconds >= duration:
             count, seconds = divmod(seconds, duration)
@@ -82,4 +86,4 @@ def humanize(seconds: int | float) -> str:
                 result.append(f"{count:0.0f} {suffix}{pluralize}")
             else:
                 result.append(f"{count:0.0f}{suffix}")
-    return " ".join(result)
+    return prefix + " ".join(result)

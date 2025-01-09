@@ -60,3 +60,7 @@ class TestHumanInterval(unittest.TestCase):
         ]
         for input, expected in cases:
             self.assertEqual(human_interval.humanize(input), expected)
+
+    def test_humanize_negative(self):
+        self.assertEqual(human_interval.humanize(123456), "1 day 10h")
+        self.assertEqual(human_interval.humanize(-123456), "-1 day 10h")

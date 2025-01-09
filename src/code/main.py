@@ -55,16 +55,28 @@ def _parse_args() -> argparse.Namespace:
         "list-json", help="Machine readable list of all managed snaps."
     )
 
-    # Creates an user snapshot.
-    create = subparsers.add_parser("create", help="Create new snapshots.")
-    create.add_argument("--comment", help="Comment attached to this snapshot.")
-
     # Creates a new config by NAME.
     create_config = subparsers.add_parser(
         "create-config", help="Bootstrap a config for new filesystem to snapshot."
     )
     create_config.add_argument(
         "config_name", help='Name to be given to config file, e.g. "home".'
+    )
+
+    # Creates an user snapshot.
+    create = subparsers.add_parser("create", help="Create new snapshots.")
+    create.add_argument("--comment", help="Comment attached to this snapshot.")
+
+    # Set TTL for a snapshot.
+    set_ttl = subparsers.add_parser(
+        "set-ttl",
+        help="Set a duration after which a snapshot will be automatically deleted.",
+    )
+    set_ttl.add_argument(
+        "--ttl",
+        type=str,
+        required=True,
+        help="Time to live from now, for instance '1 day' or '20 years'. Empty '' will delete the ttl. If ttl is present, it will take precedence over any other automated management.",
     )
 
     # Delete a snapshot.
@@ -101,7 +113,7 @@ def _parse_args() -> argparse.Namespace:
         "rollback-gen", help="Generate script to rollback one or more snaps."
     )
 
-    for command_with_target in [delete, rollback]:
+    for command_with_target in [delete, rollback, set_ttl]:
         command_with_target.add_argument(
             "target_suffix", help="Datetime string, or full path of a snapshot."
         )
@@ -122,6 +134,13 @@ def _sync(configs_to_sync: list[configs.Config]):
         paths_to_sync[config.snap_type].add(config.mount_path)
     for snap_type, paths in sorted(paths_to_sync.items()):
         snap_mechanisms.get(snap_type).sync_paths(paths)
+
+
+def _set_ttl(configs_iter: Iterable[configs.Config], path_suffix: str, ttl_str: str):
+    for config in configs_iter:
+        snap = snap_operator.find_target(config, path_suffix)
+        if snap:
+            snap.set_ttl(ttl_str, now=datetime.datetime.now())
 
 
 def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync: bool):
@@ -239,6 +258,12 @@ def main():
             configs.iterate_configs(source=args.source),
             path_suffix=args.target_suffix,
             sync=args.sync,
+        )
+    elif command == "set-ttl":
+        _set_ttl(
+            configs.iterate_configs(source=args.source),
+            path_suffix=args.target_suffix,
+            ttl_str=args.ttl,
         )
     elif command == "batch-delete":
         _batch_delete_snaps(

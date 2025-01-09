@@ -24,8 +24,11 @@ import logging
 import os
 
 from . import global_flags
+from . import human_interval
 from . import os_utils
 from .mechanisms import snap_mechanisms
+
+from typing import Any
 
 
 @dataclasses.dataclass
@@ -41,10 +44,21 @@ class _Metadata:
     trigger: str = ""
     # Optional comment if any.
     comment: str = ""
+    # Unix datetime in seconds.
+    # Note: Expiry is absolute, ttl is relative to now. Expiry = Now + Ttl.
+    expiry: float | None = None
+
+    def is_expired(self, now: datetime.datetime) -> bool:
+        if self.expiry is None:
+            return False
+        return self.expiry < now.timestamp()
+
+    def _to_file_content(self) -> dict[str, Any]:
+        # Ignore empty strings and None.
+        return {k: v for k, v in dataclasses.asdict(self).items() if v}
 
     def save_file(self, fname: str) -> None:
-        # Ignore empty strings.
-        data = {k: v for k, v in dataclasses.asdict(self).items() if v != ""}
+        data = self._to_file_content()
         if global_flags.FLAGS.dryrun:
             os_utils.eprint(f"Would create {fname}: {data}")
             return
@@ -88,6 +102,15 @@ class Snapshot:
     @property
     def _snap_type(self) -> snap_mechanisms.SnapType:
         return snap_mechanisms.SnapType[self.metadata.snap_type]
+
+    def set_ttl(self, ttl_str: str, now: datetime.datetime) -> None:
+        if ttl_str == "":
+            self.metadata.expiry = None
+        else:
+            ttl_secs = human_interval.parse_to_secs(ttl_str)
+            expiry = now + datetime.timedelta(seconds=ttl_secs)
+            self.metadata.expiry = expiry.timestamp()
+        self.metadata.save_file(self._metadata_fname)
 
     def create_from(self, snap_type: snap_mechanisms.SnapType, parent: str) -> None:
         if not snap_mechanisms.get(snap_type).verify_volume(parent):

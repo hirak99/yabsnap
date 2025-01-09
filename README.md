@@ -251,6 +251,20 @@ yabsnap list-json | jq '.file.timestamp'
 
  Optionally add comment with `--comment "COMMENT"`.
 
+### `yabsnap set-ttl PATH|TIMESTAMP --ttl TTL`
+
+Sets a TTL or Time-To-Live for a snapshot.
+
+E.g.
+`yabsnap set-ttl /.snapshots/@home-20221006143047 --ttl '1 day'`
+
+If a snapshot has a TTL, it will be deleted soon after the TTL expires.
+Snapshots with TTL will not be part of any other automated deletion operation.
+Of course, they can still be deleted manually, with the `delete` or `batch-delete`
+commands.
+
+> [!TIP] To prevent a scheduled snapshot from automatic deletion you can set a long TTL for it, e.g. '999 years'.
+
 ### `yabsnap delete PATH|TIMESTAMP`
 Deletes a snapshot.
 
