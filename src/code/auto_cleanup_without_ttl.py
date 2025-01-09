@@ -12,12 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Logic to determine which snapshots will be cleaned up on schedule, ignoring TTL.
+
+This module identifies snapshots that should be cleaned up based on configuration rules
+and a predefined schedule. Snapshots with TTL will not be deleted until the TTL expires,
+even if they are included in the cleanup list.
+
+For an alternative mechanism for assigning TTL to snapshots, refer to `creation_time_ttl.py`,
+which handles TTL assignment at the time of snapshot creation.
+"""
+
 import datetime
 
 from typing import Iterator
 
 
-class DeleteManager:
+class DeleteLogic:
     def __init__(self, rules: list[tuple[datetime.timedelta, int]]) -> None:
         self._rules = rules
 

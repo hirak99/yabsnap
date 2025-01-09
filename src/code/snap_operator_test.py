@@ -20,7 +20,7 @@ from unittest import mock
 from typing import Iterator
 
 from . import configs
-from . import deletion_logic
+from . import auto_cleanup_without_ttl
 from . import snap_holder
 from . import snap_operator
 from .mechanisms import btrfs_mechanism
@@ -197,8 +197,10 @@ class SnapOperatorTest(unittest.TestCase):
             ),
             now=_FAKE_NOW,
         )
-        snapper._delete_expired_ttl(self._old_snaps)
+        remaining = snapper._delete_expired_ttl(self._old_snaps)
         self._mock_delete.assert_called_once_with()
+        self.assertEqual(len(remaining), 1)
+        self.assertEqual(remaining[0].metadata.comment, "snap1")
 
     def test_list_json(self):
         self._old_snaps = [snap_holder.Snapshot("/tmp/nodir/@home-20230213001000")]
@@ -265,7 +267,7 @@ class SnapOperatorTest(unittest.TestCase):
 
         self._exit_stack.enter_context(
             mock.patch.object(
-                deletion_logic.DeleteManager, "get_deletes", fake_get_deletes
+                auto_cleanup_without_ttl.DeleteLogic, "get_deletes", fake_get_deletes
             )
         )
         self._exit_stack.enter_context(

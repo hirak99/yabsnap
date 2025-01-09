@@ -15,11 +15,11 @@
 import datetime
 import unittest
 
-from . import deletion_logic
+from . import auto_cleanup_without_ttl
 
 
 def _deleted_times(rules: dict[int, int], records: list[int]):
-    mgr = deletion_logic.DeleteManager(
+    mgr = auto_cleanup_without_ttl.DeleteLogic(
         [(datetime.timedelta(seconds=k), v) for k, v in rules.items()]
     )
     nowts = 1664951765

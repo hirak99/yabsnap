@@ -59,6 +59,8 @@ class Config:
     # timer runs with a frequency of 60 minutes. Hence only multiples of 60
     # minutes should be used.
     trigger_interval: float = 60 * 60.0
+    # Enables TTL based scheduled snapshot management.
+    enable_scheduled_ttl: bool = True
     # Will keep this many of snapshots; rest will be removed during housekeeping.
     keep_hourly: int = 0
     keep_daily: int = 5
@@ -101,7 +103,14 @@ class Config:
                 continue
             if not hasattr(result, key):
                 logging.warning(f"Invalid field {key=} found in {config_file=}")
-            if key.endswith("_interval"):
+            if key == "enable_scheduled_ttl":
+                # Boolean.
+                if value.lower() not in ("true", "false"):
+                    raise ValueError(
+                        f"Invalid boolean value for {key} in {config_file=}"
+                    )
+                setattr(result, key, value.lower().strip() == "true")
+            elif key.endswith("_interval"):
                 setattr(result, key, human_interval.parse_to_secs(value))
             elif key not in {"source", "dest_prefix"}:
                 setattr(result, key, int(value))

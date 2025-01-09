@@ -137,62 +137,16 @@ Replace `BTRFS_VOL_UUID` with the uuid from `lsblk
 
 ## Config File
 
-Once you create a config, automated snapshots should start running.
+You can create a config with `yabsnap create-config NAME`.
 
-You can further configure the behavior of snapshots by editing the config. Below
-is how a config file looks like.
+This will create a config /etc/yabsnap/NAME.conf. You will need to edit it and
+fill in `source` and `dest_prefix` (e.g. `source = /` and `dest_prefix =
+/.snapshots/@root-`). You can also configure other aspects of snapshots by
+editing the config.
 
-```ini
-# All configurations must be under the [DEFAULT] section.
-[DEFAULT]
+Once you have set up a config, automated snapshots should start running.
 
-# Source, must be a btrfs mount.
-# For example, `source = /` or `source = /home`.
-source =
-
-# Destination including directory and prefix where the snapshots will be stored.
-# For example, `dest_prefix = /.snapshots/@root-` will result in snapshots like
-# "/.snapshots/@root-20230315120000".
-# Time in the format YYYYMMDDhhmmss will be added to the prefix while creating snaps.
-dest_prefix =
-
-# Only one snap can be made within this interval.
-# The intervals are counted from 1970 Jan 1, 12:00 AM UTC.
-trigger_interval = 1 hour
-
-# How much minimum time must pass before a snap can be cleaned up.
-min_keep_secs = 1800
-
-# How many user-created snaps to keep.
-# User created snaps can are made with 'create' command.
-keep_user = 1
-
-# How many pre-installation snaps to keep.
-# Any value more than 0 will enable pacman hook, and store snap on before pacman operation.
-# Will also work for AUR managers such as yay, since AUR managers also use pacman.
-keep_preinstall = 1
-
-# How much time must have passed from last installation to trigger a snap.
-# This prevents snaps multiple installations from a script to each trigger snap in short succession.
-preinstall_interval = 5 minutes
-
-# How many scheduled snaps to keep.
-# If all are 0, scheduled snap will be disabled.
-keep_hourly = 0
-keep_daily = 5
-keep_weekly = 0
-keep_monthly = 0
-keep_yearly = 0
-
-# Snapshot mechanism. Only BTRFS is supported as of now.
-snap_type = BTRFS
-
-# Uncomment example to specify scripts to run after yabsnap creates or deletes any snap.
-# Use space as delimiter to specify multiple scripts if desired.
-# If any creation / deletion operation occurs, each script will be called once.
-# Example -
-# post_transaction_scripts = "/home/me/script1.sh" "/home/me/script2.sh"
-```
+You can see how the default config looks like here: [Default config](./src/code/example_config.conf)
 
 # Command Line Interface
 

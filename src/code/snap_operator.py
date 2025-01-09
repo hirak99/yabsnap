@@ -17,11 +17,12 @@ import json
 import logging
 import os
 
+from . import auto_cleanup_without_ttl
 from . import configs
-from . import deletion_logic
 from . import global_flags
 from . import human_interval
 from . import os_utils
+from . import scheduled_snapshot_ttl
 from . import snap_holder
 
 from typing import Any, Iterator, Optional, TypeVar
@@ -77,22 +78,48 @@ class SnapOperator:
         # Set to true on any delete operation. If True, may run a btrfs subv sync.
         self.snaps_deleted = False
 
-    def _delete_expired_ttl(self, snaps: list[snap_holder.Snapshot]):
-        """Deletes snapshots with expired TTL."""
+    def _delete_expired_ttl(
+        self, snaps: list[snap_holder.Snapshot]
+    ) -> list[snap_holder.Snapshot]:
+        """Deletes snapshots with expired TTL, returns _remaining_ snapshots."""
+        remaining: list[snap_holder.Snapshot] = []
         for snap in snaps:
             if snap.metadata.is_expired(self._now):
                 logging.info(f"Expired snapshot: {snap.target}")
                 snap.delete()
+            else:
+                remaining.append(snap)
+        return remaining
 
-    def _apply_deletion_rules(self, snaps: list[snap_holder.Snapshot]) -> bool:
-        """Deletes old backups. Returns True if new backup is needed."""
+    def _apply_deletion_rules(
+        self, snaps: list[snap_holder.Snapshot]
+    ) -> tuple[bool, int]:
+        """Deletes old backups. Returns True if new backup is needed.
+
+        Returns:
+          bool: Whether a new snapshot will be made.
+          int: What should be the TTL in secods. If 0 or less, no TTL will be applied.
+        """
 
         # Handle snaps with TTL.
-        self._delete_expired_ttl(snaps)
-        # Henceforth, we only deal with snaps without expiry.
-        snaps = [x for x in snaps if x.metadata.expiry is None]
+        snaps = self._delete_expired_ttl(snaps)
 
-        # Only consider scheduled backups for expiry.
+        return_value: tuple[bool, int] = (False, 0)
+
+        if self._config.enable_scheduled_ttl:
+            # Note: deletion_rules subtract the buffer time. That's needed so
+            # that on schedule, the TTL's expire and get deleted.
+            mgr = scheduled_snapshot_ttl.CreationTimeTtl(self._config.deletion_rules)
+            ttl_of_new_snap = mgr.ttl_of_new_snapshot(
+                now=self._now,
+                existing_creation_expiries=[
+                    (x.snaptime, x.metadata.expiry) for x in snaps
+                ],
+            )
+            if ttl_of_new_snap is not None:
+                return_value = (True, ttl_of_new_snap)
+
+        # Also apply the deletion logic for scheduled snaps with TTL not enabled.
         candidates = [
             (x.snaptime, x.target) for x in snaps if x.metadata.trigger in {"", "S"}
         ]
@@ -100,19 +127,28 @@ class SnapOperator:
         # If this is deleted, it would indicate not to create new backup.
         candidates.append((self._now, ""))
 
-        delete = deletion_logic.DeleteManager(self._config.deletion_rules)
-        for when, target in delete.get_deletes(self._now, candidates):
+        delete_logic = auto_cleanup_without_ttl.DeleteLogic(self._config.deletion_rules)
+        for when, target in delete_logic.get_deletes(self._now, candidates):
             if target == "":
                 logging.info(f"No new backup needed for {self._config.source}")
-                return False
+                return (
+                    return_value  # Either False, or whatever is computed by schedule.
+                )
             elapsed_secs = (self._now - when).total_seconds()
             if elapsed_secs > self._config.min_keep_secs:
-                snap_holder.Snapshot(target).delete()
-                self.snaps_deleted = True
+                snap = snap_holder.Snapshot(target)
+                if snap.metadata.expiry is None:
+                    snap_holder.Snapshot(target).delete()
+                    self.snaps_deleted = True
+                else:
+                    # Note: It will eventually get deleted, we just need to wait until TTL.
+                    logging.info(f"Refusing to clean up target with TTL: {target}")
             else:
                 logging.info(f"Not enough time passed, not deleting {target}")
 
-        return True
+        if not self._config.enable_scheduled_ttl:
+            return_value = True, 0
+        return return_value
 
     def _create_and_maintain_n_backups(
         self, count: int, trigger: str, comment: Optional[str]
@@ -217,10 +253,12 @@ class SnapOperator:
             x for x in _get_old_backups(self._config) if "S" in x.metadata.trigger
         ]
         # Manage deletions and check if new backup is needed.
-        need_new = self._apply_deletion_rules(previous_snaps)
+        need_new, ttl_secs = self._apply_deletion_rules(previous_snaps)
         if need_new:
             snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
             snapshot.metadata.trigger = "S"
+            if ttl_secs > 0:
+                snapshot.metadata.expiry = int(self._now.timestamp()) + ttl_secs
             snapshot.create_from(self._config.snap_type, self._config.source)
             self.snaps_created = True
 
