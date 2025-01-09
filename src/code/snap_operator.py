@@ -187,6 +187,10 @@ class SnapOperator:
     def scheduled(self):
         """Triggers periodically by the system timer."""
         if not self._config.is_compatible_volume():
+            # There is some kind of mismatch, for example the directory is not btrfs.
+            # A warning should already be printed by the check implementation.
+            # Another warning here in case it is missed in the code for any reason.
+            logging.warning("Incompatible volume")
             return
         wait_until = self._next_trigger_time()
         if wait_until is not None:
