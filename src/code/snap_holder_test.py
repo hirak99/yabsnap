@@ -107,6 +107,21 @@ class SnapHolderTest(unittest.TestCase):
             snap.metadata.expiry = _NOW.timestamp() + 100
             self.assertFalse(snap.metadata.is_expired(_NOW))
 
+    def test_as_json(self):
+        with tempfile.TemporaryDirectory() as dir:
+            snap_destination = os.path.join(dir, "root-20231122193630")
+            snap = snap_holder.Snapshot(snap_destination)
+            snap.metadata.comment = "Comment"
+            snap.metadata.trigger = "S"
+            self.assertEqual(snap.as_json(), {"comment": "Comment", "trigger": "S"})
+
+            expiry = _NOW + datetime.timedelta(hours=1)
+            snap.metadata.expiry = expiry.timestamp()
+            self.assertEqual(
+                snap.as_json(),
+                {"comment": "Comment", "trigger": "S", "expiry": expiry.timestamp()},
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

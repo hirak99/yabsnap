@@ -264,8 +264,7 @@ class SnapOperator:
             result["file"]["timestamp"] = snap.target.removeprefix(
                 self._config.dest_prefix
             )
-            result["trigger"] = snap.metadata.trigger
-            result["comment"] = snap.metadata.comment
+            result.update(snap.as_json())
             yield json.dumps(result, sort_keys=True, separators=(",", ":"))
 
     def list_snaps_json(self):

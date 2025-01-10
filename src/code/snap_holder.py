@@ -103,6 +103,14 @@ class Snapshot:
     def _snap_type(self) -> snap_mechanisms.SnapType:
         return snap_mechanisms.SnapType[self.metadata.snap_type]
 
+    def as_json(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        result["trigger"] = self.metadata.trigger
+        result["comment"] = self.metadata.comment
+        if self.metadata.expiry is not None:
+            result["expiry"] = self.metadata.expiry
+        return result
+
     def set_ttl(self, ttl_str: str, now: datetime.datetime) -> None:
         if ttl_str == "":
             self.metadata.expiry = None
