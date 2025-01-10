@@ -105,14 +105,18 @@ class TestSnapshotFilters(unittest.TestCase):
         ]
 
     def test_use_indicator_arg(self):
-        filter_iter = batch_deleter.get_filters({"indicator": "U"})
+        user_snap_filter = next(batch_deleter.get_filters({"indicator": "U"}))
         filted_mapping = batch_deleter.apply_snapshot_filters(
-            self._config_snaps_mapping_list, *filter_iter
+            self._config_snaps_mapping_list, user_snap_filter
         )
 
         for mapping in filted_mapping:
             for snap in mapping.snaps:
                 self.assertEqual(snap.metadata.trigger, "U")
+
+        with self.assertRaises(StopIteration):
+            # invalid indicator flag
+            next(batch_deleter.get_filters({"indicator": None}))
 
     # Snapshots for testing, with creation times after November 2024.
     def test_use_start_arg_to_find_all_snaps(self):

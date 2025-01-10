@@ -280,6 +280,9 @@ Batch delete snapshots.
 ```sh
 # Note: For these examples, assume there is a snapshot as shown in the above `yabsnap list` command.
 
+# Delete all snapshots under all configuration files.
+yabsnap batch-delete
+
 # Delete all snapshots including and after 2022-09-25_17:21.
 yabsnap batch-delete --start 20220925172100
 # Or,
