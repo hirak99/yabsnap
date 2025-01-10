@@ -24,7 +24,7 @@ from . import human_interval
 from . import os_utils
 from . import snap_holder
 
-from typing import Any, Iterable, Iterator, Optional, TypeVar
+from typing import Any, Iterator, Optional, TypeVar
 
 
 def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
@@ -243,7 +243,7 @@ class SnapOperator:
             columns.append(f"{elapsed_str:<20}")
 
             ttl_str = ""
-            if snap.metadata.expiry != None:
+            if snap.metadata.expiry is not None:
                 ttl = snap.metadata.expiry - self._now.timestamp()
                 ttl_str = "TTL: " + human_interval.humanize(ttl)
             columns.append(f"{ttl_str:<18}")
