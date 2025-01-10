@@ -26,7 +26,8 @@ from .mechanisms import snap_mechanisms
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
 
-NOW = datetime.datetime.strptime("20250130", r"%Y%m%d")
+# UTC time.
+_NOW = datetime.datetime(2025, 1, 30, hour=12, minute=0, second=0)
 
 
 class SnapHolderTest(unittest.TestCase):
@@ -78,14 +79,14 @@ class SnapHolderTest(unittest.TestCase):
             snap = snap_holder.Snapshot(snap_destination)
             self.assertEqual(snap.metadata._to_file_content(), {"snap_type": "UNKNOWN"})
 
-            snap.set_ttl("1 hour", now=NOW)
+            snap.set_ttl("1 hour", now=_NOW)
             self.assertEqual(
                 snap.metadata._to_file_content(),
-                {"snap_type": "UNKNOWN", "expiry": 1738179000.0},
+                {"snap_type": "UNKNOWN", "expiry": 1738222200.0},
             )
 
             # Setting to empty string erases ttl.
-            snap.set_ttl("", now=NOW)
+            snap.set_ttl("", now=_NOW)
             self.assertEqual(snap.metadata._to_file_content(), {"snap_type": "UNKNOWN"})
 
     def test_expired(self):
@@ -93,16 +94,16 @@ class SnapHolderTest(unittest.TestCase):
             snap_destination = os.path.join(dir, "root-20231122193630")
             snap = snap_holder.Snapshot(snap_destination)
 
-            self.assertFalse(snap.metadata.is_expired(NOW))
+            self.assertFalse(snap.metadata.is_expired(_NOW))
 
-            snap.set_ttl("1 h", now=NOW)
-            self.assertFalse(snap.metadata.is_expired(NOW))
+            snap.set_ttl("1 h", now=_NOW)
+            self.assertFalse(snap.metadata.is_expired(_NOW))
 
-            snap.metadata.expiry = NOW.timestamp() - 100
-            self.assertTrue(snap.metadata.is_expired(NOW))
+            snap.metadata.expiry = _NOW.timestamp() - 100
+            self.assertTrue(snap.metadata.is_expired(_NOW))
 
-            snap.metadata.expiry = NOW.timestamp() + 100
-            self.assertFalse(snap.metadata.is_expired(NOW))
+            snap.metadata.expiry = _NOW.timestamp() + 100
+            self.assertFalse(snap.metadata.is_expired(_NOW))
 
 
 if __name__ == "__main__":
