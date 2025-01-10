@@ -80,9 +80,11 @@ class SnapHolderTest(unittest.TestCase):
             self.assertEqual(snap.metadata._to_file_content(), {"snap_type": "UNKNOWN"})
 
             snap.set_ttl("1 hour", now=_NOW)
+
+            expected_expiry_ts = (_NOW + datetime.timedelta(hours=1)).timestamp()
             self.assertEqual(
                 snap.metadata._to_file_content(),
-                {"snap_type": "UNKNOWN", "expiry": 1738222200.0},
+                {"snap_type": "UNKNOWN", "expiry": expected_expiry_ts},
             )
 
             # Setting to empty string erases ttl.
