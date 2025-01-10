@@ -77,9 +77,7 @@ class SnapOperator:
         # Set to true on any delete operation. If True, may run a btrfs subv sync.
         self.snaps_deleted = False
 
-    def _delete_expired_ttl(
-        self, snaps: list[snap_holder.Snapshot]
-    ):
+    def _delete_expired_ttl(self, snaps: list[snap_holder.Snapshot]):
         """Deletes snapshots with expired TTL."""
         for snap in snaps:
             if snap.metadata.is_expired(self._now):
