@@ -36,9 +36,6 @@ class CreationTimeTtl:
     def __init__(self, rules: list[tuple[datetime.timedelta, int]]) -> None:
         self._rules = rules
 
-    def _get_ttl(self, creation_ts: datetime.datetime, expiry_ts: float):
-        duration_secs = expiry_ts - creation_ts.timestamp()
-
     def ttl_of_new_snapshot(
         self,
         now: datetime.datetime,
