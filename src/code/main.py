@@ -47,13 +47,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--verbose", help="Sets log-level to INFO.", action="store_true"
     )
-    subparsers = parser.add_subparsers(dest="command")
 
-    # User commands.
-    subparsers.add_parser("list", help="List all managed snaps.")
-    subparsers.add_parser(
-        "list-json", help="Machine readable list of all managed snaps."
-    )
+    # title - Shows as [title]: before commands are listed.
+    # metavar - The string is printed below the title. If None, all commands including hidden ones are printed.
+    subparsers = parser.add_subparsers(dest="command", title="command", metavar="")
+
+    # A message to be added to help for all commands that honor --source or --config-file.
+    source_message = " Optionally use with --source or --config-file."
 
     # Creates a new config by NAME.
     create_config = subparsers.add_parser(
@@ -63,14 +63,21 @@ def _parse_args() -> argparse.Namespace:
         "config_name", help='Name to be given to config file, e.g. "home".'
     )
 
+    # User commands.
+    subparsers.add_parser("list", help="List all managed snaps." + source_message)
+    subparsers.add_parser(
+        "list-json", help="Machine readable list of all managed snaps." + source_message
+    )
+
     # Creates an user snapshot.
-    create = subparsers.add_parser("create", help="Create new snapshots.")
+    create = subparsers.add_parser(
+        "create", help="Create new snapshots." + source_message
+    )
     create.add_argument("--comment", help="Comment attached to this snapshot.")
 
     # Set TTL for a snapshot.
     set_ttl = subparsers.add_parser(
-        "set-ttl",
-        help="Set a duration after which a snapshot will be automatically deleted.",
+        "set-ttl", help="Set a TTL for matching snapshots." + source_message
     )
     set_ttl.add_argument(
         "--ttl",
@@ -81,12 +88,13 @@ def _parse_args() -> argparse.Namespace:
 
     # Delete a snapshot.
     delete = subparsers.add_parser(
-        "delete", help="Delete a snapshot created by yabsnap."
+        "delete", help="Delete matching snapshots." + source_message
     )
 
     # Batch delete snapshots.
     batch_delete = subparsers.add_parser(
-        "batch-delete", help="Batch delete snapshots created by yabsnap."
+        "batch-delete",
+        help="Batch delete snapshots created by yabsnap." + source_message,
     )
     batch_delete.add_argument(
         "--indicator",
@@ -110,17 +118,20 @@ def _parse_args() -> argparse.Namespace:
 
     # Generates a script for rolling back.
     rollback = subparsers.add_parser(
-        "rollback-gen", help="Generate script to rollback one or more snaps."
+        "rollback-gen",
+        help="Generate script to rollback one or more snaps." + source_message,
     )
 
     for command_with_target in [delete, rollback, set_ttl]:
         command_with_target.add_argument(
-            "target_suffix", help="Datetime string, or full path of a snapshot."
+            "target_suffix",
+            help="Datetime string, or full path of a snapshot." + source_message,
         )
 
     # Internal commands used in scheduling and pacman hook.
-    subparsers.add_parser("internal-cronrun", help=argparse.SUPPRESS)
-    subparsers.add_parser("internal-preupdate", help=argparse.SUPPRESS)
+    # Not having a help= makes them unlisted in --help.
+    subparsers.add_parser("internal-cronrun")
+    subparsers.add_parser("internal-preupdate")
 
     args = parser.parse_args()
     return args
