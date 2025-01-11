@@ -91,21 +91,15 @@ class SnapOperator:
                 remaining.append(snap)
         return remaining
 
-    def _apply_deletion_rules(
+    def _get_scheduled_snapshot_ttl(
         self, snaps: list[snap_holder.Snapshot]
     ) -> tuple[bool, int]:
-        """Deletes old backups. Returns True if new backup is needed.
+        """If scheduled snapshot ttl is enabled, carry out the TTL logic.
 
         Returns:
           bool: Whether a new snapshot will be made.
           int: What should be the TTL in secods. If 0 or less, no TTL will be applied.
         """
-
-        # Handle snaps with TTL.
-        snaps = self._delete_expired_ttl(snaps)
-
-        return_value: tuple[bool, int] = (False, 0)
-
         if self._config.enable_scheduled_ttl:
             # Note: deletion_rules subtract the buffer time. That's needed so
             # that on schedule, the TTL's expire and get deleted.
@@ -117,9 +111,15 @@ class SnapOperator:
                 ],
             )
             if ttl_of_new_snap is not None:
-                return_value = (True, ttl_of_new_snap)
+                return True, ttl_of_new_snap
+        return False, 0
 
-        # Also apply the deletion logic for scheduled snaps with TTL not enabled.
+    def _non_ttl_scheduled_deletion(self, snaps: list[snap_holder.Snapshot]) -> bool:
+        """Applies deletion logic for scheduled backups without TTL.
+
+        Returns:
+            True iff a new snapshot should be created.
+        """
         candidates = [
             (x.snaptime, x.target) for x in snaps if x.metadata.trigger in {"", "S"}
         ]
@@ -131,9 +131,7 @@ class SnapOperator:
         for when, target in delete_logic.get_deletes(self._now, candidates):
             if target == "":
                 logging.info(f"No new backup needed for {self._config.source}")
-                return (
-                    return_value  # Either False, or whatever is computed by schedule.
-                )
+                return False
             elapsed_secs = (self._now - when).total_seconds()
             if elapsed_secs > self._config.min_keep_secs:
                 snap = snap_holder.Snapshot(target)
@@ -146,9 +144,35 @@ class SnapOperator:
             else:
                 logging.info(f"Not enough time passed, not deleting {target}")
 
-        if not self._config.enable_scheduled_ttl:
-            return_value = True, 0
-        return return_value
+        return True
+
+    def _manage_scheduled_lifecycle(
+        self, snaps: list[snap_holder.Snapshot]
+    ) -> tuple[bool, int]:
+        """Deletes old backups. Returns True if new backup is needed.
+
+        Returns:
+          bool: Whether a new snapshot will be made.
+          int: What should be the TTL in seconds. If 0 or less, no TTL will be applied.
+        """
+
+        # Handle snaps with TTL.
+        snaps = self._delete_expired_ttl(snaps)
+
+        # Handle snapshots with TTL.
+        need_new, ttl_secs = self._get_scheduled_snapshot_ttl(snaps)
+        if not need_new and ttl_secs != 0:
+            # Unexpected. Possible logical error somewhere.
+            logging.warning(f"BUG DETECTED, {need_new=}, {ttl_secs=}")
+
+        # Handle snapshots without TTL.
+        if not self._non_ttl_scheduled_deletion(snaps):
+            # Non scheduled-ttl deletion completed, does not require a new snap creation.
+            # Should still create one if scheduled logic wanted one.
+            return need_new, ttl_secs
+
+        # If we are here, non-ttl deletion logic wants to create a new snapshot.
+        return True, ttl_secs if need_new else 0
 
     def _create_and_maintain_n_backups(
         self, count: int, trigger: str, comment: Optional[str]
@@ -253,7 +277,7 @@ class SnapOperator:
             x for x in _get_old_backups(self._config) if "S" in x.metadata.trigger
         ]
         # Manage deletions and check if new backup is needed.
-        need_new, ttl_secs = self._apply_deletion_rules(previous_snaps)
+        need_new, ttl_secs = self._manage_scheduled_lifecycle(previous_snaps)
         if need_new:
             snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
             snapshot.metadata.trigger = "S"
