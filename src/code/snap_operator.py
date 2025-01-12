@@ -77,7 +77,11 @@ class SnapOperator:
         self.snaps_created = False
         # Set to true on any delete operation. If True, may run a btrfs subv sync.
         self.snaps_deleted = False
+        # Temporarily holds all snaps to delete on scheduled().
+        # This enables the actual operation of deleting them to happen at the end.
+        self._scheduled_to_delete: list[snap_holder.Snapshot] = []
 
+    # Part of scheduled().
     def _delete_expired_ttl(
         self, snaps: list[snap_holder.Snapshot]
     ) -> list[snap_holder.Snapshot]:
@@ -86,12 +90,12 @@ class SnapOperator:
         for snap in snaps:
             if snap.metadata.is_expired(self._now):
                 logging.info(f"Expired snapshot: {snap.target}")
-                snap.delete()
-                self.snaps_deleted = True
+                self._scheduled_to_delete.append(snap)
             else:
                 remaining.append(snap)
         return remaining
 
+    # Part of scheduled().
     def _get_scheduled_snapshot_ttl(
         self, snaps: list[snap_holder.Snapshot]
     ) -> tuple[bool, int]:
@@ -115,6 +119,7 @@ class SnapOperator:
                 return True, ttl_of_new_snap
         return False, 0
 
+    # Part of scheduled().
     def _non_ttl_scheduled_deletion(self, snaps: list[snap_holder.Snapshot]) -> bool:
         """Applies deletion logic for scheduled backups without TTL.
 
@@ -137,8 +142,7 @@ class SnapOperator:
             if elapsed_secs > self._config.min_keep_secs:
                 snap = snap_holder.Snapshot(target)
                 if snap.metadata.expiry is None:
-                    snap_holder.Snapshot(target).delete()
-                    self.snaps_deleted = True
+                    self._scheduled_to_delete.append(snap_holder.Snapshot(target))
                 else:
                     # Note: It will eventually get deleted, we just need to wait until TTL.
                     logging.info(f"Refusing to clean up target with TTL: {target}")
@@ -147,6 +151,7 @@ class SnapOperator:
 
         return True
 
+    # Part of scheduled().
     def _manage_scheduled_lifecycle(
         self, snaps: list[snap_holder.Snapshot]
     ) -> tuple[bool, int]:
@@ -264,6 +269,9 @@ class SnapOperator:
             logging.warning("Incompatible volume")
             return
 
+        # Hold everything to be deleted, so that we delete at the end of scheduled().
+        self._scheduled_to_delete = []
+
         # Delete expired snaps with TTL. Carry out irrespective of the waiting time.
         snaps = list(_get_existing_snaps(self._config))
         snaps = self._delete_expired_ttl(snaps)
@@ -288,6 +296,10 @@ class SnapOperator:
                 snapshot.metadata.expiry = int(self._now.timestamp()) + ttl_secs
             snapshot.create_from(self._config.snap_type, self._config.source)
             self.snaps_created = True
+
+        for snap in self._scheduled_to_delete:
+            snap.delete()
+            self.snaps_deleted = True
 
     def list_snaps(self):
         """Print the backups for humans."""

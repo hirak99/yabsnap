@@ -116,6 +116,38 @@ class SnapOperatorTest(unittest.TestCase):
             snap_mechanisms.SnapType.BTRFS, "snap_source"
         )
 
+    def test_scheduled_ttl_expiry(self):
+        self._old_snaps = [
+            snap_holder.Snapshot(
+                # Added 10 minutes, to counteract DURATION_BUFFER.
+                "/tmp/nodir/@home-"
+                + _utc_to_local_str("20230213" "001000")
+            )
+        ]
+        self._old_snaps[-1].metadata.trigger = "S"
+        # Set it as expired.
+        self._old_snaps[-1].metadata.expiry = _utc_to_local(
+            "20230213" "000100"
+        ).timestamp()
+        # Set trigger every 12 hours.
+        trigger_interval = datetime.timedelta(hours=12).total_seconds()
+        snapper = snap_operator.SnapOperator(
+            config=configs.Config(
+                config_file="config_file",
+                source="snap_source",
+                dest_prefix="dest_prefix",
+                trigger_interval=trigger_interval,
+            ),
+            # Say the scheduled() happens just 10 seconds later.
+            now=_utc_to_local("20230213" "001010"),
+        )
+        snapper.scheduled()
+        # Even if the scheduled() call happens before trigger, snap is deleted().
+        self._mock_delete.assert_called_once_with()
+        self._mock_create_from.assert_called_once_with(
+            snap_mechanisms.SnapType.BTRFS, "snap_source"
+        )
+
     def test_pachook(self):
         def setup_n_snaps(n: int):
             self._old_snaps = [
@@ -198,7 +230,12 @@ class SnapOperatorTest(unittest.TestCase):
             now=_FAKE_NOW,
         )
         remaining = snapper._delete_expired_ttl(self._old_snaps)
-        self._mock_delete.assert_called_once_with()
+
+        # The method stores the snap for deletion later.
+        self._mock_delete.assert_not_called()
+        self.assertEqual(len(snapper._scheduled_to_delete), 1)
+        self.assertEqual(snapper._scheduled_to_delete[0].metadata.comment, "snap2")
+
         self.assertEqual(len(remaining), 1)
         self.assertEqual(remaining[0].metadata.comment, "snap1")
 
