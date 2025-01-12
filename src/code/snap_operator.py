@@ -152,7 +152,7 @@ class SnapOperator:
         return True
 
     # Part of scheduled().
-    def _manage_scheduled_lifecycle(
+    def _scheduled_deletion_and_creation(
         self, snaps: list[snap_holder.Snapshot]
     ) -> tuple[bool, int]:
         """Deletes old backups. Returns True if new backup is needed.
@@ -176,6 +176,26 @@ class SnapOperator:
 
         # If we are here, non-ttl deletion logic wants to create a new snapshot.
         return True, ttl_secs if need_new else 0
+
+    # Part of scheduled().
+    def _manage_scheduled_lifecycle(self, snaps: list[snap_holder.Snapshot]):
+        wait_until = self._next_trigger_time(snaps)
+        if wait_until is not None:
+            if self._now <= wait_until - configs.DURATION_BUFFER:
+                logging.info(
+                    f"Already triggered for {self._config.source}, wait until {wait_until}"
+                )
+                return
+
+        # Manage deletions and check if new backup is needed.
+        need_new, ttl_secs = self._scheduled_deletion_and_creation(snaps)
+        if need_new:
+            snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
+            snapshot.metadata.trigger = "S"
+            if ttl_secs > 0:
+                snapshot.metadata.expiry = int(self._now.timestamp()) + ttl_secs
+            snapshot.create_from(self._config.snap_type, self._config.source)
+            self.snaps_created = True
 
     def _create_and_maintain_n_backups(
         self, count: int, trigger: str, comment: Optional[str]
@@ -276,26 +296,10 @@ class SnapOperator:
         snaps = list(_get_existing_snaps(self._config))
         snaps = self._delete_expired_ttl(snaps)
 
-        # All _scheduled_ snaps that already exist.
+        # All _scheduled_ snaps that will remain.
         scheduled_snaps = [x for x in snaps if "S" in x.metadata.trigger]
 
-        wait_until = self._next_trigger_time(scheduled_snaps)
-        if wait_until is not None:
-            if self._now <= wait_until - configs.DURATION_BUFFER:
-                logging.info(
-                    f"Already triggered for {self._config.source}, wait until {wait_until}"
-                )
-                return
-
-        # Manage deletions and check if new backup is needed.
-        need_new, ttl_secs = self._manage_scheduled_lifecycle(scheduled_snaps)
-        if need_new:
-            snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
-            snapshot.metadata.trigger = "S"
-            if ttl_secs > 0:
-                snapshot.metadata.expiry = int(self._now.timestamp()) + ttl_secs
-            snapshot.create_from(self._config.snap_type, self._config.source)
-            self.snaps_created = True
+        self._manage_scheduled_lifecycle(scheduled_snaps)
 
         for snap in self._scheduled_to_delete:
             snap.delete()
