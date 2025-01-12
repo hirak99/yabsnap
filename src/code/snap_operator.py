@@ -28,7 +28,7 @@ from . import snap_holder
 from typing import Any, Iterator, Optional, TypeVar
 
 
-def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
+def _get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
     """Returns existing backups in chronological order."""
     destdir = os.path.dirname(config.dest_prefix)
     for fname in os.listdir(destdir):
@@ -49,7 +49,7 @@ def find_target(config: configs.Config, suffix: str) -> Optional[snap_holder.Sna
             "Length of snapshot identifier suffix "
             f"must be at least {global_flags.TIME_FORMAT_LEN}."
         )
-    for snap in _get_old_backups(config):
+    for snap in _get_existing_snaps(config):
         if snap.target.endswith(suffix):
             return snap_holder.Snapshot(snap.target)
     return None
@@ -87,6 +87,7 @@ class SnapOperator:
             if snap.metadata.is_expired(self._now):
                 logging.info(f"Expired snapshot: {snap.target}")
                 snap.delete()
+                self.snaps_deleted = True
             else:
                 remaining.append(snap)
         return remaining
@@ -156,9 +157,6 @@ class SnapOperator:
           int: What should be the TTL in seconds. If 0 or less, no TTL will be applied.
         """
 
-        # Handle snaps with TTL.
-        snaps = self._delete_expired_ttl(snaps)
-
         # Handle snapshots with TTL.
         need_new, ttl_secs = self._get_scheduled_snapshot_ttl(snaps)
         if not need_new and ttl_secs != 0:
@@ -184,7 +182,9 @@ class SnapOperator:
         # Find previous snaps.
         # Doing this before the update handles dryrun (where no new snap is created).
         previous_snaps = [
-            x for x in _get_old_backups(self._config) if x.metadata.trigger == trigger
+            x
+            for x in _get_existing_snaps(self._config)
+            if x.metadata.trigger == trigger
         ]
 
         if count > 0:
@@ -219,7 +219,7 @@ class SnapOperator:
 
     def on_pacman(self):
         last_snap: Optional[snap_holder.Snapshot] = None
-        for snap in _get_old_backups(self._config):
+        for snap in _get_existing_snaps(self._config):
             if snap.metadata.trigger == "I":
                 last_snap = snap
         if last_snap is not None:
@@ -236,13 +236,11 @@ class SnapOperator:
             comment=os_utils.last_pacman_command(),
         )
 
-    def _next_trigger_time(self) -> Optional[datetime.datetime]:
+    def _next_trigger_time(
+        self, scheduled_snaps: list[snap_holder.Snapshot]
+    ) -> Optional[datetime.datetime]:
         """Returns the next time after which a scheduled backup can trigger."""
-        # All _scheduled_ snaps that already exist.
-        previous_snaps = [
-            x for x in _get_old_backups(self._config) if "S" in x.metadata.trigger
-        ]
-        if not previous_snaps:
+        if not scheduled_snaps:
             return None
         # Check if we should trigger a backup.
         # Phase of the time windows. Optionally, we can set it to phase = time.timezone.
@@ -250,7 +248,7 @@ class SnapOperator:
         # so we just choose phase = 0 or UTC.
         phase = 0
         previous_mod = (
-            previous_snaps[-1].snaptime - datetime.timedelta(seconds=phase)
+            scheduled_snaps[-1].snaptime - datetime.timedelta(seconds=phase)
         ).timestamp() // self._config.trigger_interval
         wait_until = datetime.datetime.fromtimestamp(
             (previous_mod + 1) * self._config.trigger_interval + phase
@@ -265,19 +263,24 @@ class SnapOperator:
             # Another warning here in case it is missed in the code for any reason.
             logging.warning("Incompatible volume")
             return
-        wait_until = self._next_trigger_time()
+
+        # Delete expired snaps with TTL. Carry out irrespective of the waiting time.
+        snaps = list(_get_existing_snaps(self._config))
+        snaps = self._delete_expired_ttl(snaps)
+
+        # All _scheduled_ snaps that already exist.
+        scheduled_snaps = [x for x in snaps if "S" in x.metadata.trigger]
+
+        wait_until = self._next_trigger_time(scheduled_snaps)
         if wait_until is not None:
             if self._now <= wait_until - configs.DURATION_BUFFER:
                 logging.info(
                     f"Already triggered for {self._config.source}, wait until {wait_until}"
                 )
                 return
-        # All _scheduled_ snaps that already exist.
-        previous_snaps = [
-            x for x in _get_old_backups(self._config) if "S" in x.metadata.trigger
-        ]
+
         # Manage deletions and check if new backup is needed.
-        need_new, ttl_secs = self._manage_scheduled_lifecycle(previous_snaps)
+        need_new, ttl_secs = self._manage_scheduled_lifecycle(scheduled_snaps)
         if need_new:
             snapshot = snap_holder.Snapshot(self._config.dest_prefix + self._now_str)
             snapshot.metadata.trigger = "S"
@@ -292,7 +295,7 @@ class SnapOperator:
         # Just display the log if it's not a btrfs volume.
         _ = self._config.is_compatible_volume()
         print(f"Snaps at: {self._config.dest_prefix}...")
-        for snap in _get_old_backups(self._config):
+        for snap in _get_existing_snaps(self._config):
             columns: list[str] = []
             columns.append("  " + snap.target.removeprefix(self._config.dest_prefix))
             trigger_str = "".join(
@@ -322,7 +325,7 @@ class SnapOperator:
         # Just display the log if it's not a btrfs volume.
         _ = self._config.is_compatible_volume()
         result["file"] = {"prefix": self._config.dest_prefix}
-        for snap in _get_old_backups(self._config):
+        for snap in _get_existing_snaps(self._config):
             result["file"]["timestamp"] = snap.target.removeprefix(
                 self._config.dest_prefix
             )

@@ -272,7 +272,7 @@ class SnapOperatorTest(unittest.TestCase):
         )
         self._exit_stack.enter_context(
             mock.patch.object(
-                snap_operator, "_get_old_backups", lambda configs: self._old_snaps
+                snap_operator, "_get_existing_snaps", lambda configs: self._old_snaps
             )
         )
 
