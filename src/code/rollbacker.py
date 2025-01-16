@@ -66,7 +66,7 @@ def rollback(
         msg = "Review the code and enter 'y' to confirm execution. [y/N] "
         confirm = os_utils.interactive_confirm(msg)
         if confirm:
-            subprocess.run([".", _ROLLBACK_SCRIPT_FILEPATH])
+            subprocess.run(f".{_ROLLBACK_SCRIPT_FILEPATH}")
 
 
 def _create_and_chmod_script(contents: list[str]) -> None:
