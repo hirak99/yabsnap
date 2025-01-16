@@ -19,7 +19,6 @@ import itertools
 import logging
 from typing import Iterable
 
-
 from . import batch_deleter
 from . import colored_logs
 from . import configs
@@ -38,7 +37,9 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
     )
     parser.add_argument("--config-file", help="Specify a config file to use.")
-    parser.add_argument("--source", help="Restrict to config with this source path.")
+    parser.add_argument(
+        "--source", help="Restrict to config with this source path."
+    )
     parser.add_argument(
         "--dry-run",
         help="If passed, will disable all snapshot creation and deletion.",
@@ -50,23 +51,29 @@ def _parse_args() -> argparse.Namespace:
 
     # title - Shows as [title]: before commands are listed.
     # metavar - The string is printed below the title. If None, all commands including hidden ones are printed.
-    subparsers = parser.add_subparsers(dest="command", title="command", metavar="")
+    subparsers = parser.add_subparsers(
+        dest="command", title="command", metavar=""
+    )
 
     # A message to be added to help for all commands that honor --source or --config-file.
     source_message = " Optionally use with --source or --config-file."
 
     # Creates a new config by NAME.
     create_config = subparsers.add_parser(
-        "create-config", help="Bootstrap a config for new filesystem to snapshot."
+        "create-config",
+        help="Bootstrap a config for new filesystem to snapshot.",
     )
     create_config.add_argument(
         "config_name", help='Name to be given to config file, e.g. "home".'
     )
 
     # User commands.
-    subparsers.add_parser("list", help="List all managed snaps." + source_message)
     subparsers.add_parser(
-        "list-json", help="Machine readable list of all managed snaps." + source_message
+        "list", help="List all managed snaps." + source_message
+    )
+    subparsers.add_parser(
+        "list-json",
+        help="Machine readable list of all managed snaps." + source_message,
     )
 
     # Creates an user snapshot.
@@ -121,11 +128,27 @@ def _parse_args() -> argparse.Namespace:
         "rollback-gen",
         help="Generate script to rollback one or more snaps." + source_message,
     )
+    rollback.add_argument(
+        "--execute",
+        action="store_true",
+        help="Generate rollback script and execute.",
+    )
 
-    for command_with_target in [delete, rollback, set_ttl]:
+    execute_rollback = subparsers.add_parser(
+        "rollback",
+        help="Generate rollback script and run. Equivalent to `rollback-gen --execute`",
+    )
+    execute_rollback.add_argument(
+        "--noconfirm",
+        action="store_true",
+        help="Execute the rollback script without confirmation.",
+    )
+
+    for command_with_target in [delete, rollback, execute_rollback, set_ttl]:
         command_with_target.add_argument(
             "target_suffix",
-            help="Datetime string, or full path of a snapshot." + source_message,
+            help="Datetime string, or full path of a snapshot."
+            + source_message,
         )
 
     # Internal commands used in scheduling and pacman hook.
@@ -138,8 +161,8 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _sync(configs_to_sync: list[configs.Config]):
-    paths_to_sync: dict[snap_mechanisms.SnapType, set[str]] = collections.defaultdict(
-        set
+    paths_to_sync: dict[snap_mechanisms.SnapType, set[str]] = (
+        collections.defaultdict(set)
     )
     for config in configs_to_sync:
         paths_to_sync[config.snap_type].add(config.mount_path)
@@ -147,14 +170,18 @@ def _sync(configs_to_sync: list[configs.Config]):
         snap_mechanisms.get(snap_type).sync_paths(paths)
 
 
-def _set_ttl(configs_iter: Iterable[configs.Config], path_suffix: str, ttl_str: str):
+def _set_ttl(
+    configs_iter: Iterable[configs.Config], path_suffix: str, ttl_str: str
+):
     for config in configs_iter:
         snap = snap_operator.find_target(config, path_suffix)
         if snap:
             snap.set_ttl(ttl_str, now=datetime.datetime.now())
 
 
-def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync: bool):
+def _delete_snap(
+    configs_iter: Iterable[configs.Config], path_suffix: str, sync: bool
+):
     to_sync: list[configs.Config] = []
     for config in configs_iter:
         snap = snap_operator.find_target(config, path_suffix)
@@ -184,7 +211,9 @@ def _batch_delete_snaps(
     filters = batch_deleter.get_filters(args_as_dict)
 
     targets = list(
-        batch_deleter.apply_snapshot_filters(config_snaps_mapping_tuple, *filters)
+        batch_deleter.apply_snapshot_filters(
+            config_snaps_mapping_tuple, *filters
+        )
     )
     if sum(len(mapping.snaps) for mapping in targets) == 0:
         os_utils.eprint("No snapshots matching the criteria were found.")
@@ -192,12 +221,17 @@ def _batch_delete_snaps(
 
     batch_deleter.show_snapshots_to_be_deleted(targets)
 
-    if batch_deleter.interactive_confirm():
-        snaps = itertools.chain.from_iterable(mapping.snaps for mapping in targets)
+    msg = "Are you sure you want to delete the above snapshots? [y/N] "
+    if os_utils.interactive_confirm(msg):
+        snaps = itertools.chain.from_iterable(
+            mapping.snaps for mapping in targets
+        )
         batch_deleter.delete_snapshots(snaps)
 
     if sync:
-        to_sync = batch_deleter.get_to_sync_list(mapping.config for mapping in targets)
+        to_sync = batch_deleter.get_to_sync_list(
+            mapping.config for mapping in targets
+        )
         _sync(to_sync)
 
 
@@ -247,7 +281,9 @@ def main():
         global_flags.FLAGS.dryrun = True
     configs.USER_CONFIG_FILE = args.config_file
 
-    colored_logs.setup_logging(level=logging.INFO if args.verbose else logging.WARNING)
+    colored_logs.setup_logging(
+        level=logging.INFO if args.verbose else logging.WARNING
+    )
 
     if configs.is_schedule_enabled() and not os_utils.timer_enabled():
         os_utils.eprint(
@@ -282,10 +318,20 @@ def main():
             args=args,
             sync=args.sync,
         )
+    elif command == "rollback":
+        rollbacker.rollback(
+            configs.iterate_configs(source=args.source),
+            args.target_suffix,
+            execute=True,
+            no_confirm=args.noconfirm,
+        )
     elif command == "rollback-gen":
         rollbacker.rollback(
-            configs.iterate_configs(source=args.source), args.target_suffix
+            configs.iterate_configs(source=args.source),
+            args.target_suffix,
+            execute=args.execute,
         )
+        # Does `rollback-gen` subcommand require the optional parameter `--nocofirm` ?
     else:
         comment = getattr(args, "comment", "")
         _config_operation(

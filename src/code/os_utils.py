@@ -17,7 +17,6 @@ import os
 import re
 import subprocess
 import sys
-
 from typing import Any
 
 
@@ -49,7 +48,9 @@ def run_user_script(script_name: str, args: list[str]) -> bool:
         logging.warning(f"User script {script_name=} does not exist.")
         return False
     except subprocess.CalledProcessError:
-        logging.warning(f"User script {script_name=} with {args=} resulted in error.")
+        logging.warning(
+            f"User script {script_name=} with {args=} resulted in error."
+        )
         return False
     return True
 
@@ -80,3 +81,13 @@ def timer_enabled() -> bool:
 def eprint(*args: Any, **kwargs: Any) -> None:
     """Notifications meant for user, but not for redirection to any file."""
     print(*args, file=sys.stderr, **kwargs)
+
+
+def interactive_confirm(msg: str) -> bool:
+    user_choice = input(msg)
+    match user_choice:
+        case "y" | "Y" | "yes" | "Yes" | "YES":
+            return True
+        case _:
+            print("Aborted.")
+            return False
