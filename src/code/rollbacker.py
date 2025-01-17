@@ -13,17 +13,17 @@
 # limitations under the License.
 
 import collections
-import logging
 import os
 import subprocess
 import tempfile
-from typing import Iterable
 
 from . import configs
 from . import global_flags
 from . import os_utils
 from . import snap_operator
 from .mechanisms import snap_mechanisms
+
+from typing import Iterable
 
 
 def _get_rollback_script_text(

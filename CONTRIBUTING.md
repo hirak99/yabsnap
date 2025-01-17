@@ -31,16 +31,17 @@ Guidelines](https://opensource.google/conduct/).
 
 This project uses the following for maintaining code styling, which you may
 install for ease of development.
-- [pyright](https://microsoft.github.io/pyright/#/)
-  ([AUR](https://archlinux.org/packages/extra/any/pyright/)) for linting,
-- [mypy](https://mypy-lang.org/)
-  ([AUR](https://archlinux.org/packages/extra/any/mypy/)) for static type
-  checking, and
-- [black](https://github.com/psf/black)
-  ([AUR](https://archlinux.org/packages/extra/any/python-black/)) for
-  formatting.
+
+Respective configurations, if any, can be found in [pyproject.toml](./pyproject.toml).
+
+| Tool                                              | Purpose              | Visual Studio Code Extensions                                                                            |
+| ------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------- |
+| [pyright](https://microsoft.github.io/pyright/#/) | Linting              | [vscode](https://marketplace.visualstudio.com/items?itemName=ms-pyright.pyright)                         |
+| [mypy](https://mypy-lang.org/)                    | Static type checking | [vscode](https://marketplace.visualstudio.com/items?itemName=ms-python.mypy-type-checker)                |
+| [black](https://github.com/psf/black)             | Formatting           | [vscode](https://marketplace.visualstudio.com/items?itemName=ms-python.black-formatter) (`Ctrl+Shift+I`) |
+| [isort](https://pycqa.github.io/isort/)           | Organizing imports   | [vscode](https://marketplace.visualstudio.com/items?itemName=ms-python.isort) (`Alt+Shift+O`)            |
 
 Before creating a pull request, please run the following tests locally -
 - `src/run_full_tests.sh` - Unit tests and linting / formatting checks.
-- `scripts/scripts/test_install-to-dest.sh` - Tests the installation script.
+- `scripts/test_install-to-dest.sh` - Tests the installation script.
 

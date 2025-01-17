@@ -15,8 +15,8 @@
 import unittest
 from unittest import mock
 
-from . import rollback_btrfs
 from . import btrfs_mechanism
+from . import rollback_btrfs
 from .. import snap_holder
 
 # For testing, we can access private methods.

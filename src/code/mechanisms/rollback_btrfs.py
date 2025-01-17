@@ -20,7 +20,6 @@ from .. import global_flags
 
 from typing import Iterable, Optional
 
-
 # This will be cleaned up if it exists by rollback script.
 _PACMAN_LOCK_FILE = "/var/lib/pacman/db.lck"
 

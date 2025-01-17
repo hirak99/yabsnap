@@ -8,5 +8,11 @@ defineConstant = {}
 
 reportPrivateUsage = true
 
-pythonVersion = "3.10"
+pythonVersion = "3.12"
 pythonPlatform = "Linux"
+
+[tool.isort]
+line_length = 88
+profile = "google"
+src_paths = ["src/code"]
+forced_separate = ["typing"]
