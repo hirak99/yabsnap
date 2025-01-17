@@ -249,19 +249,6 @@ def main():
 
     colored_logs.setup_logging(level=logging.INFO if args.verbose else logging.WARNING)
 
-    if configs.is_schedule_enabled() and not os_utils.timer_enabled():
-        os_utils.eprint(
-            "\n".join(
-                [
-                    "",
-                    "*** NOTE - Backup schedule exists but yabsnap.timer is not active ***",
-                    "To enable scheduled backups, please run -",
-                    "  sudo systemctl enable --now yabsnap.timer",
-                    "",
-                ]
-            )
-        )
-
     if command == "create-config":
         configs.create_config(args.config_name, args.source)
     elif command == "delete":
@@ -293,6 +280,19 @@ def main():
             source=args.source,
             comment=comment,
             sync=args.sync,
+        )
+
+    if configs.is_schedule_enabled() and not os_utils.timer_enabled():
+        os_utils.eprint(
+            "\n".join(
+                [
+                    "",
+                    "*** NOTE - Backup schedule exists but yabsnap.timer is not active ***",
+                    "To enable scheduled backups, please run -",
+                    "  sudo systemctl enable --now yabsnap.timer",
+                    "",
+                ]
+            )
         )
 
 
