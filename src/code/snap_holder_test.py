@@ -14,6 +14,7 @@
 
 import datetime
 import json
+import logging
 import os
 import tempfile
 import unittest
@@ -121,6 +122,29 @@ class SnapHolderTest(unittest.TestCase):
                 snap.as_json(),
                 {"comment": "Comment", "trigger": "S", "expiry": expiry.timestamp()},
             )
+
+    def test_warn_unknown_type(self):
+        with tempfile.TemporaryDirectory() as dir:
+            snap_destination = os.path.join(dir, "root-20231122193630")
+            snap = snap_holder.Snapshot(snap_destination)
+            with self.assertLogs(level=logging.WARNING) as log:
+                self.assertEqual(snap._snap_type, snap_mechanisms.SnapType.UNKNOWN)
+            self.assertRegex(log.output[0], "This may occur if .* manually deleted")
+
+            # Check that there is no warning if the snap type is known.
+            with mock.patch.object(
+                btrfs_mechanism.BtrfsSnapMechanism,
+                "verify_volume",
+                return_value=True,
+            ) as mock_verify_volume, mock.patch.object(
+                btrfs_mechanism.BtrfsSnapMechanism, "create", return_value=None
+            ) as mock_create:
+                snap.create_from(snap_mechanisms.SnapType.BTRFS, "parent")
+            mock_verify_volume.assert_called_once_with("parent")
+            mock_create.assert_called_once_with("parent", snap_destination)
+            snap2 = snap_holder.Snapshot(snap_destination)
+            with self.assertNoLogs():
+                self.assertEqual(snap2._snap_type, snap_mechanisms.SnapType.BTRFS)
 
 
 if __name__ == "__main__":
