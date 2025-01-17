@@ -88,12 +88,7 @@ class TestRollbacker(unittest.TestCase):
             [mock.call("/home"), mock.call("/root")],
         )
 
-        expected = """#!/bin/bash
-# Save this to a script, review and run as root to perform the rollback.
-
-set -uexo pipefail
-
-mkdir -p /run/mount/_yabsnap_internal_0
+        expected = """mkdir -p /run/mount/_yabsnap_internal_0
 mount /dev/BLOCKDEV1 /run/mount/_yabsnap_internal_0 -o subvolid=5
 
 cd /run/mount/_yabsnap_internal_0

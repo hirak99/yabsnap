@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+
 from typing import Any
 
 
@@ -48,9 +49,7 @@ def run_user_script(script_name: str, args: list[str]) -> bool:
         logging.warning(f"User script {script_name=} does not exist.")
         return False
     except subprocess.CalledProcessError:
-        logging.warning(
-            f"User script {script_name=} with {args=} resulted in error."
-        )
+        logging.warning(f"User script {script_name=} with {args=} resulted in error.")
         return False
     return True
 
@@ -84,10 +83,10 @@ def eprint(*args: Any, **kwargs: Any) -> None:
 
 
 def interactive_confirm(msg: str) -> bool:
-    user_choice = input(msg)
-    match user_choice:
-        case "y" | "Y" | "yes" | "Yes" | "YES":
+    user_choice = input(f"{msg} [y/N] ")
+    match user_choice.lower():
+        case "y" | "yes":
             return True
         case _:
-            print("Aborted.")
+            eprint("Aborted.")
             return False

@@ -93,11 +93,11 @@ You should now have automated backups running.
 
 Below is an example layout.
 
-| Subvolumes | Mount Point | Mount Options |
-|---|---|---|
-| @ | `/` | `subvol=@` |
-| @home (optional) | `/home` | `subvol=@home` |
-| @.snapshots | `/.snapshots` | `subvol=@.snapshots` |
+| Subvolumes       | Mount Point   | Mount Options        |
+| ---------------- | ------------- | -------------------- |
+| @                | `/`           | `subvol=@`           |
+| @home (optional) | `/home`       | `subvol=@home`       |
+| @.snapshots      | `/.snapshots` | `subvol=@.snapshots` |
 
 NOTE: The names can be different; you do not need to rename your existing subvolumes.
 
@@ -246,6 +246,13 @@ yabsnap batch-delete --start 2022-09-25_17:21
 # Only root.conf's `20221006143047` will be deleted.
 yabsnap batch-delete --indicator S --end 2022-10-06_15:30  # :00 is understood
 ```
+
+### `yabsnap rollback PATH|TIMESTAMP [--noconfirm]`
+
+Shows a rollback script, interactively confirms, and executes it.
+
+If you are a person who likes taking heavy risks, you can skip the confirmation
+with `... --noconfirm`.
 
 ### `yabsnap rollback-gen PATH|TIMESTAMP`
 Generates a script for rolling back.

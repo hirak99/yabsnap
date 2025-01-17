@@ -16,33 +16,60 @@ import collections
 import logging
 import os
 import subprocess
+import tempfile
 from typing import Iterable
 
 from . import configs
+from . import global_flags
 from . import os_utils
 from . import snap_operator
 from .mechanisms import snap_mechanisms
 
 
-def _find_and_categorize_snaps(
+def _get_rollback_script_text(
     configs_iter: Iterable[configs.Config], path_suffix: str
-) -> dict[snap_mechanisms.SnapType, list[tuple[str, str]]]:
-    """Find snapshots in the configuration file and categorize them based on their type."""
-    source_dests_by_snaptype: dict[
-        snap_mechanisms.SnapType, list[tuple[str, str]]
-    ] = collections.defaultdict(list)
-
+) -> str | None:
+    """Combines the rollback scripts from all snaps. Returns None if no matching snapshot exists."""
+    source_dests_by_snaptype: dict[snap_mechanisms.SnapType, list[tuple[str, str]]] = (
+        collections.defaultdict(list)
+    )
     for config in configs_iter:
         snap = snap_operator.find_target(config, path_suffix)
         if snap:
             source_dests_by_snaptype[config.snap_type].append(
                 (snap.metadata.source, snap.target)
             )
+    if not source_dests_by_snaptype:
+        return None
 
-    return source_dests_by_snaptype
+    content: list[str] = [
+        "#!/bin/bash",
+        "# Review and run this script to perform rollback.",
+        "",
+        "set -uexo pipefail",
+        "",
+    ]
+    for snap_type, source_dests in sorted(source_dests_by_snaptype.items()):
+        content.append(
+            "\n".join(snap_mechanisms.get(snap_type).rollback_gen(source_dests))
+        )
+    return "\n".join(content)
 
 
-_ROLLBACK_SCRIPT_FILEPATH = "/tmp/rollback.sh"
+def _save_and_execute_script(contents: str) -> None:
+    if global_flags.FLAGS.dryrun:
+        os_utils.eprint(f"Would execute the script if --dry-run is not passed.")
+        return
+
+    with tempfile.TemporaryDirectory(prefix="yabsnap_script") as dir:
+        temp_file_name = os.path.join(dir, "yabsnap_script.sh")
+        with open(temp_file_name, mode="w", encoding="utf_8") as fp:
+            fp.write(contents)
+        os.chmod(temp_file_name, mode=0o700)
+
+        subprocess.run(temp_file_name)
+        print()
+        print("Rollback executed. Please reboot at earliest convenience.")
 
 
 def rollback(
@@ -52,54 +79,22 @@ def rollback(
     execute: bool = False,
     no_confirm: bool = False,
 ) -> None:
-    source_dests_by_snaptype = _find_and_categorize_snaps(
-        configs_iter, path_suffix
-    )
-    contents = _show_and_return_rollback_gen(source_dests_by_snaptype)
-    _create_and_chmod_script(contents)
 
-    if execute and no_confirm:
-        subprocess.run([".", _ROLLBACK_SCRIPT_FILEPATH])
+    # Display the text of rollback.
+    script_text = _get_rollback_script_text(configs_iter, path_suffix)
+    if script_text is None:
+        os_utils.eprint("No matching snapshots.")
         return
+    print(script_text)
 
-    if execute is True:
-        msg = "Review the code and enter 'y' to confirm execution. [y/N] "
-        confirm = os_utils.interactive_confirm(msg)
-        if confirm:
-            subprocess.run(f".{_ROLLBACK_SCRIPT_FILEPATH}")
+    # Check if we should execute the script. If not, return early.
+    if not execute:
+        return
+    if not no_confirm:
+        print()
+        msg = "Please review the rollback script above, and confirm execution:"
+        if not os_utils.interactive_confirm(msg):
+            return
 
-
-def _create_and_chmod_script(contents: list[str]) -> None:
-    with open(_ROLLBACK_SCRIPT_FILEPATH, mode="w", encoding="utf_8") as fp:
-        fp.writelines(contents)
-    logging.info(
-        f"The rollback script is saved in {_ROLLBACK_SCRIPT_FILEPATH} ."
-    )
-
-    os.chmod(_ROLLBACK_SCRIPT_FILEPATH, mode=0o700)
-    if os.access(_ROLLBACK_SCRIPT_FILEPATH, mode=os.X_OK) is True:
-        logging.info(
-            f"Execution permissions have been granted for {_ROLLBACK_SCRIPT_FILEPATH} ."
-        )
-    else:
-        logging.warning(
-            f"Manual execution permissions need to be added for {_ROLLBACK_SCRIPT_FILEPATH} ."
-        )
-
-
-def _show_and_return_rollback_gen(
-    source_dests_by_snaptype: dict[
-        snap_mechanisms.SnapType, list[tuple[str, str]]
-    ],
-) -> list[str]:
-    contents = [
-        "\n".join(snap_mechanisms.get(snap_type).rollback_gen(source_dests))
-        for snap_type, source_dests in sorted(source_dests_by_snaptype.items())
-    ]
-
-    print("=== THE FOLLOWING IS THE ROLLBACK CODE ===")
-    for content in contents:
-        print(content)
-    print("=== THE ABOVE IS THE ROLLBACK CODE ===")
-
-    return contents
+    # Save and execute the script.
+    _save_and_execute_script(script_text)

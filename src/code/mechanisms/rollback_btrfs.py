@@ -80,13 +80,7 @@ def rollback_gen(source_dests: list[tuple[str, str]]) -> list[str]:
     if not source_dests:
         return ["# No snapshot matched to rollback."]
 
-    sh_lines = [
-        "#!/bin/bash",
-        "# Save this to a script, review and run as root to perform the rollback.",
-        "",
-        "set -uexo pipefail",
-        "",
-    ]
+    sh_lines: list[str] = []
 
     # Mount all required volumes at root.
     mount_points: dict[str, str] = {}

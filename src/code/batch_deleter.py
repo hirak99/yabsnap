@@ -168,17 +168,6 @@ def _list_snapshots(
         print()
 
 
-def interactive_confirm() -> bool:
-    """Interactively confirm deleteions"""
-    confirm = input("Are you sure you want to delete the above snapshots?  [y/N] ")
-    match confirm:
-        case "y" | "Y" | "yes" | "Yes" | "YES":
-            return True
-        case _:
-            print("Aborted.")
-            return False
-
-
 def delete_snapshots(snaps: Iterable[snap_holder.Snapshot]):
     for snap in snaps:
         snap.delete()

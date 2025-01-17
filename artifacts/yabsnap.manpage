@@ -91,9 +91,17 @@ Batch delete snapshots. All snaps with start <= snap.time < end, optionally
 matching the `--indicator` will be deleted. Matching snapshots will be displayed
 and confirmed interactively before deletion.
 
+.SS yabsnap [--dry-run] rollback TARGET_SUFFIX [--noconfirm]
+
+Shows a rollback script, executes it after interactively confirming.
+
+If [--noconfirm] is passed, the interactive confirmation is skipped.
+
 .SS yabsnap [--dry-run] rollback-gen TARGET_SUFFIX
 
-Generates a script to roll back to a particular snapshot.
+Generates a script to roll back to a particular snapshot. It can be redirected
+to a file with `... > rollback.sh`. It can also be executed with `... | bash`,
+but this is not advisable since it deny a chance to view or review the script.
 
 .SH BUGS
 Please see or raise issues at: https://github.com/hirak99/yabsnap/issues
