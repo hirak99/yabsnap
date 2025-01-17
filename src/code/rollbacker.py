@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import collections
+import logging
 import os
 import subprocess
 import tempfile
@@ -67,9 +68,12 @@ def _save_and_execute_script(contents: str) -> None:
             fp.write(contents)
         os.chmod(temp_file_name, mode=0o700)
 
-        subprocess.run(temp_file_name)
-        print()
-        print("Rollback executed. Please reboot at earliest convenience.")
+        try:
+            subprocess.run(temp_file_name, check=True)
+            print()
+            print("Rollback executed. Please reboot at earliest convenience.")
+        except subprocess.CalledProcessError:
+            logging.error("Execution of rollback was unsuccessful.")
 
 
 def rollback(
