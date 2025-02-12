@@ -33,8 +33,7 @@ def _get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot
     destdir = os.path.dirname(config.dest_prefix)
 
     if not os.access(destdir, os.R_OK):
-        os_utils.eprint(f"Cannot access snapshots; run as root?")
-        return
+        raise PermissionError(f"Cannot access snapshots in {destdir}; run as root?")
 
     for fname in os.listdir(destdir):
         pathname = os.path.join(destdir, fname)

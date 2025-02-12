@@ -156,7 +156,7 @@ def iterate_configs(source: Optional[str]) -> Iterator[Config]:
             return
 
         if not os.access(_CONFIG_PATH, os.R_OK):
-            os_utils.eprint(f"Cannot access snapshots; run as root?")
+            logging.error(f"Cannot accesss '{_CONFIG_PATH}'; run as root?")
             return
         config_iterator = (str(path) for path in _CONFIG_PATH.iterdir())
 
@@ -229,7 +229,7 @@ def create_config(name: str, source: str | None):
         with _config_fname.open("w") as out:
             out.write("\n".join(lines))
     except PermissionError:
-        os_utils.eprint(f"Could not access or create {_config_fname}; run as root?")
+        logging.error(f"Could not access or create {_config_fname}; run as root?")
         return
 
     os_utils.eprint()
