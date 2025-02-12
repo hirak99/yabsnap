@@ -31,6 +31,11 @@ from typing import Any, Iterator, Optional, TypeVar
 def _get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
     """Returns existing backups in chronological order."""
     destdir = os.path.dirname(config.dest_prefix)
+
+    if not os.access(destdir, os.R_OK):
+        os_utils.eprint(f"Cannot access snapshots; run as root?")
+        return
+
     for fname in os.listdir(destdir):
         pathname = os.path.join(destdir, fname)
         if not os.path.isdir(pathname):
