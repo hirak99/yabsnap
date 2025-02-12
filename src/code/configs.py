@@ -154,6 +154,10 @@ def iterate_configs(source: Optional[str]) -> Iterator[Config]:
                 "Config directory does not exist. Use 'create-config' command to create a config."
             )
             return
+
+        if not os.access(_CONFIG_PATH, os.R_OK):
+            os_utils.eprint(f"Cannot access snapshots; run as root?")
+            return
         config_iterator = (str(path) for path in _CONFIG_PATH.iterdir())
 
     # Check whether the necessary fields in the configuration file are filled in
