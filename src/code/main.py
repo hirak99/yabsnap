@@ -17,7 +17,6 @@ import collections
 import datetime
 import itertools
 import logging
-import os
 
 from . import batch_deleter
 from . import colored_logs
@@ -227,10 +226,6 @@ def _config_operation(
 
     # Which mount paths to sync.
     to_sync: list[configs.Config] = []
-
-    if os.geteuid() != 0:
-        os_utils.eprint(f"Cannot list configs; run as root?")
-        return
 
     # Commands that need to access existing config.
     for config in configs.iterate_configs(source=source):
