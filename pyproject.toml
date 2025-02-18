@@ -1,12 +1,14 @@
 [tool.pyright]
-include = ["src"]
-exclude = [
-    "**/__pycache__",
-]
-ignore = []
-defineConstant = {}
+include = ["src/code"]
+exclude = []
+typeCheckingMode = "strict"
 
-reportPrivateUsage = true
+reportMissingParameterType = "none"
+reportUnknownArgumentType = "none"
+reportUnknownLambdaType = "none"
+reportUnknownMemberType = "none"
+reportUnknownParameterType = "none"
+reportUnknownVariableType = "none"
 
 pythonVersion = "3.12"
 pythonPlatform = "Linux"

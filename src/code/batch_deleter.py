@@ -66,7 +66,7 @@ class _SnapshotFilterProtocol(Protocol):
 
 
 @_register_filter
-class _IndicatorFilter(_SnapshotFilterProtocol):
+class _IndicatorFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnusedClass]
     arg_name_set = ("indicator",)
 
     def __init__(self, *, indicator: str):
@@ -82,7 +82,7 @@ class _IndicatorFilter(_SnapshotFilterProtocol):
 
 
 @_register_filter
-class _TimeScopeFilter(_SnapshotFilterProtocol):
+class _TimeScopeFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnusedClass]
     arg_name_set = ("start", "end")
 
     def __init__(self, *, start: str = "", end: str = ""):
