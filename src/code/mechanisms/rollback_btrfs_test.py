@@ -25,14 +25,16 @@ from .. import snap_holder
 class TestRollbacker(unittest.TestCase):
     def test_get_mount_attributes(self):
         # Fake /etc/mtab lines used for this test.
-        lines = [
+        mtab_lines = [
             "/dev/mapper/luksdev /home btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@home 0 0",
             # A specific volume mapped under /home.
             "/dev/mapper/myhome /home/myhome btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@special_home 0 0",
             # Nested subvolume @nestedvol.
             "/dev/mapper/opened_rootbtrfs /mnt/rootbtrfs btrfs rw,noatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/ 0 0",
         ]
-        with mock.patch.object(rollback_btrfs, "_mtab_contents", return_value=lines):
+        with mock.patch.object(
+            rollback_btrfs, "_mtab_contents", return_value=mtab_lines
+        ):
             # Assertiions.
             self.assertEqual(
                 rollback_btrfs._get_mount_attributes_from_mtab("/home"),
@@ -90,6 +92,45 @@ echo
 echo After reboot you may delete -
 echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_home"
 echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
+"""
+        self.assertEqual(generated, expected.splitlines())
+
+    def test_rollback_btrfs_nested(self):
+        snaps_list = [
+            snap_holder.Snapshot("/vol/snaps/@home-20220101130000"),
+            snap_holder.Snapshot("/vol/snaps/@root-20220101140000"),
+        ]
+        snaps_list[0].metadata.source = "/vol/nested1"
+        snaps_list[1].metadata.source = "/vol/nested2"
+
+        mtab_lines = [
+            "/dev/BLOCKDEV1 /vol btrfs subvolid=123,subvol=/volume 0 0",
+        ]
+        with mock.patch.object(
+            rollback_btrfs, "_mtab_contents", return_value=mtab_lines
+        ), mock.patch.object(
+            rollback_btrfs, "_get_now_str", return_value="20220202220000"
+        ):
+            generated = rollback_btrfs.rollback_gen(
+                source_dests=[(s.metadata.source, s.target) for s in snaps_list]
+            )
+
+        expected = """mkdir -p /run/mount/_yabsnap_internal_0
+mount /dev/BLOCKDEV1 /run/mount/_yabsnap_internal_0 -o subvolid=5
+
+cd /run/mount/_yabsnap_internal_0
+
+mv nested1 snaps/rollback_20220202220000_nested1
+btrfs subvolume snapshot /vol/snaps/@home-20220101130000 nested1
+
+mv nested2 snaps/rollback_20220202220000_nested2
+btrfs subvolume snapshot /vol/snaps/@root-20220101140000 nested2
+
+echo Please reboot to complete the rollback.
+echo
+echo After reboot you may delete -
+echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested1"
+echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested2"
 """
         self.assertEqual(generated, expected.splitlines())
 
