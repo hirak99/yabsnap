@@ -15,24 +15,11 @@
 import unittest
 from unittest import mock
 
-from . import btrfs_mechanism
 from . import rollback_btrfs
 from .. import snap_holder
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
-
-_MOUNT_LOOKUP = {
-    "/snaps": ("/dev/BLOCKDEV1", "/subv_snaps"),
-    "/home": ("/dev/BLOCKDEV1", "/subv_home"),
-    "/root": ("/dev/BLOCKDEV1", "/subv_root"),
-}
-
-
-def _mock_get_mount_attributes_from_mtab(mount_pt: str):
-    return rollback_btrfs._MountAttributes(
-        device=_MOUNT_LOOKUP[mount_pt][0], subvol_name=_MOUNT_LOOKUP[mount_pt][1]
-    )
 
 
 class TestRollbacker(unittest.TestCase):
@@ -45,21 +32,24 @@ class TestRollbacker(unittest.TestCase):
             # Nested subvolume @nestedvol.
             "/dev/mapper/opened_rootbtrfs /mnt/rootbtrfs btrfs rw,noatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/ 0 0",
         ]
-        # Assertiions.
-        self.assertEqual(
-            rollback_btrfs._MountAttributes("/dev/mapper/luksdev", "/@home"),
-            rollback_btrfs._get_mount_attributes("/home", lines),
-        )
-        self.assertEqual(
-            rollback_btrfs._MountAttributes("/dev/mapper/myhome", "/@special_home"),
-            rollback_btrfs._get_mount_attributes("/home/myhome", lines),
-        )
-        self.assertEqual(
-            rollback_btrfs._MountAttributes(
-                "/dev/mapper/opened_rootbtrfs", "/@nestedvol"
-            ),
-            rollback_btrfs._get_mount_attributes("/mnt/rootbtrfs/@nestedvol", lines),
-        )
+        with mock.patch.object(rollback_btrfs, "_mtab_contents", return_value=lines):
+            # Assertiions.
+            self.assertEqual(
+                rollback_btrfs._get_mount_attributes_from_mtab("/home"),
+                rollback_btrfs._MountAttributes("/dev/mapper/luksdev", "/@home"),
+            )
+            self.assertEqual(
+                rollback_btrfs._get_mount_attributes_from_mtab("/home/myhome"),
+                rollback_btrfs._MountAttributes("/dev/mapper/myhome", "/@special_home"),
+            )
+            self.assertEqual(
+                rollback_btrfs._get_mount_attributes_from_mtab(
+                    "/mnt/rootbtrfs/@nestedvol"
+                ),
+                rollback_btrfs._MountAttributes(
+                    "/dev/mapper/opened_rootbtrfs", "/@nestedvol"
+                ),
+            )
 
     def test_rollback_btrfs_for_two_snaps(self):
         # config_list = [configs.Config('test.conf', source='/home', dest_prefix='/snaps/@home-')]
@@ -70,23 +60,19 @@ class TestRollbacker(unittest.TestCase):
         snaps_list[0].metadata.source = "/home"
         snaps_list[1].metadata.source = "/root"
 
+        mtab_lines = [
+            "/dev/BLOCKDEV1 /root btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=123,subvol=/subv_root 0 0",
+            "/dev/BLOCKDEV1 /home btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=456,subvol=/subv_home 0 0",
+            "/dev/BLOCKDEV1 /snaps btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps 0 0",
+        ]
         with mock.patch.object(
-            btrfs_mechanism.BtrfsSnapMechanism, "verify_volume", return_value=True
-        ) as mock_is_btrfs_volume, mock.patch.object(
-            rollback_btrfs, "_get_now_str", return_value="20220202220000"
+            rollback_btrfs, "_mtab_contents", return_value=mtab_lines
         ), mock.patch.object(
-            rollback_btrfs,
-            "_get_mount_attributes_from_mtab",
-            side_effect=_mock_get_mount_attributes_from_mtab,
+            rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
             generated = rollback_btrfs.rollback_gen(
                 source_dests=[(s.metadata.source, s.target) for s in snaps_list]
             )
-
-        self.assertEqual(
-            mock_is_btrfs_volume.call_args_list,
-            [mock.call("/home"), mock.call("/root")],
-        )
 
         expected = """mkdir -p /run/mount/_yabsnap_internal_0
 mount /dev/BLOCKDEV1 /run/mount/_yabsnap_internal_0 -o subvolid=5

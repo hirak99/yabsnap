@@ -14,11 +14,12 @@
 
 import dataclasses
 import datetime
+import functools
 import os
 
 from .. import global_flags
 
-from typing import Iterable, Optional
+from typing import Optional
 
 # This will be cleaned up if it exists by rollback script.
 _PACMAN_LOCK_FILE = "/var/lib/pacman/db.lck"
@@ -31,15 +32,19 @@ class _MountAttributes:
     subvol_name: str
 
 
-def _get_mount_attributes(
-    mount_point: str, mtab_lines: Iterable[str]
-) -> _MountAttributes:
+@functools.cache
+def _mtab_contents() -> list[str]:
+    with open("/etc/mtab") as f:
+        return f.readlines()
+
+
+def _get_mount_attributes_from_mtab(mount_point: str) -> _MountAttributes:
     # For a mount point, this denotes the longest path that was seen in /etc/mtab.
     # This is therefore the point where that directory is mounted.
     longest_match_to_mount_point = ""
     # Which line matches the mount point.
     matched_line: str = ""
-    for this_line in mtab_lines:
+    for this_line in _mtab_contents():
         this_tokens = this_line.split()
         if mount_point.startswith(this_tokens[1]):
             if len(this_tokens[1]) > len(longest_match_to_mount_point):
@@ -65,10 +70,6 @@ def _get_mount_attributes(
         assert nested_subvol.startswith("/")
         subvol_name = nested_subvol
     return _MountAttributes(device=tokens[0], subvol_name=subvol_name)
-
-
-def _get_mount_attributes_from_mtab(mount_point: str) -> _MountAttributes:
-    return _get_mount_attributes(mount_point, open("/etc/mtab"))
 
 
 def _get_now_str():
