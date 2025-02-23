@@ -17,6 +17,7 @@ import functools
 
 from . import abstract_mechanism
 from . import btrfs_mechanism
+from . import rsync_mechanism
 
 
 # The type of snapshot is maintained in two places -
@@ -25,6 +26,7 @@ from . import btrfs_mechanism
 class SnapType(enum.Enum):
     UNKNOWN = "UNKNOWN"
     BTRFS = "BTRFS"
+    RSYNC = "RSYNC"
 
 
 @functools.cache
@@ -32,4 +34,6 @@ def get(snap_type: SnapType) -> abstract_mechanism.SnapMechanism:
     """Singleton factory implementation."""
     if snap_type == SnapType.BTRFS:
         return btrfs_mechanism.BtrfsSnapMechanism()
+    if snap_type == SnapType.RSYNC:
+        return rsync_mechanism.RsyncSnapMechanism()
     raise RuntimeError(f"Unknown snap_type {snap_type}")

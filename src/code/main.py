@@ -175,16 +175,12 @@ def _delete_snap(configs_iter: Iterable[configs.Config], path_suffix: str, sync:
         snap = snap_operator.find_target(config, path_suffix)
         if snap:
             snap.delete()
-            if config.snap_type == snap_mechanisms.SnapType.BTRFS:
-                to_sync.append(config)
+            to_sync.append(config)
 
         config.call_post_hooks()
 
     if sync:
         _sync(to_sync)
-
-    if not to_sync:
-        os_utils.eprint(f"Target {path_suffix} not found in any config.")
 
 
 def _batch_delete_snaps(
