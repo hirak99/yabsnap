@@ -14,6 +14,8 @@
 
 import logging
 import os
+import re
+import shlex
 
 from . import abstract_mechanism
 from .. import global_flags
@@ -25,6 +27,43 @@ def _execute_sh(cmd: str):
         os_utils.eprint("Would run " + cmd)
     else:
         os_utils.execute_sh(cmd)
+
+
+def _initialize_destination(destination: str) -> None:
+    """If a previous snap is found, creates hardlinks from it and returns True."""
+    # Confirm the destination matches the required format: PREFIX + YYYYMMDDhhmmss.
+    dest_dir = os.path.basename(destination)
+    match = re.match(r"^(.*)(\d{10})$", dest_dir)
+    if not match:
+        raise ValueError(
+            "Destination directory name must match the pattern 'PREFIX + YYYYMMDDhhmmss'."
+        )
+
+    prefix = match.group(1)
+
+    # Get the parent directory path of the destination.
+    parent_dir = os.path.dirname(destination)
+
+    # Check if there are any directories with the same format and prefix in the parent folder.
+    existing_dirs = [
+        d
+        for d in os.listdir(parent_dir)
+        if os.path.isdir(os.path.join(parent_dir, d))
+        and re.match(rf"^{prefix}\d{{10}}$", d)
+    ]
+
+    if not existing_dirs:
+        return
+
+    # Find the lexicographically max directory (latest snapshot).
+    latest_snapshot = max(existing_dirs)
+    latest_snapshot_path = os.path.join(parent_dir, latest_snapshot)
+
+    # Copy the latest snapshot recursively as hardlinks.
+    logging.info(f"Found latest snapshot: {latest_snapshot}.")
+    _execute_sh(
+        f"cp -al {shlex.quote(latest_snapshot_path)}/ {shlex.quote(destination)}/"
+    )
 
 
 class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
@@ -39,15 +78,18 @@ class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
         return True
 
     def create(self, source: str, destination: str):
+        _initialize_destination(destination)
         try:
-            _execute_sh(f"rsync -aAXHSv --delete {source}/ {destination}")
+            _execute_sh(
+                f"rsync -aAXHSv --delete {shlex.quote(source)}/ {shlex.quote(destination)}"
+            )
         except os_utils.CommandError:
             logging.error("Unable to create snapshot using rsync.")
             raise
 
     def delete(self, destination: str):
         try:
-            _execute_sh(f"rm -rf {destination}")
+            _execute_sh(f"rm -rf {shlex.quote(destination)}")
         except os_utils.CommandError:
             logging.error("Unable to delete snapshot.")
             raise
