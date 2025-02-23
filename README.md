@@ -1,13 +1,9 @@
-## Yet Another Btrfs Snapshotter
+## Yet Another Btrfs(*) Snapshotter
+
+(*) Along with btrfs, we now fully support rsync snapshots.
 
 Currently this is tested on Arch and Fedora, and should work in most other
 distributions.
-
-Note: Preliminary work has began to support non-btrfs (e.g. rsync, BCacheFS)
-based snapshots. If you are a developer, [this
-comment](https://github.com/hirak99/yabsnap/issues/32#issuecomment-2101080256)
-explains the abstraction for implementing a new backend.
-
 
 # Installing
 
@@ -59,19 +55,21 @@ workarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previou
 The motivation for `yabsnap` was to create a simpler, hackable and customizable
 snapshot system.
 
-|                     | yabsnap | timeshift                  | snapper                |
-| ------------------- | ------- | -------------------------- | ---------------------- |
-| Custom sources      | ✓       | Only root and home (1)     | ✓                      |
-| Custom destinations | ✓       |                            |                        |
-| Pacman hook         | ✓       | Via timeshift-autosnap (2) | Via snap-pac           |
-| File system         | btrfs   | btrfs, ext4                | btrfs                  |
-| GUI                 |         | ✓                          | With snapper-gui       |
-| Rollback            | ✓       | ✓                          | Only default subvolume |
+|                     | yabsnap      | timeshift                  | snapper                |
+| ------------------- | ------------ | -------------------------- | ---------------------- |
+| Custom sources      | ✓            | Only root and home (1)     | ✓                      |
+| Custom destinations | ✓            |                            |                        |
+| Pacman hook         | ✓            | Via timeshift-autosnap (2) | Via snap-pac           |
+| Snapshot Mechanisms | btrfs, rsync | btrfs, rsync               | btrfs                  |
+| GUI                 |              | ✓                          | With snapper-gui       |
+| Rollback            | ✓ (3)        | ✓                          | Only default subvolume |
 
 (1) timeshift does not allow separate schedules or triggers for root and home.
 
 (2) At the time of writing, `timeshift-autosnap` does not tag the snapshot with
 pacman command used.
+
+(3) Automatic rollback is only implemented for btrfs, not for rsync.
 
 # Usage
 

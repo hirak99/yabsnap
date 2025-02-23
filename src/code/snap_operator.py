@@ -28,12 +28,22 @@ from . import snap_holder
 from typing import Any, Iterator, Optional, TypeVar
 
 
+class _SnapshotDirectoryError(Exception):
+    pass
+
+
 def _get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
     """Returns existing backups in chronological order."""
     destdir = os.path.dirname(config.dest_prefix)
 
+    if not os.path.isdir(destdir):
+        raise _SnapshotDirectoryError(
+            f"Please create {destdir=}, referred in {config.config_file}."
+        )
     if not os.access(destdir, os.R_OK):
-        raise PermissionError(f"Cannot access snapshots in {destdir}; run as root?")
+        raise _SnapshotDirectoryError(
+            f"Error accessing {destdir=}, referred in {config.config_file}."
+        )
 
     for fname in os.listdir(destdir):
         pathname = os.path.join(destdir, fname)
@@ -243,8 +253,9 @@ class SnapOperator:
             )
         except PermissionError:
             os_utils.eprint(
-                f"Could perform snap for {self._config.config_file}; run as root?"
+                f"Could not perform snap for {self._config.config_file}; run as root?"
             )
+            raise
 
     def on_pacman(self):
         last_snap: Optional[snap_holder.Snapshot] = None

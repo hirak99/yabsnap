@@ -42,6 +42,11 @@ def execute_sh(command: str, error_ok: bool = False) -> str | None:
         return None
 
 
+def command_exists(command: str) -> bool:
+    """E.g. command_exists('rsync')"""
+    return execute_sh(f"which {command}") is not None
+
+
 def run_user_script(script_name: str, args: list[str]) -> bool:
     try:
         subprocess.check_call([script_name] + args)

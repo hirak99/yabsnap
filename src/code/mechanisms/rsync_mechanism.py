@@ -78,6 +78,11 @@ class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
         return True
 
     def create(self, source: str, destination: str):
+        if not os_utils.command_exists("rsync"):
+            raise RuntimeError(
+                "rsync not found, please install to create rsync snapshots"
+            )
+
         _initialize_destination(destination)
         try:
             _execute_sh(
