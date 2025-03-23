@@ -15,6 +15,7 @@
 import unittest
 from unittest import mock
 
+from . import btrfs_utils
 from . import common_fs_utils
 from . import rollback_btrfs
 from .. import snap_holder
@@ -26,6 +27,9 @@ from .. import snap_holder
 class TestRollbacker(unittest.TestCase):
     def setUp(self):
         common_fs_utils.mount_attributes.cache_clear()
+        patcher = mock.patch.object(btrfs_utils, "get_nested_subvs", return_value=[])
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_rollback_btrfs_for_two_snaps(self):
         # config_list = [configs.Config('test.conf', source='/home', dest_prefix='/snaps/@home-')]

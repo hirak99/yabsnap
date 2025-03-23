@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import datetime
+import logging
 import os
 
+from . import btrfs_utils
 from . import common_fs_utils
 from .. import global_flags
 
@@ -36,8 +38,8 @@ def rollback_gen(source_dests: list[tuple[str, str]]) -> list[str]:
 
     # Mount all required volumes at root.
     mount_points: dict[str, str] = {}
-    for source, _ in source_dests:
-        live_subvolume = common_fs_utils.mount_attributes(source)
+    for live_path, _ in source_dests:
+        live_subvolume = common_fs_utils.mount_attributes(live_path)
         if live_subvolume.device not in mount_points:
             mount_pt = f"/run/mount/_yabsnap_internal_{len(mount_points)}"
             mount_points[live_subvolume.device] = mount_pt
@@ -58,7 +60,15 @@ def rollback_gen(source_dests: list[tuple[str, str]]) -> list[str]:
     sh_lines.append("")
     backup_paths: list[str] = []
     current_dir: Optional[str] = None
+    nested_subvol_warnings: list[str] = []
     for source, dest in source_dests:
+        nested_subdirs = btrfs_utils.get_nested_subvs(source)
+        if nested_subdirs:
+            nested_subv_msg = (
+                f"Nested subvolume{'s' if len(nested_subdirs) > 1 else ''} "
+                f"'{', '.join(nested_subdirs)}' inside '{source}' will not be included in rollback."
+            )
+            nested_subvol_warnings.append(nested_subv_msg)
         live_subvolume = common_fs_utils.mount_attributes(source)
         backup_subvolume = common_fs_utils.mount_attributes(os.path.dirname(dest))
         # The snapshot must be on the same block device as the original (target) volume.
@@ -86,4 +96,12 @@ def rollback_gen(source_dests: list[tuple[str, str]]) -> list[str]:
     for backup_path in backup_paths:
         sh_lines.append(f'echo "# sudo btrfs subvolume delete {backup_path}"')
 
+    if nested_subvol_warnings:
+        nested_subvol_warnings.append(
+            "Support for nested subvolumes is limited. You will need to manually move them after rollback."
+        )
+        sh_lines.append("")
+        for warning in nested_subvol_warnings:
+            logging.warning(warning)
+            sh_lines.append(f"# WARNING: {warning}")
     return sh_lines

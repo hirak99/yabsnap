@@ -53,7 +53,7 @@ class _CustomFormatter(logging.Formatter):
             logging.CRITICAL: bold_red,
         }
 
-        log_format = "%(asctime)s %(levelname)s: %(message)s"
+        log_format = "%(levelname)s: %(message)s"
 
         if _is_ansi_color_supported(sys.stderr):
             self._level_formats = {
