@@ -25,6 +25,11 @@ class CommandError(Exception):
     """Raised when a command is unsuccesful."""
 
 
+def fatal_error(msg: str):
+    logging.error(msg)
+    sys.exit(-1)
+
+
 def execute_sh(command: str, error_ok: bool = False) -> str | None:
     """Runs a shell command.
 
@@ -35,11 +40,16 @@ def execute_sh(command: str, error_ok: bool = False) -> str | None:
     logging.info(f"Running {command}")
     try:
         return subprocess.check_output(command.split(" ")).decode()
-    except subprocess.CalledProcessError as e:
-        if not error_ok:
-            raise CommandError(f"Unable to run command: {command}") from e
-        logging.warning(f"Error running command: {e}")
-        return None
+    except subprocess.CalledProcessError:
+        # Exit context so this exception is not raised.
+        pass
+    # If we are here, the command could not be run.
+    error_msg = f"Error running shell command: '{command}'"
+    if not error_ok:
+        logging.error(error_msg)
+        raise CommandError(error_msg)
+    logging.warning(error_msg)
+    return None
 
 
 def command_exists(command: str) -> bool:
