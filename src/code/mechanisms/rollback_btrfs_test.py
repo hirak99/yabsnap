@@ -15,6 +15,7 @@
 import unittest
 from unittest import mock
 
+from . import common_fs_utils
 from . import rollback_btrfs
 from .. import snap_holder
 
@@ -23,35 +24,8 @@ from .. import snap_holder
 
 
 class TestRollbacker(unittest.TestCase):
-    def test_get_mount_attributes(self):
-        # Fake /etc/mtab lines used for this test.
-        mtab_lines = [
-            "/dev/mapper/luksdev /home btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@home 0 0",
-            # A specific volume mapped under /home.
-            "/dev/mapper/myhome /home/myhome btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@special_home 0 0",
-            # Nested subvolume @nestedvol.
-            "/dev/mapper/opened_rootbtrfs /mnt/rootbtrfs btrfs rw,noatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/ 0 0",
-        ]
-        with mock.patch.object(
-            rollback_btrfs, "_mtab_contents", return_value=mtab_lines
-        ):
-            # Assertiions.
-            self.assertEqual(
-                rollback_btrfs._get_mount_attributes_from_mtab("/home"),
-                rollback_btrfs._MountAttributes("/dev/mapper/luksdev", "/@home"),
-            )
-            self.assertEqual(
-                rollback_btrfs._get_mount_attributes_from_mtab("/home/myhome"),
-                rollback_btrfs._MountAttributes("/dev/mapper/myhome", "/@special_home"),
-            )
-            self.assertEqual(
-                rollback_btrfs._get_mount_attributes_from_mtab(
-                    "/mnt/rootbtrfs/@nestedvol"
-                ),
-                rollback_btrfs._MountAttributes(
-                    "/dev/mapper/opened_rootbtrfs", "/@nestedvol"
-                ),
-            )
+    def setUp(self):
+        common_fs_utils.mount_attributes.cache_clear()
 
     def test_rollback_btrfs_for_two_snaps(self):
         # config_list = [configs.Config('test.conf', source='/home', dest_prefix='/snaps/@home-')]
@@ -68,7 +42,7 @@ class TestRollbacker(unittest.TestCase):
             "/dev/BLOCKDEV1 /snaps btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps 0 0",
         ]
         with mock.patch.object(
-            rollback_btrfs, "_mtab_contents", return_value=mtab_lines
+            common_fs_utils, "_mtab_contents", return_value=mtab_lines
         ), mock.patch.object(
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
@@ -107,7 +81,7 @@ echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
             "/dev/BLOCKDEV1 /vol btrfs subvolid=123,subvol=/volume 0 0",
         ]
         with mock.patch.object(
-            rollback_btrfs, "_mtab_contents", return_value=mtab_lines
+            common_fs_utils, "_mtab_contents", return_value=mtab_lines
         ), mock.patch.object(
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
