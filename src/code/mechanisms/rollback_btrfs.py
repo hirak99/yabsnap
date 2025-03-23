@@ -61,34 +61,34 @@ def rollback_gen(source_dests: list[tuple[str, str]]) -> list[str]:
     backup_paths: list[str] = []
     current_dir: Optional[str] = None
     nested_subvol_warnings: list[str] = []
-    for source, dest in source_dests:
-        nested_subdirs = btrfs_utils.get_nested_subvs(source)
+    for live_path, snap_path in source_dests:
+        nested_subdirs = btrfs_utils.get_nested_subvs(live_path)
         if nested_subdirs:
             nested_subv_msg = (
                 f"Nested subvolume{'s' if len(nested_subdirs) > 1 else ''} "
-                f"'{', '.join(nested_subdirs)}' inside '{source}' will not be included in rollback."
+                f"'{', '.join(nested_subdirs)}' inside '{live_path}' will not be included in rollback."
             )
             nested_subvol_warnings.append(nested_subv_msg)
-        live_subvolume = common_fs_utils.mount_attributes(source)
-        backup_subvolume = common_fs_utils.mount_attributes(os.path.dirname(dest))
+        live_subvolume = common_fs_utils.mount_attributes(live_path)
+        snap_subvolume = common_fs_utils.mount_attributes(os.path.dirname(snap_path))
         # The snapshot must be on the same block device as the original (target) volume.
         assert (
-            backup_subvolume.device == live_subvolume.device
-        ), f"{backup_subvolume=} {live_subvolume=}"
+            snap_subvolume.device == live_subvolume.device
+        ), f"{snap_subvolume=} {live_subvolume=}"
         mount_pt = mount_points[live_subvolume.device]
         if current_dir != mount_pt:
             sh_lines += [f"cd {mount_pt}", ""]
             current_dir = mount_pt
         live_path = drop_root_slash(live_subvolume.subvol_name)
-        backup_path = f"{drop_root_slash(backup_subvolume.subvol_name)}/rollback_{now_str}_{live_path}"
+        backup_path = f"{drop_root_slash(snap_subvolume.subvol_name)}/rollback_{now_str}_{live_path}"
         backup_path_after_reboot = (
-            f"{os.path.dirname(dest)}/rollback_{now_str}_{live_path}"
+            f"{os.path.dirname(snap_path)}/rollback_{now_str}_{live_path}"
         )
         # sh_lines.append(f'[[ -e {backup_path} ]] && btrfs subvolume delete {backup_path}')
         sh_lines.append(f"mv {live_path} {backup_path}")
         backup_paths.append(backup_path_after_reboot)
-        sh_lines.append(f"btrfs subvolume snapshot {dest} {live_path}")
-        if os.path.isfile(dest + _PACMAN_LOCK_FILE):
+        sh_lines.append(f"btrfs subvolume snapshot {snap_path} {live_path}")
+        if os.path.isfile(snap_path + _PACMAN_LOCK_FILE):
             sh_lines.append(f"rm {live_path}{_PACMAN_LOCK_FILE}")
         sh_lines.append("")
     sh_lines += ["echo Please reboot to complete the rollback.", "echo"]
