@@ -16,6 +16,7 @@ import enum
 import functools
 
 from . import abstract_mechanism
+from . import bcachefs_mechanism
 from . import btrfs_mechanism
 from . import rsync_mechanism
 
@@ -27,6 +28,7 @@ class SnapType(enum.Enum):
     UNKNOWN = "UNKNOWN"
     BTRFS = "BTRFS"
     RSYNC = "RSYNC"
+    BCACHEFS = "BCACHEFS"
 
 
 @functools.cache
@@ -36,4 +38,6 @@ def get(snap_type: SnapType) -> abstract_mechanism.SnapMechanism:
         return btrfs_mechanism.BtrfsSnapMechanism()
     if snap_type == SnapType.RSYNC:
         return rsync_mechanism.RsyncSnapMechanism()
+    if snap_type == SnapType.BCACHEFS:
+        return bcachefs_mechanism.BcachefsSnapMechanism()
     raise RuntimeError(f"Unknown snap_type {snap_type}")
