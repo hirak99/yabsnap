@@ -13,7 +13,7 @@ class TestCommonFsUtils(unittest.TestCase):
         mtab_lines = [
             "/dev/mapper/luksdev /home btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@home 0 0",
             # A specific volume mapped under /home.
-            "/dev/mapper/myhome /home/myhome btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@special_home 0 0",
+            "/dev/mapper/myhome /home/myhome btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2506,subvol=/@special_home 0 0",
             # Nested subvolume @nestedvol.
             "/dev/mapper/opened_rootbtrfs /mnt/rootbtrfs btrfs rw,noatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/ 0 0",
         ]
@@ -23,17 +23,17 @@ class TestCommonFsUtils(unittest.TestCase):
             # Assertiions.
             self.assertEqual(
                 common_fs_utils.mount_attributes("/home"),
-                common_fs_utils._MountAttributes("/dev/mapper/luksdev", "/@home"),
+                common_fs_utils._MountAttributes("/dev/mapper/luksdev", "/@home", 2505),
             )
             self.assertEqual(
                 common_fs_utils.mount_attributes("/home/myhome"),
                 common_fs_utils._MountAttributes(
-                    "/dev/mapper/myhome", "/@special_home"
+                    "/dev/mapper/myhome", "/@special_home", 2506
                 ),
             )
             self.assertEqual(
                 common_fs_utils.mount_attributes("/mnt/rootbtrfs/@nestedvol"),
                 common_fs_utils._MountAttributes(
-                    "/dev/mapper/opened_rootbtrfs", "/@nestedvol"
+                    "/dev/mapper/opened_rootbtrfs", "/@nestedvol", 5
                 ),
             )
