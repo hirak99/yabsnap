@@ -33,9 +33,7 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
     def verify_volume(self, source: str) -> bool:
         # Based on https://stackoverflow.com/a/32865333/196462
-        fstype = os_utils.execute_sh(
-            "stat -f --format=%T " + source, error_ok=True
-        )
+        fstype = os_utils.execute_sh("stat -f --format=%T " + source, error_ok=True)
         if not fstype:
             logging.warning(f"Not btrfs (cannot determine filesystem): {source}")
             return False
