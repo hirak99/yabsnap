@@ -70,13 +70,14 @@ def _initialize_destination(destination: str) -> None:
 
 class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
-    def verify_volume(self, mount_point: str) -> bool:
-        # We can check if the source path exists and is readable.
-        if not os.path.exists(mount_point):
-            logging.warning(f"Source path does not exist: {mount_point}")
+    def verify_volume(self, source: str) -> bool:
+        # This checks if the mount_point can be snapshotted by this mechanism.
+        # We can verify if the source path exists and is readable.
+        if not os.path.exists(source):
+            logging.warning(f"Source path does not exist: {source}")
             return False
-        if not os.access(mount_point, os.R_OK):
-            logging.warning(f"Source path is not readable: {mount_point}")
+        if not os.access(source, os.R_OK):
+            logging.warning(f"Source path is not readable: {source}")
             return False
         return True
 
@@ -113,7 +114,5 @@ class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
 
     @override
     def sync_paths(self, paths: set[str]):
-        # rsync itself is a synchronization tool, so we can consider sync_paths a no-op for rsync.
-        # Alternatively, we could re-run rsync to ensure consistency, but for now, we'll do nothing.
-        logging.info("sync_paths is a no-op for rsync mechanism.")
+        # As rsync is just copying files, we will let the os and fs handle syncing.
         pass

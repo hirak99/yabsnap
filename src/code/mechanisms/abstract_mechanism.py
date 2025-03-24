@@ -31,7 +31,7 @@ class SnapMechanism(abc.ABC):
     """
 
     @abc.abstractmethod
-    def verify_volume(self, mount_point: str) -> bool:
+    def verify_volume(self, source: str) -> bool:
         """Confirms that the source path can be snapshotted."""
 
     @abc.abstractmethod

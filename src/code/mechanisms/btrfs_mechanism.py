@@ -31,24 +31,24 @@ def _execute_sh(cmd: str):
 
 class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
-    def verify_volume(self, mount_point: str) -> bool:
+    def verify_volume(self, source: str) -> bool:
         # Based on https://stackoverflow.com/a/32865333/196462
         fstype = os_utils.execute_sh(
-            "stat -f --format=%T " + mount_point, error_ok=True
+            "stat -f --format=%T " + source, error_ok=True
         )
         if not fstype:
-            logging.warning(f"Not btrfs (cannot determine filesystem): {mount_point}")
+            logging.warning(f"Not btrfs (cannot determine filesystem): {source}")
             return False
         if fstype.strip() != "btrfs":
-            logging.warning(f"Not btrfs (filesystem not btrfs): {mount_point}")
+            logging.warning(f"Not btrfs (filesystem not btrfs): {source}")
             return False
-        inodenum = os_utils.execute_sh("stat --format=%i " + mount_point, error_ok=True)
+        inodenum = os_utils.execute_sh("stat --format=%i " + source, error_ok=True)
         if not inodenum:
-            logging.warning(f"Not btrfs (cannot determine inode): {mount_point}")
+            logging.warning(f"Not btrfs (cannot determine inode): {source}")
             return False
         if inodenum.strip() != "256":
             logging.warning(
-                f"Not btrfs (inode not 256, possibly a subdirectory of a btrfs mount): {mount_point}"
+                f"Not btrfs (inode not 256, possibly a subdirectory of a btrfs mount): {source}"
             )
             return False
         return True
