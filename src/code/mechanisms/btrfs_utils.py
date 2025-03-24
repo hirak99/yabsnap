@@ -1,5 +1,7 @@
 import dataclasses
+import logging
 import re
+import shlex
 
 from . import common_fs_utils
 from .. import os_utils
@@ -35,7 +37,7 @@ def _parse_btrfs_list(output: str) -> list[_Subvolume]:
 def _btrfs_list(directory: str) -> list[_Subvolume]:
     # We may switch to using json output, but at the time of writing it is not
     # mature yet. Ref. https://github.com/kdave/btrfs-progs/issues/833
-    result = os_utils.execute_sh(f"btrfs subvolume list {directory}")
+    result = os_utils.execute_sh(f"btrfs subvolume list {shlex.quote(directory)}")
     assert result is not None
     return _parse_btrfs_list(result)
 
@@ -52,5 +54,13 @@ def _get_nested_subvs(subvolumes: list[_Subvolume], subv_id: int) -> list[str]:
 
 def get_nested_subvs(directory: str) -> list[str]:
     mount_attrs = common_fs_utils.mount_attributes(directory)
-    subvolumes = _btrfs_list(directory)
+    try:
+        subvolumes = _btrfs_list(directory)
+    except os_utils.CommandError:
+        if not os_utils.is_sudo():
+            logging.warning(
+                f"Cannot check nested subvolumes in {directory!r}. Run with sudo to check."
+            )
+            return []
+        raise
     return _get_nested_subvs(subvolumes, mount_attrs.subvol_id)

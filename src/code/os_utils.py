@@ -112,3 +112,7 @@ def interactive_confirm(msg: str) -> bool:
         case _:
             eprint("Aborted.")
             return False
+
+
+def is_sudo() -> bool:
+    return os.getuid() == 0

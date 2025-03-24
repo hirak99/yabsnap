@@ -66,7 +66,8 @@ def rollback_gen(source_dests: list[tuple[str, str]]) -> list[str]:
         if nested_subdirs:
             nested_subv_msg = (
                 f"Nested subvolume{'s' if len(nested_subdirs) > 1 else ''} "
-                f"'{', '.join(nested_subdirs)}' inside '{live_path}' will not be included in rollback."
+                f"{', '.join(f"'{x}'" for x in nested_subdirs)} "
+                f"inside {live_path!r} will not be included in rollback."
             )
             nested_subvol_warnings.append(nested_subv_msg)
         live_subvolume = common_fs_utils.mount_attributes(live_path)
@@ -84,12 +85,14 @@ def rollback_gen(source_dests: list[tuple[str, str]]) -> list[str]:
         backup_path_after_reboot = (
             f"{os.path.dirname(snap_path)}/rollback_{now_str}_{live_path}"
         )
-        # sh_lines.append(f'[[ -e {backup_path} ]] && btrfs subvolume delete {backup_path}')
         sh_lines.append(f"mv {live_path} {backup_path}")
         backup_paths.append(backup_path_after_reboot)
         sh_lines.append(f"btrfs subvolume snapshot {snap_path} {live_path}")
+
+        # If the snapshot was taken by installation hook, the lock file may exist.
         if os.path.isfile(snap_path + _PACMAN_LOCK_FILE):
             sh_lines.append(f"rm {live_path}{_PACMAN_LOCK_FILE}")
+
         sh_lines.append("")
     sh_lines += ["echo Please reboot to complete the rollback.", "echo"]
     sh_lines.append("echo After reboot you may delete -")
@@ -98,7 +101,7 @@ def rollback_gen(source_dests: list[tuple[str, str]]) -> list[str]:
 
     if nested_subvol_warnings:
         nested_subvol_warnings.append(
-            "Support for nested subvolumes is limited. You will need to manually move them after rollback."
+            "You will need to manually move them after rollback."
         )
         sh_lines.append("")
         for warning in nested_subvol_warnings:
