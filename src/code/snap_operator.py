@@ -28,20 +28,16 @@ from . import snap_holder
 from typing import Any, Iterator, Optional, TypeVar
 
 
-class _SnapshotDirectoryError(Exception):
-    pass
-
-
 def _get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
     """Returns existing backups in chronological order."""
     destdir = os.path.dirname(config.dest_prefix)
 
     if not os.path.isdir(destdir):
-        raise _SnapshotDirectoryError(
+        os_utils.fatal_error(
             f"Please create {destdir=}, referred in {config.config_file}."
         )
     if not os.access(destdir, os.R_OK):
-        raise _SnapshotDirectoryError(
+        os_utils.fatal_error(
             f"Error accessing {destdir=}, referred in {config.config_file}."
         )
 

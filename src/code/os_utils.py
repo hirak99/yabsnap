@@ -18,14 +18,21 @@ import re
 import subprocess
 import sys
 
-from typing import Any
+from typing import Any, NoReturn
 
 
 class CommandError(Exception):
     """Raised when a command is unsuccesful."""
 
 
-def fatal_error(msg: str):
+def fatal_error(msg: str) -> NoReturn:
+    """Shows a fatal error and exits.
+
+    This produces a cleaner than raising an error. However, this also hides any
+    backtrace that can be useful for debugging. Use it where it is easy to
+    determine exactly what went wrong beyond any doubt from the message, both
+    for a developer and the user.
+    """
     logging.error(msg)
     sys.exit(-1)
 
