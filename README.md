@@ -291,3 +291,19 @@ The script must be stored and executed to perform the rollback operation.
     for us, modern Python supports static type checking, making it a robust
     choice for our needs. To ensure code health and maintainability, we
     emphasize strict adherence to code style and readability standards.
+
+## Handling Nested Subvolumes in BTRFS Rollbacks
+
+BTRFS allows the creation of subvolumes, which are essentially independent filesystems that can be nested inside directories or other subvolumes. Sometimes, these subvolumes may be nested within other BTRFS volumes, creating complex hierarchical structures.
+
+When performing a rollback on a parent subvolume, it can be desirable to automatically roll back any nested subvolumes as well. However, due to how subvolumes work in BTRFS, this automatic behavior can be problematic.
+
+### Issues With Fully Automatic Rollback of Subvolumes
+
+1. When rolling back a parent subvolume, nested subvolumes (such as `~/.cache`) may be in use by other jobs. If the rollback operation moves them to a separate volume, they will suddenly become absent. This can leave the jobs using them in an inconsistent state. Moreover this can lead to corruption of the data in the subvolume which will persist after the rollback is completed and the system rebooted.
+
+2. One possible workaround would be to take snapshots of all nested subvolumes while performing the rollback. However, this introduces additional challenges. Subvolumes can be configured with the `nodatacow` attribute, which disables copy-on-write for improved performance. When a snapshot of such a volume is taken this attribute will be ignored, potentially leading to fragmentation. Moreover if it happens automatically it will be easy for the user to miss, leaving the reason for any possible degradation unnoticed.
+
+For this reasons it is best to let the user decide what works best for them.
+
+Hence yabsnap provides suggestions in the form of generated scripts to review and run after reboot,  to assist users in manually moving any nested subvolumes after a rollback.
