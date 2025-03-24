@@ -59,7 +59,7 @@ def get_nested_subvs(directory: str) -> list[str]:
     except os_utils.CommandError:
         if not os_utils.is_sudo():
             logging.warning(
-                f"Cannot check nested subvolumes in {directory!r}. Run with sudo to check."
+                f"Cannot check for nested subvolumes in {directory!r}. Run with sudo to check."
             )
             return []
         raise
