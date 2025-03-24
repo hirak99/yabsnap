@@ -21,6 +21,8 @@ from . import abstract_mechanism
 from .. import global_flags
 from .. import os_utils
 
+from typing import override
+
 
 def _execute_sh(cmd: str):
     if global_flags.FLAGS.dryrun:
@@ -67,6 +69,7 @@ def _initialize_destination(destination: str) -> None:
 
 
 class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
+    @override
     def verify_volume(self, mount_point: str) -> bool:
         # We can check if the source path exists and is readable.
         if not os.path.exists(mount_point):
@@ -77,6 +80,7 @@ class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
             return False
         return True
 
+    @override
     def create(self, source: str, destination: str):
         if not os_utils.command_exists("rsync"):
             raise RuntimeError(
@@ -92,6 +96,7 @@ class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
             logging.error("Unable to create snapshot using rsync.")
             raise
 
+    @override
     def delete(self, destination: str):
         try:
             _execute_sh(f"rm -rf {shlex.quote(destination)}")
@@ -99,12 +104,14 @@ class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
             logging.error("Unable to delete snapshot.")
             raise
 
+    @override
     def rollback_gen(self, source_dests: list[tuple[str, str]]) -> list[str]:
         # Rollback for rsync snapshots is not directly supported in the same way as btrfs.
         # For now, we raise NotImplementedError. A possible implementation could involve
         # rsyncing back from the snapshot to the source, but this is complex and potentially dangerous.
         raise NotImplementedError("Rollback is not implemented for rsync snapshots.")
 
+    @override
     def sync_paths(self, paths: set[str]):
         # rsync itself is a synchronization tool, so we can consider sync_paths a no-op for rsync.
         # Alternatively, we could re-run rsync to ensure consistency, but for now, we'll do nothing.

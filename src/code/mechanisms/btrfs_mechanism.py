@@ -19,6 +19,8 @@ from . import rollback_btrfs
 from .. import global_flags
 from .. import os_utils
 
+from typing import override
+
 
 def _execute_sh(cmd: str):
     if global_flags.FLAGS.dryrun:
@@ -28,6 +30,7 @@ def _execute_sh(cmd: str):
 
 
 class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
+    @override
     def verify_volume(self, mount_point: str) -> bool:
         # Based on https://stackoverflow.com/a/32865333/196462
         fstype = os_utils.execute_sh(
@@ -50,6 +53,7 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
             return False
         return True
 
+    @override
     def create(self, source: str, destination: str):
         try:
             _execute_sh("btrfs subvolume snapshot -r " f"{source} {destination}")
@@ -57,6 +61,7 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
             logging.error("Unable to create; are you running as root?")
             raise
 
+    @override
     def delete(self, destination: str):
         try:
             _execute_sh(f"btrfs subvolume delete {destination}")
@@ -64,6 +69,7 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
             logging.error("Unable to delete; are you running as root?")
             raise
 
+    @override
     def rollback_gen(self, source_dests: list[tuple[str, str]]) -> list[str]:
         for source, _ in source_dests:
             if not self.verify_volume(source):
@@ -72,6 +78,7 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
                 )
         return rollback_btrfs.rollback_gen(source_dests)
 
+    @override
     def sync_paths(self, paths: set[str]):
         for mount_path in sorted(paths):
             if global_flags.FLAGS.dryrun:
