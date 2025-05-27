@@ -10,16 +10,14 @@ from . import common_fs_utils
 class TestCommonFsUtils(unittest.TestCase):
     def test_get_mount_attributes(self):
         # Fake /etc/mtab lines used for this test.
-        mtab_lines = [
-            "/dev/mapper/luksdev /home btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@home 0 0",
+        mount_lines = [
+            "/dev/mapper/luksdev on /home type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@home)",
             # A specific volume mapped under /home.
-            "/dev/mapper/myhome /home/myhome btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2506,subvol=/@special_home 0 0",
+            "/dev/mapper/myhome on /home/myhome type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2506,subvol=/@special_home)",
             # Nested subvolume @nestedvol.
-            "/dev/mapper/opened_rootbtrfs /mnt/rootbtrfs btrfs rw,noatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/ 0 0",
+            "/dev/mapper/opened_rootbtrfs on /mnt/rootbtrfs type btrfs (rw,noatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/)",
         ]
-        with mock.patch.object(
-            common_fs_utils, "_mtab_contents", return_value=mtab_lines
-        ):
+        with mock.patch.object(common_fs_utils, "_mounts", return_value=mount_lines):
             # Assertiions.
             self.assertEqual(
                 common_fs_utils.mount_attributes("/home"),

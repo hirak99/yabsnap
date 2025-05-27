@@ -40,13 +40,13 @@ class TestRollbacker(unittest.TestCase):
         snaps_list[0].metadata.source = "/home"
         snaps_list[1].metadata.source = "/root"
 
-        mtab_lines = [
-            "/dev/BLOCKDEV1 /root btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=123,subvol=/subv_root 0 0",
-            "/dev/BLOCKDEV1 /home btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=456,subvol=/subv_home 0 0",
-            "/dev/BLOCKDEV1 /snaps btrfs rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps 0 0",
+        mount_lines = [
+            "/dev/BLOCKDEV1 on /root type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=123,subvol=/subv_root)",
+            "/dev/BLOCKDEV1 on /home type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=456,subvol=/subv_home)",
+            "/dev/BLOCKDEV1 on /snaps type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps)",
         ]
         with mock.patch.object(
-            common_fs_utils, "_mtab_contents", return_value=mtab_lines
+            common_fs_utils, "_mounts", return_value=mount_lines
         ), mock.patch.object(
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
@@ -81,11 +81,11 @@ echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
         snaps_list[0].metadata.source = "/vol/nested1"
         snaps_list[1].metadata.source = "/vol/nested2"
 
-        mtab_lines = [
-            "/dev/BLOCKDEV1 /vol btrfs subvolid=123,subvol=/volume 0 0",
+        mount_lines = [
+            "/dev/BLOCKDEV1 on /vol type btrfs (subvolid=123,subvol=/volume)",
         ]
         with mock.patch.object(
-            common_fs_utils, "_mtab_contents", return_value=mtab_lines
+            common_fs_utils, "_mounts", return_value=mount_lines
         ), mock.patch.object(
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
