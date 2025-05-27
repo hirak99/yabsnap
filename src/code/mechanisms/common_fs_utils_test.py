@@ -11,6 +11,7 @@ class TestCommonFsUtils(unittest.TestCase):
     def test_get_mount_attributes(self):
         # Fake /etc/mtab lines used for this test.
         mount_lines = [
+            "systemd-1 on /home type autofs (rw,relatime,fd=77,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=2684)",
             "/dev/mapper/luksdev on /home type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@home)",
             # A specific volume mapped under /home.
             "/dev/mapper/myhome on /home/myhome type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2506,subvol=/@special_home)",

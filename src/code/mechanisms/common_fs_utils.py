@@ -64,6 +64,10 @@ def mount_attributes(mount_point: str) -> _MountAttributes:
     matched_line: str = ""
     for this_line in _mounts():
         this_tokens = _parse_mount_line(this_line)
+        if this_tokens.fs == "autofs":
+            # For autofs, another entry should exist which as "btrfs".
+            # See also #54.
+            continue
         if mount_point.startswith(this_tokens.mount_pt):
             if len(this_tokens.mount_pt) > len(longest_match_to_mount_point):
                 longest_match_to_mount_point = this_tokens.mount_pt
