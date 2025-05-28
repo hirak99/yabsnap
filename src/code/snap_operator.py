@@ -48,7 +48,12 @@ def _get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot
         if not pathname.startswith(config.dest_prefix):
             continue
         try:
-            yield snap_holder.Snapshot(pathname)
+            snap = snap_holder.Snapshot(pathname)
+            if snap.metadata.source != config.source:
+                # Check that the source matches; otherwise do not treat it as a
+                # snap for this config. See Issue #56.
+                continue
+            yield snap
         except ValueError:
             logging.warning(f"Could not parse timestamp, ignoring: {pathname}")
 
