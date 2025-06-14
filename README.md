@@ -5,6 +5,7 @@
 Currently this is tested on Arch and Fedora, and should work in most other
 distributions.
 
+
 # Installing
 
 ## Arch Linux: Install from AUR
@@ -35,14 +36,28 @@ sudo scripts/install.sh
 # To uninstall -
 sudo scripts/uninstall.sh
 ```
+
+
 # What does it do?
 
-Allows managing scheduled btrfs snapshots.
+Yabsnap easily and flexibly orchestrates btrfs snapshots.
 
-* Supports multiple sources, and customizing destination directory. Use `yabsnap
-  create-config` to configure what gets snapped, and when.
+* Supports system snapshots/boot environments/system restore points,
+  snapshots of user data, as well as general-purpose snapshots.
+* Allows configuration of different snapshotting schedules and
+  snapshot retention policies for different data sets.
+* Supports multiple source filesystems by using drop-in config files.
+  Different drives necessarily have different snapshot targets, and
+  Yabsnap is currently (Jun 2025) the only btrfs snapshot manager that
+  can achieve this.
+* Provides a wizard that generates each of these config files.
+* Optionally annotates snapshots with a description.
 * Supports pre-installation snaps with auto-generated comments.
-* Supports rollback - by generating a short shell script.
+  TODO: What is a "pre-installation snap"?
+* Does not modify source subvolumes when making snapshots.
+* TODO: Say something about pruning.
+* Facilitates rollbacks by heuristically generating a shell script of
+  suggested commands (requires the use of the btrfs backend).
 
 ## Alternatives
 
@@ -50,8 +65,7 @@ Some good alternatives are timeshift, snapper; both very good in what they do.
 However, neither supports customized of snapshot location, (e.g. [Arch recommended
 layout](https://wiki.archlinux.org/title/snapper#Suggested_filesystem_layout)).
 Adhering to such layouts, and rolling back using them, sometime [involve
-non-obvious
-workarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previous_snapshot).
+non-obviousworkarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previous_snapshot).
 The motivation for `yabsnap` was to create a simpler, hackable and customizable
 snapshot system.
 
@@ -70,6 +84,7 @@ snapshot system.
 pacman command used.
 
 (3) Automatic rollback is only implemented for btrfs, not for rsync.
+
 
 # Usage
 
@@ -146,6 +161,7 @@ Once you have set up a config, automated snapshots should start running.
 
 You can see how the default config looks like here: [Default config](./src/code/example_config.conf)
 
+
 # Command Line Interface
 
 ## Global flags
@@ -176,11 +192,11 @@ Snaps at: /.snapshots/@root-...
   20221006164659   I   2022-10-06 16:46:59   pacman -S perl-rename
  ```
 
- The indicators `S`, `I`, `U` respectively indicate scheduled, installation, user snapshots.
+ The indicators `S`, `I`, `U` respectively indicate scheduled, installation, user(TODO: sysadmin-initiated, or unprivileged user?) snapshots.
 
 ### `yabsnap list-json`
 
-Similar to list, but as a machine readable json.
+Similar to list, but as machine readable JSON.
 
 This can be useful to build commands. For instance, with bash you could use `jq` to filter -
 
@@ -196,7 +212,6 @@ Or restructure -
 # Show only the timestamps.
 yabsnap list-json | jq '.file.timestamp'
 ```
-
 
 ### `yabsnap create`
  Creates an user snapshot.
@@ -265,6 +280,7 @@ Just running it will not carry out any changes, it will only display a script on
 the console. \
 The script must be stored and executed to perform the rollback operation.
 
+
 # FAQ
 
 - Does it work on other distros than Arch?
@@ -274,7 +290,7 @@ The script must be stored and executed to perform the rollback operation.
   - If you'd want full support on a distro, I'm happy to know so that I can
     evaluate and find a way to prioritize it. Please open an issue.
 
-- I deleted a snapshot manually. Will it confuse yabsnap?
+- I deleted a snapshot manually. Will this confuse yabsnap?
   - No. You should also delete the corresponding metadata `-meta.json` manually
     (it's in the same directory). If you used `yabsnap delete PATH_TO_SNAPSHOT`,
     it would take care of that for you.
