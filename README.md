@@ -5,6 +5,7 @@
 Currently this is tested on Arch and Fedora, and should work in most other
 distributions.
 
+
 # Installing
 
 ## Arch Linux: Install from AUR
@@ -70,6 +71,7 @@ snapshot system.
 pacman command used.
 
 (3) Automatic rollback is only implemented for btrfs, not for rsync.
+
 
 # Usage
 
@@ -146,6 +148,7 @@ Once you have set up a config, automated snapshots should start running.
 
 You can see how the default config looks like here: [Default config](./src/code/example_config.conf)
 
+
 # Command Line Interface
 
 ## Global flags
@@ -196,7 +199,6 @@ Or restructure -
 # Show only the timestamps.
 yabsnap list-json | jq '.file.timestamp'
 ```
-
 
 ### `yabsnap create`
  Creates an user snapshot.
@@ -264,6 +266,7 @@ Or,
 Just running it will not carry out any changes, it will only display a script on
 the console. \
 The script must be stored and executed to perform the rollback operation.
+
 
 # FAQ
 
