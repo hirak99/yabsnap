@@ -36,14 +36,28 @@ sudo scripts/install.sh
 # To uninstall -
 sudo scripts/uninstall.sh
 ```
+
+
 # What does it do?
 
-Allows managing scheduled btrfs snapshots.
+Yabsnap easily and flexibly orchestrates btrfs snapshots.
 
-* Supports multiple sources, and customizing destination directory. Use `yabsnap
-  create-config` to configure what gets snapped, and when.
+* Supports system snapshots/boot environments/system restore points,
+  snapshots of user data, as well as general-purpose snapshots.
+* Allows configuration of different snapshotting schedules and
+  snapshot retention policies for different data sets.
+* Supports multiple source filesystems by using drop-in config files.
+  Different drives necessarily have different snapshot targets, and
+  Yabsnap is currently (Jun 2025) the only btrfs snapshot manager that
+  can achieve this.
+* Provides a wizard that generates each of these config files.
+* Optionally annotates snapshots with a description.
 * Supports pre-installation snaps with auto-generated comments.
-* Supports rollback - by generating a short shell script.
+  TODO: What is a "pre-installation snap"?
+* Does not modify source subvolumes when making snapshots.
+* TODO: Say something about pruning.
+* Facilitates rollbacks by heuristically generating a shell script of
+  suggested commands (requires the use of the btrfs backend).
 
 ## Alternatives
 
