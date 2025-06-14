@@ -65,8 +65,7 @@ Some good alternatives are timeshift, snapper; both very good in what they do.
 However, neither supports customized of snapshot location, (e.g. [Arch recommended
 layout](https://wiki.archlinux.org/title/snapper#Suggested_filesystem_layout)).
 Adhering to such layouts, and rolling back using them, sometime [involve
-non-obvious
-workarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previous_snapshot).
+non-obviousworkarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previous_snapshot).
 The motivation for `yabsnap` was to create a simpler, hackable and customizable
 snapshot system.
 
@@ -193,11 +192,11 @@ Snaps at: /.snapshots/@root-...
   20221006164659   I   2022-10-06 16:46:59   pacman -S perl-rename
  ```
 
- The indicators `S`, `I`, `U` respectively indicate scheduled, installation, user snapshots.
+ The indicators `S`, `I`, `U` respectively indicate scheduled, installation, user(TODO: sysadmin-initiated, or unprivileged user?) snapshots.
 
 ### `yabsnap list-json`
 
-Similar to list, but as a machine readable json.
+Similar to list, but as machine readable JSON.
 
 This can be useful to build commands. For instance, with bash you could use `jq` to filter -
 
@@ -291,7 +290,7 @@ The script must be stored and executed to perform the rollback operation.
   - If you'd want full support on a distro, I'm happy to know so that I can
     evaluate and find a way to prioritize it. Please open an issue.
 
-- I deleted a snapshot manually. Will it confuse yabsnap?
+- I deleted a snapshot manually. Will this confuse yabsnap?
   - No. You should also delete the corresponding metadata `-meta.json` manually
     (it's in the same directory). If you used `yabsnap delete PATH_TO_SNAPSHOT`,
     it would take care of that for you.
