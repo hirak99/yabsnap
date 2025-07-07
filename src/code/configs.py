@@ -158,7 +158,11 @@ def iterate_configs(source: Optional[str]) -> Iterator[Config]:
         if not os.access(_CONFIG_PATH, os.R_OK):
             logging.error(f"Cannot accesss '{_CONFIG_PATH}'; run as root?")
             return
-        config_iterator = (str(path) for path in _CONFIG_PATH.iterdir())
+        config_iterator = (
+            str(path)
+            for path in _CONFIG_PATH.iterdir()
+            if path.is_file() and path.suffix == ".conf"
+        )
 
     # Check whether the necessary fields in the configuration file are filled in
     # and append the configurations with filled necessary fields to `config_iterator`
