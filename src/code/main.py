@@ -134,48 +134,50 @@ def _parse_args() -> argparse.Namespace:
     )
 
     # Generates a script for rolling back.
-    rollback = subparsers.add_parser(
+    rollback_gen = subparsers.add_parser(
         "rollback-gen",
         help="Generate script to rollback one or more snaps." + source_message,
     )
-    rollback.add_argument(
+    rollback_gen.add_argument(
         "--execute",
         action="store_true",
         help="Generate rollback script and execute.",
     )
-    # NOTE from https://github.com/hirak99/yabsnap/discussions/66 -
-    # > The original rollback-gen command did not function correctly within a
-    # > read-only snapshot environment (e.g., a recovery environment booted by
-    # > grub-btrfs). This was because it relies on auto-detection to find the
-    # > currently mounted subvolume names. In a read-only snapshot, the system
-    # > incorrectly reports the mountpoint as the snapshot itself (e.g.,
-    # > /@.snapshots/snap...) or an overlay, preventing the generation of a
-    # > correct rollback script.
-    rollback.add_argument(
-        "--live-subvol-map",
-        type=_parse_live_subvol_map,
-        required=False,
-        help="Mapping of source path to live subvolume name. "
-        "Specify this if the system is in a recovery mode and subvolume names are not auto-detected. "
-        'Example: --live-subvol-map "/:@"'
-        "Use space to delimit multiple mappings if multiple subvolumes are rolled back. "
-        'Example: --live-subvol-map "/:@ /home:@home"',
-    )
 
-    execute_rollback = subparsers.add_parser(
+    rollback = subparsers.add_parser(
         "rollback",
         help="Generate rollback script and run. Equivalent to `rollback-gen --execute`",
     )
-    execute_rollback.add_argument(
+    rollback.add_argument(
         "--noconfirm",
         action="store_true",
         help="Execute the rollback script without confirmation.",
     )
 
+    for rollback_command in [rollback_gen, rollback]:
+        # NOTE from https://github.com/hirak99/yabsnap/discussions/66 -
+        # > The original rollback-gen command did not function correctly within a
+        # > read-only snapshot environment (e.g., a recovery environment booted by
+        # > grub-btrfs). This was because it relies on auto-detection to find the
+        # > currently mounted subvolume names. In a read-only snapshot, the system
+        # > incorrectly reports the mountpoint as the snapshot itself (e.g.,
+        # > /@.snapshots/snap...) or an overlay, preventing the generation of a
+        # > correct rollback script.
+        rollback_command.add_argument(
+            "--live-subvol-map",
+            type=_parse_live_subvol_map,
+            required=False,
+            help="Mapping of source path to live subvolume name. "
+            "Specify this if the system is in a recovery mode and subvolume names are not auto-detected. "
+            'Example: --live-subvol-map "/:@"'
+            "Use space to delimit multiple mappings if multiple subvolumes are rolled back. "
+            'Example: --live-subvol-map "/:@ /home:@home"',
+        )
+
     for command_with_target in [
         delete,
+        rollback_gen,
         rollback,
-        execute_rollback,
         set_ttl,
     ]:
         command_with_target.add_argument(
