@@ -124,8 +124,11 @@ echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested2"
         snaps_list[1].metadata.source = "/root"
 
         mount_lines = [
-            "/dev/BLOCKDEV1 on /root type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=123,subvol=/subv_root)",
-            "/dev/BLOCKDEV1 on /home type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=456,subvol=/subv_home)",
+            # Simulate that the /etc/mtab DOES NOT have following lines.
+            # "/dev/BLOCKDEV1 on /root type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=123,subvol=/subv_root)",
+            # "/dev/BLOCKDEV1 on /home type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=456,subvol=/subv_home)",
+            #
+            # It may have other mounts like below, irrelevant to us.
             "/dev/BLOCKDEV1 on /snaps type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps)",
         ]
         with mock.patch.object(
@@ -135,7 +138,7 @@ echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested2"
         ):
             generated = rollback_btrfs.rollback_gen(
                 source_dests=[(s.metadata.source, s.target) for s in snaps_list],
-                live_subvol_map={"/home": "/X_home", "/root": "/X_root"},
+                live_subvol_map={"/home": "/subv_home", "/root": "/subv_root"},
             )
 
         expected = """mkdir -p /run/mount/_yabsnap_internal_0
@@ -143,19 +146,19 @@ mount /dev/BLOCKDEV1 /run/mount/_yabsnap_internal_0 -o subvolid=5
 
 cd /run/mount/_yabsnap_internal_0
 
-# Using --live-subvol-map: '/home' -> '/X_home'.
-mv X_home subv_snaps/rollback_20220202220000_X_home
-btrfs subvolume snapshot /snaps/@home-20220101130000 X_home
+# Using --live-subvol-map: '/home' -> '/subv_home'.
+mv subv_home subv_snaps/rollback_20220202220000_subv_home
+btrfs subvolume snapshot /snaps/@home-20220101130000 subv_home
 
-# Using --live-subvol-map: '/root' -> '/X_root'.
-mv X_root subv_snaps/rollback_20220202220000_X_root
-btrfs subvolume snapshot /snaps/@root-20220101140000 X_root
+# Using --live-subvol-map: '/root' -> '/subv_root'.
+mv subv_root subv_snaps/rollback_20220202220000_subv_root
+btrfs subvolume snapshot /snaps/@root-20220101140000 subv_root
 
 echo Please reboot to complete the rollback.
 echo
 echo After reboot you may delete -
-echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_X_home"
-echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_X_root"
+echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_home"
+echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
 """
         self.assertEqual(generated, expected.splitlines())
 

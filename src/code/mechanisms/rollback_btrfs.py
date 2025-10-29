@@ -71,24 +71,43 @@ def rollback_gen(
     Generates rollback script assuming running on a live (non-snapshot) system.
 
     Args:
-        source_dests: List of (live_path, snap_path) tuples.
-        live_subvol_map: A map from live_path (e.g., '/') to the *actual* subvolume name (e.g., '@' or '/@').
+        source_dests: List of (live_path, snap_path) tuples. E.g.
+          [
+            ('/', '/.snapshots/@root-20250921193009'),
+            ('/home', '/.snapshots/@home-20250921193009'),
+          ]
+
+        live_subvol_map: For any paths here, we will directly use it to find the
+          subvolume name, and not depend on /etc/mtab.
+          E.g. {"/": "@", "/home": "@home"}.
+
+    Returns:
+      Lines which can be executed on shell to perform roll back.
     """
     if not source_dests:
         return ["# No snapshot matched to rollback."]
 
     sh_lines: list[str] = []
 
+    if not live_subvol_map:
+        live_subvol_map = {}
+
     # Mount all required volumes at root.
-    mount_points: dict[str, str] = {}
-    for live_path, _ in source_dests:
-        live_subvolume = common_fs_utils.mount_attributes(live_path)
-        if live_subvolume.device not in mount_points:
-            temp_mount_pt = f"/run/mount/_yabsnap_internal_{len(mount_points)}"
-            mount_points[live_subvolume.device] = temp_mount_pt
+    temp_mount_points: dict[str, str] = {}
+    # 0. Mount the root filesystem device, e.g. `/dev/mapper/luksdev`.
+    for _, snap_path in source_dests:
+        # Note that live_path and snap_path must be on the same volume. This is
+        # a sanity check performed on the next loop.
+
+        snap_subvolume = common_fs_utils.mount_attributes(snap_path)
+        device = snap_subvolume.device
+
+        if device not in temp_mount_points:
+            temp_mount_pt = f"/run/mount/_yabsnap_internal_{len(temp_mount_points)}"
+            temp_mount_points[device] = temp_mount_pt
             sh_lines += [
                 f"mkdir -p {temp_mount_pt}",
-                f"mount {live_subvolume.device} {temp_mount_pt} -o subvolid=5",
+                f"mount {device} {temp_mount_pt} -o subvolid=5",
             ]
 
     now_str = _get_now_str()
@@ -104,7 +123,7 @@ def rollback_gen(
         # 2. We retrieve the name of the `live_subvolume`.
         live_subvol_name: str
         using_subvol_map = False
-        if live_subvol_map and live_path in live_subvol_map:
+        if live_path in live_subvol_map:
             # Prioritize the map which indicates system may be offline.
             live_subvol_name = live_subvol_map[live_path]
             using_subvol_map = True
@@ -112,9 +131,11 @@ def rollback_gen(
             # If map is not given, determine subvol name assuming that the system is live.
             # The snapshot must be on the same block device as the original (target) volume.
             live_subvolume = common_fs_utils.mount_attributes(live_path)
-            assert (
-                snap_subvolume.device == live_subvolume.device
-            ), f"{snap_subvolume=} {live_subvolume=}"
+            # Sanity check: live_path and snap_path must be on same subvolume.
+            if snap_subvolume.device != live_subvolume.device:
+                raise RuntimeError(
+                    f"{live_path!r} and {snap_path!r} are not on the same device."
+                )
             live_subvol_name = live_subvolume.subvol_name
 
         # Check nested subvolumes.
@@ -142,7 +163,7 @@ def rollback_gen(
         # 3. Logic to switch to the mount point for recovery.
         # The if block ensures this is executed once even if multiple subvolumes
         # are part of the same file system.
-        temp_mount_pt = mount_points[snap_subvolume.device]
+        temp_mount_pt = temp_mount_points[snap_subvolume.device]
         if current_dir != temp_mount_pt:
             sh_lines += [f"cd {temp_mount_pt}", ""]
             current_dir = temp_mount_pt

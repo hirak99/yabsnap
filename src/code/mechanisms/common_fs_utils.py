@@ -78,7 +78,11 @@ def mount_attributes(mount_point: str) -> _MountAttributes:
     tokens = _parse_mount_line(matched_line)
 
     if tokens.fs != "btrfs":
-        raise ValueError(f"Mount point is not btrfs: {mount_point} ({tokens.fs})")
+        raise ValueError(
+            f"Mount point is not btrfs: {mount_point} ({tokens.fs})."
+            "\nNOTE: If you are using recovery environment such as grub-btrfs, mount points are not auto detected."
+            " You can use --live-subvol-map arg to pass the mount point to subvolume name mapping."
+        )
 
     subvol_name = _get_mtab_param(key="subvol", all_params=tokens.params)
     subvol_id = int(_get_mtab_param(key="subvolid", all_params=tokens.params))
