@@ -260,14 +260,7 @@ yabsnap batch-delete --start 2022-09-25_17:21
 yabsnap batch-delete --indicator S --end 2022-10-06_15:30  # :00 is understood
 ```
 
-### `yabsnap rollback PATH|TIMESTAMP [--noconfirm]`
-
-Shows a rollback script, interactively confirms, and executes it.
-
-If you are a person who likes taking heavy risks, you can skip the confirmation
-with `... --noconfirm`.
-
-### `yabsnap rollback-gen PATH|TIMESTAMP`
+### `yabsnap rollback-gen PATH|TIMESTAMP [--live-subvol-map SUBVOL_MAP]`
 Generates a script for rolling back.
 
 E.g.
@@ -280,8 +273,32 @@ Just running it will not carry out any changes, it will only display a script on
 the console. \
 The script must be stored and executed to perform the rollback operation.
 
+For certain recovery environments, volumes may be mounted in non-standard
+locations. Use `--live-subvol-map SUBVOL_MAP` to override automatic detection of
+mount-point-to-subvolume mappings. `SUBVOL_MAP` must be in the form
+`"MOUNT_DIR:SUBVOL_NAME ..."`. It may contain multiple mappings delimited by
+spaces. Example: `--live-subvol-map "/:@ /home:@home"`. To confirm the mapping
+was applied, look for the corresponding comment in the generated script.
+
+### `yabsnap rollback PATH|TIMESTAMP [--live-subvol-map SUBVOL_MAP] [--noconfirm]`
+
+Shows a rollback script, interactively confirms, and executes it.
+
+If you are a person who likes taking heavy risks, you can skip the confirmation
+with `... --noconfirm`.
+
+The optional arg `--live-subvol-map` works similarly as rollback-gen.
 
 # FAQ
+
+- Why Python?
+  - Python, when written with high code quality, serves as an excellent
+    orchestrator. This is precisely what we needed for Yabsnap, with a focus on
+    (1) expressiveness, (2) ease of maintenance, and (3) accessibility for
+    contributors. While low-level speed or efficiency is not a primary concern
+    for us, modern Python supports static type checking, making it a robust
+    choice for our needs. To ensure code health and maintainability, we
+    emphasize strict adherence to code style and readability standards.
 
 - Does it work on other distros than Arch?
   - It _should_ work if installed with `sudo scripts/install.sh`, although
@@ -299,14 +316,27 @@ The script must be stored and executed to perform the rollback operation.
   - The quickest way is to delete them manually. Remove the snaps with `btrfs
     subvolume snapshot del YOUR_SNAP`, and corresponding `-meta.json` files.
 
-- Why Python?
-  - Python, when written with high code quality, serves as an excellent
-    orchestrator. This is precisely what we needed for Yabsnap, with a focus on
-    (1) expressiveness, (2) ease of maintenance, and (3) accessibility for
-    contributors. While low-level speed or efficiency is not a primary concern
-    for us, modern Python supports static type checking, making it a robust
-    choice for our needs. To ensure code health and maintainability, we
-    emphasize strict adherence to code style and readability standards.
+- Does `yabsnap` support live rollback?
+  - Yes for **btrfs**. The `rollback-gen` command to generate a rollback script, or
+    `rollback` command to apply the script.
+
+    The generated script is designed to let you continue working in the live environment and switch over to the rolled-back state on the next reboot.
+
+    > [!NOTE]
+    > It is **strongly recommended** that you read and understand the script before committing to a rollback.
+    Doing so will help you see exactly what it does and how to reverse it if needed. The generated script is intentionally kept small and readable for this reason.
+
+- Does `yabsnap` support offline rollback?
+  - Yes for **btrfs**. It should work normally as long as the recovery environment
+    has not altered the mount points.
+
+    For some recovery environments the mounts
+    may not be automatically detected. If you are using `grub-btrfs`, you'll
+    need to specify `--live-subvol-map` to let `yabsnap` know which live mount
+    points correspond to which subvolumes.
+
+    > [!NOTE]
+    > NOTE: As with live rollback, it’s strongly recommended that you review the generated script before running it, to ensure you understand what it will do and how to undo it if necessary.
 
 ## Handling Nested Subvolumes in BTRFS Rollbacks
 
