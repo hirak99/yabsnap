@@ -21,7 +21,7 @@ from . import btrfs_utils
 from . import common_fs_utils
 from .. import global_flags
 
-from typing import Iterator, Optional
+from typing import Iterator
 
 # This will be cleaned up if it exists by rollback script.
 _PACMAN_LOCK_FILE = "/var/lib/pacman/db.lck"
@@ -52,7 +52,7 @@ def _handle_nested_subvolume(
 def _drop_root_slash(s: str) -> str:
     """Helper to remove leading slash and check for other slashes."""
     if s[0] != "/":
-        # Allow subvolume names without a leading slash, such as '@'
+        # Allow subvolume names without a leading slash, such as '@'.
         if "/" in s:
             raise RuntimeError(f"Unexpected / in subvolume {s!r}")
         return s
@@ -64,9 +64,15 @@ def _drop_root_slash(s: str) -> str:
     return s[1:]
 
 
-def rollback_gen(source_dests: list[tuple[str, str]]) -> list[str]:
+def rollback_gen(
+    source_dests: list[tuple[str, str]], live_subvol_map: dict[str, str] | None
+) -> list[str]:
     """
     Generates rollback script assuming running on a live (non-snapshot) system.
+
+    Args:
+        source_dests: List of (live_path, snap_path) tuples.
+        live_subvol_map: A map from live_path (e.g., '/') to the *actual* subvolume name (e.g., '@' or '/@').
     """
     if not source_dests:
         return ["# No snapshot matched to rollback."]
@@ -78,170 +84,71 @@ def rollback_gen(source_dests: list[tuple[str, str]]) -> list[str]:
     for live_path, _ in source_dests:
         live_subvolume = common_fs_utils.mount_attributes(live_path)
         if live_subvolume.device not in mount_points:
-            mount_pt = f"/run/mount/_yabsnap_internal_{len(mount_points)}"
-            mount_points[live_subvolume.device] = mount_pt
+            temp_mount_pt = f"/run/mount/_yabsnap_internal_{len(mount_points)}"
+            mount_points[live_subvolume.device] = temp_mount_pt
             sh_lines += [
-                f"mkdir -p {mount_pt}",
-                f"mount {live_subvolume.device} {mount_pt} -o subvolid=5",
+                f"mkdir -p {temp_mount_pt}",
+                f"mount {live_subvolume.device} {temp_mount_pt} -o subvolid=5",
             ]
 
     now_str = _get_now_str()
 
     sh_lines.append("")
     backup_paths: list[str] = []
-    current_dir: Optional[str] = None
+    current_dir: str | None = None
     nested_subvol_commands: list[str] = []
-    for live_path, snap_path in source_dests:
-        nested_subdirs = btrfs_utils.get_nested_subvs(live_path)
-        if nested_subdirs:
-            nested_subv_msg = (
-                f"Nested subvolume{'s' if len(nested_subdirs) > 1 else ''} "
-                f"{', '.join(f"'{x}'" for x in nested_subdirs)} "
-                f"detected inside {live_path!r}."
-            )
-            logging.warning(nested_subv_msg)
-        live_subvolume = common_fs_utils.mount_attributes(live_path)
-        snap_subvolume = common_fs_utils.mount_attributes(os.path.dirname(snap_path))
-        # The snapshot must be on the same block device as the original (target) volume.
-        assert (
-            snap_subvolume.device == live_subvolume.device
-        ), f"{snap_subvolume=} {live_subvolume=}"
-        mount_pt = mount_points[live_subvolume.device]
-        if current_dir != mount_pt:
-            sh_lines += [f"cd {mount_pt}", ""]
-            current_dir = mount_pt
-
-        # The path where it will be mounted when running the script.
-        script_live_path = _drop_root_slash(live_subvolume.subvol_name)
-
-        backup_path = f"{_drop_root_slash(snap_subvolume.subvol_name)}/rollback_{now_str}_{script_live_path}"
-        backup_path_after_reboot = shlex.quote(
-            f"{os.path.dirname(snap_path)}/rollback_{now_str}_{script_live_path}"
-        )
-        sh_lines.append(f"mv {script_live_path} {backup_path}")
-        backup_paths.append(backup_path_after_reboot)
-        sh_lines.append(f"btrfs subvolume snapshot {snap_path} {script_live_path}")
-
-        nested_subvol_commands += _handle_nested_subvolume(
-            nested_dirs=nested_subdirs,
-            old_live_path=backup_path_after_reboot,
-            new_live_path=live_path,
-        )
-
-        # If the snapshot was taken by installation hook, the lock file may exist.
-        if os.path.isfile(snap_path + _PACMAN_LOCK_FILE):
-            sh_lines.append(f"rm {script_live_path}{_PACMAN_LOCK_FILE}")
-
-        sh_lines.append("")
-    sh_lines += ["echo Please reboot to complete the rollback.", "echo"]
-    sh_lines.append("echo After reboot you may delete -")
-    for backup_path in backup_paths:
-        sh_lines.append(f'echo "# sudo btrfs subvolume delete {backup_path}"')
-
-    if nested_subvol_commands:
-        logging.warning(
-            "You will need to manually move nested subvolumes after rollback."
-        )
-        sh_lines += [
-            "",
-            "echo Support for nested subvolume is limited. See FAQ on Nested Subvolumes.",
-            "echo Please review tentative commands below carefully, and run them after a reboot to manually move the subvolumes.",
-        ]
-        sh_lines += nested_subvol_commands
-    return sh_lines
-
-
-#
-# --- Newly Added “Offline” Rollback System ---
-#
-
-
-def rollback_gen_offline(
-    source_dests: list[tuple[str, str]], live_subvol_map: dict[str, str]
-) -> list[str]:
-    """
-    Generates rollback script from within a read-only snapshot.
-
-    Args:
-        source_dests: List of (live_path, snap_path) tuples.
-        live_subvol_map: A map from live_path (e.g., '/') to the *actual* subvolume name (e.g., '@' or '/@').
-    """
-    if not source_dests:
-        return ["# No snapshot matched to rollback."]
-
-    if not live_subvol_map:
-        raise ValueError("live_subvol_map is empty. Cannot perform offline rollback.")
-
-    sh_lines: list[str] = []
-    mount_points: dict[str, str] = {}
-
-    # We do not rely on `live_path`` to locate devices.
-    # We assume the `snap_path` is accessible and use it to locate the device.
-    for _, snap_path in source_dests:
-        try:
-            snap_subvolume = common_fs_utils.mount_attributes(
-                os.path.dirname(snap_path)
-            )
-            if snap_subvolume.device not in mount_points:
-                mount_pt = f"/run/mount/_yabsnap_internal_{len(mount_points)}"
-                mount_points[snap_subvolume.device] = mount_pt
-                sh_lines += [
-                    f"mkdir -p {mount_pt}",
-                    f"mount {snap_subvolume.device} {mount_pt} -o subvolid=5",
-                ]
-        except ValueError as e:
-            logging.error(
-                f"Could not determine mount attributes for snapshot path {snap_path}: {e}"
-            )
-            logging.error("Are you sure you are booted into a btrfs system?")
-            return [f"# Error: Could not find device for snapshot {snap_path}"]
-
-    if not mount_points:
-        return ["# Error: Could not determine device for any snapshot."]
-
-    now_str = _get_now_str()
-    sh_lines.append("")
-    backup_paths: list[str] = []
-    current_dir: Optional[str] = None
-    nested_subvol_commands: list[str] = []
-
     for live_path, snap_path in source_dests:
         # 1. We retrieve device and snapshot subvolume information from the snapshot path.
         snap_subvolume = common_fs_utils.mount_attributes(os.path.dirname(snap_path))
 
-        # 2. We retrieve the name of the `live_subvolume` from the input `map`.
-        if live_path not in live_subvol_map:
-            raise ValueError(
-                f"Missing mapping for '{live_path}' in live_subvol_map. "
-                f"Please provide the mapping (e.g., '/:@')."
+        # 2. We retrieve the name of the `live_subvolume`.
+        live_subvol_name: str
+        using_subvol_map = False
+        if live_subvol_map and live_path in live_subvol_map:
+            # Prioritize the map which indicates system may be offline.
+            live_subvol_name = live_subvol_map[live_path]
+            sh_lines.append(
+                f"# Using --live-subvol-map: {live_path!r} -> {live_subvol_name!r}."
             )
-        live_subvol_name_str = live_subvol_map[live_path]
+            using_subvol_map = True
+        else:
+            # If map is not given, determine subvol name assuming that the system is live.
+            # The snapshot must be on the same block device as the original (target) volume.
+            live_subvolume = common_fs_utils.mount_attributes(live_path)
+            assert (
+                snap_subvolume.device == live_subvolume.device
+            ), f"{snap_subvolume=} {live_subvolume=}"
+            live_subvol_name = live_subvolume.subvol_name
 
         # Check nested subvolumes.
         # Note: `btrfs_utils.get_nested_subvs` depends on `mount_attributes`(`live_path`).
         # In a read-only snapshot, the `live_path` (/) points to the snapshot, which may not be what we want.
-        # It is best to skip this check in offline mode or warn the user.
+        # It is best to skip this check in offline mode.
         nested_subdirs: list[str] = []
-        try:
-            # Attempted verification, but this may be inaccurate when offline.
+        if using_subvol_map:
+            logging.warning(
+                f"Skipped any nested subvolume detection for {live_path!r} in --live-subvol-map."
+            )
+        else:
             nested_subdirs = btrfs_utils.get_nested_subvs(live_path)
             if nested_subdirs:
-                logging.warning(
-                    f"Offline check for nested subvolumes in {live_path!r} might be inaccurate."
+                nested_subv_msg = (
+                    f"Nested subvolume{'s' if len(nested_subdirs) > 1 else ''} "
+                    f"{', '.join(f"'{x}'" for x in nested_subdirs)} "
+                    f"detected inside {live_path!r}."
                 )
-        except Exception as e:
-            logging.warning(
-                f"Could not check for nested subvolumes in {live_path!r}: {e}"
-            )
+                logging.warning(nested_subv_msg)
 
-        # 3. Mount Point Logic
-        mount_pt = mount_points[snap_subvolume.device]
-        if current_dir != mount_pt:
-            sh_lines += [f"cd {mount_pt}", ""]
-            current_dir = mount_pt
+        # The path where it will be mounted when running the script.
+        script_live_path = _drop_root_slash(live_subvol_name)
 
-        # 4. Use the manually provided subvol_name
-        script_live_path = _drop_root_slash(live_subvol_name_str)
+        # 3. Logic to switch to the mount point for recovery.
+        # The if block ensures this is executed once even if multiple subvolumes
+        # are part of the same file system.
+        temp_mount_pt = mount_points[snap_subvolume.device]
+        if current_dir != temp_mount_pt:
+            sh_lines += [f"cd {temp_mount_pt}", ""]
+            current_dir = temp_mount_pt
 
         backup_path = f"{_drop_root_slash(snap_subvolume.subvol_name)}/rollback_{now_str}_{script_live_path}"
         backup_path_after_reboot = shlex.quote(
@@ -262,7 +169,6 @@ def rollback_gen_offline(
             sh_lines.append(f"rm {script_live_path}{_PACMAN_LOCK_FILE}")
 
         sh_lines.append("")
-
     sh_lines += ["echo Please reboot to complete the rollback.", "echo"]
     sh_lines.append("echo After reboot you may delete -")
     for backup_path in backup_paths:

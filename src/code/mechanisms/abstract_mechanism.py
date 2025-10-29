@@ -43,11 +43,26 @@ class SnapMechanism(abc.ABC):
         """Deletes an existing snapshot."""
 
     @abc.abstractmethod
-    def rollback_gen(self, source_dests: list[tuple[str, str]]) -> list[str]:
-        """Returns shell lines which when executed will result in a rollback of snapshots.
+    def rollback_gen(
+        self,
+        source_dests: list[tuple[str, str]],
+        live_subvol_map: dict[str, str] | None,
+    ) -> list[str]:
+        """Returns shell script lines to roll back snapshots.
 
-        If it is not possible to roll back this type of snap, or if it is unimplemented,
-        raise an error such as NotImplementedError().
+        If it is not possible to roll back this type of snap, or if it is
+        unimplemented, raise an error such as NotImplementedError().
+
+        source_dests: List of (live_path, snap_path) tuples. E.g. -
+          [
+            ('/', '/.snapshots/@root-20250921193009'),
+            ('/home', '/.snapshots/@home-20250921193009'),
+          ]
+
+        live_subvol_map: A map from live_path (e.g., '/') to the subvolume name
+          where it is currently mounted (e.g. '@'). This should not be required
+          during normal operation. However, this parameter may be passed by the
+          user when it cannot be auto detected, e.g. during offline recovery.
         """
 
     @abc.abstractmethod

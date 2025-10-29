@@ -53,7 +53,11 @@ class BcachefsSnapMechanism(abstract_mechanism.SnapMechanism):
             raise
 
     @override
-    def rollback_gen(self, source_dests: list[tuple[str, str]]) -> list[str]:
+    def rollback_gen(
+        self,
+        source_dests: list[tuple[str, str]],
+        live_subvol_map: dict[str, str] | None,
+    ) -> list[str]:
         # Rollback would probably be similar to btrfs, but needs to be implemented.
         raise NotImplementedError(
             "Rollback is not yet implemented for bcachefs snapshots."

@@ -21,7 +21,7 @@ class TestCreateAndChmodScript(unittest.TestCase):
             rollbacker, "_save_and_execute_script"
         ) as mock_execute:
             mock_script.return_value = "echo Rollback"
-            rollbacker.rollback(configs_iter=[], path_suffix="")
+            rollbacker.rollback(configs_iter=[], path_suffix="", live_subvol_map=None)
 
         mock_print.assert_called_once_with("echo Rollback")
         mock_execute.assert_not_called()
@@ -35,7 +35,11 @@ class TestCreateAndChmodScript(unittest.TestCase):
             ) as mock_script:
                 mock_script.return_value = script_content
                 rollbacker.rollback(
-                    configs_iter=[], path_suffix="", execute=True, no_confirm=True
+                    configs_iter=[],
+                    path_suffix="",
+                    live_subvol_map=None,
+                    execute=True,
+                    no_confirm=True,
                 )
                 # If the script ran, this file would be created.
                 self.assertTrue(os.path.exists(target_file))
@@ -51,7 +55,11 @@ class TestCreateAndChmodScript(unittest.TestCase):
             ):
                 mock_script.return_value = script_content
                 rollbacker.rollback(
-                    configs_iter=[], path_suffix="", execute=True, no_confirm=False
+                    configs_iter=[],
+                    path_suffix="",
+                    live_subvol_map=None,
+                    execute=True,
+                    no_confirm=False,
                 )
                 # Script should not run since confirm should return False.
                 self.assertFalse(os.path.exists(target_file))

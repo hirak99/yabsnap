@@ -51,7 +51,8 @@ class TestRollbacker(unittest.TestCase):
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
             generated = rollback_btrfs.rollback_gen(
-                source_dests=[(s.metadata.source, s.target) for s in snaps_list]
+                source_dests=[(s.metadata.source, s.target) for s in snaps_list],
+                live_subvol_map=None,
             )
 
         expected = """mkdir -p /run/mount/_yabsnap_internal_0
@@ -90,7 +91,8 @@ echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
             generated = rollback_btrfs.rollback_gen(
-                source_dests=[(s.metadata.source, s.target) for s in snaps_list]
+                source_dests=[(s.metadata.source, s.target) for s in snaps_list],
+                live_subvol_map=None,
             )
 
         expected = """mkdir -p /run/mount/_yabsnap_internal_0

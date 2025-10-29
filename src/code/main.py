@@ -32,18 +32,19 @@ from typing import Iterable
 
 
 def _parse_live_subvol_map(map_str: str) -> dict[str, str]:
-    """Helper to parse the --live-subvol-map argument."""
-    try:
-        mapping = {}
-        pairs = shlex.split(map_str)
-        for pair in pairs:
-            if ":" not in pair:
-                raise ValueError(f"Invalid mapping pair (missing ':'): {pair}")
-            live_path, subvol_name = pair.split(":", 1)
-            mapping[live_path] = subvol_name
-        return mapping
-    except Exception as e:
-        raise argparse.ArgumentTypeError(f"Invalid format for map: {e}")
+    """Helper to parse the --live-subvol-map argument.
+
+    Example: --live-subvol-map "/:@ /home:@home"
+    will be parsed as {"/": "@", "/home": "home"}.
+    """
+    mapping: dict[str, str] = {}
+    pairs = shlex.split(map_str)
+    for pair in pairs:
+        if ":" not in pair:
+            raise ValueError(f"Invalid mapping pair (missing ':'): {pair}")
+        live_path, subvol_name = pair.split(":", 1)
+        mapping[live_path] = subvol_name
+    return mapping
 
 
 def _parse_args() -> argparse.Namespace:
@@ -142,29 +143,23 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Generate rollback script and execute.",
     )
-
-    # Generates a rollback script from read-only snapshot.
-    rollback_offline = subparsers.add_parser(
-        "rollback-gen-offline",
-        help="[OFFLINE] Generate rollback script from a read-only snapshot."
-        + source_message,
-    )
-    rollback_offline.add_argument(
+    # NOTE from https://github.com/hirak99/yabsnap/discussions/66 -
+    # > The original rollback-gen command did not function correctly within a
+    # > read-only snapshot environment (e.g., a recovery environment booted by
+    # > grub-btrfs). This was because it relies on auto-detection to find the
+    # > currently mounted subvolume names. In a read-only snapshot, the system
+    # > incorrectly reports the mountpoint as the snapshot itself (e.g.,
+    # > /@.snapshots/snap...) or an overlay, preventing the generation of a
+    # > correct rollback script.
+    rollback.add_argument(
         "--live-subvol-map",
         type=_parse_live_subvol_map,
-        required=True,
+        required=False,
         help="Mapping of source path to live subvolume name. "
+        "Specify this if the system is in a recovery mode and subvolume names are not auto-detected. "
+        'Example: --live-subvol-map "/:@"'
+        "Use space to delimit multiple mappings if multiple subvolumes are rolled back. "
         'Example: --live-subvol-map "/:@ /home:@home"',
-    )
-    rollback_offline.add_argument(
-        "--execute",
-        action="store_true",
-        help="Generate rollback script and execute.",
-    )
-    rollback_offline.add_argument(
-        "--noconfirm",
-        action="store_true",
-        help="Execute the rollback script without confirmation.",
     )
 
     execute_rollback = subparsers.add_parser(
@@ -182,7 +177,6 @@ def _parse_args() -> argparse.Namespace:
         rollback,
         execute_rollback,
         set_ttl,
-        rollback_offline,
     ]:
         command_with_target.add_argument(
             "target_suffix",
@@ -332,6 +326,7 @@ def main():
         rollbacker.rollback(
             configs.iterate_configs(source=args.source),
             args.target_suffix,
+            live_subvol_map=args.live_subvol_map,
             execute=True,
             no_confirm=args.noconfirm,
         )
@@ -339,17 +334,10 @@ def main():
         rollbacker.rollback(
             configs.iterate_configs(source=args.source),
             args.target_suffix,
+            live_subvol_map=args.live_subvol_map,
             execute=args.execute,
         )
         # Does `rollback-gen` subcommand require the optional parameter `--nocofirm` ?
-    elif command == "rollback-gen-offline":
-        rollbacker.rollback_offline(
-            configs.iterate_configs(source=args.source),
-            args.target_suffix,
-            args.live_subvol_map,
-            execute=args.execute,
-            no_confirm=args.noconfirm if hasattr(args, "noconfirm") else False,
-        )
     else:
         comment = getattr(args, "comment", "")
         _config_operation(

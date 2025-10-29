@@ -68,22 +68,24 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
             raise
 
     @override
-    def rollback_gen(self, source_dests: list[tuple[str, str]]) -> list[str]:
-        for source, _ in source_dests:
-            if not self.verify_volume(source):
-                raise RuntimeError(
-                    f"Mount point may no longer be a btrfs volume: {source}"
-                )
-        return rollback_btrfs.rollback_gen(source_dests)
-
-    def rollback_gen_offline(
+    def rollback_gen(
         self,
         source_dests: list[tuple[str, str]],
-        live_subvol_map: dict[str, str],
+        live_subvol_map: dict[str, str] | None,
     ) -> list[str]:
-        """Calls the offline rollback script generator."""
-        # We do not perform the verify_volume check here because we assume the system is in an offline/recovery state.
-        return rollback_btrfs.rollback_gen_offline(source_dests, live_subvol_map)
+        for source, _ in source_dests:
+            if live_subvol_map and source in live_subvol_map:
+                logging.info(
+                    f"Using mapped subvol for {source}. Skipping volume verification."
+                )
+                continue
+            if not self.verify_volume(source):
+                raise RuntimeError(
+                    f"Mount point may no longer be a btrfs volume: {source!r}. "
+                    " For certain recovery environments like grub-btrfs, volumes may not be correctly detected."
+                    " You can use the `--live-subvol-map` arg to override auto detection."
+                )
+        return rollback_btrfs.rollback_gen(source_dests, live_subvol_map)
 
     @override
     def sync_paths(self, paths: set[str]):
