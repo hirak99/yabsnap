@@ -273,12 +273,22 @@ Just running it will not carry out any changes, it will only display a script on
 the console. \
 The script must be stored and executed to perform the rollback operation.
 
-For certain recovery environments, volumes may be mounted in non-standard
-locations. Use `--live-subvol-map SUBVOL_MAP` to override automatic detection of
-mount-point-to-subvolume mappings. `SUBVOL_MAP` must be in the form
-`"MOUNT_DIR:SUBVOL_NAME ..."`. It may contain multiple mappings delimited by
-spaces. Example: `--live-subvol-map "/:@ /home:@home"`. To confirm the mapping
-was applied, look for the corresponding comment in the generated script.
+**`... --live-subvol-map SUBVOL_MAP`**
+
+By default, rollback detects mount points using '/etc/mtab'. However, for
+ certain recovery environments (such as `grub-btrfs`), that may not work. In
+such cases, you can use `--live-subvol-map SUBVOL_MAP` to specify
+mount-point-to-subvolume mappings.
+
+`SUBVOL_MAP` must be of the formt `"MOUNT_DIR:SUBVOL_NAME
+..."`,
+where you provide the current mount points and their corresponding subvolumes. The device name will be auto-detected from the snapshot location. Multiple mappings can be separated by spaces. For example:
+`--live-subvol-map "/:@ /home:@home"`.
+
+Note that the subvolumes should exist in the snapshot or recovery environment
+for the rollback to work as expected.
+
+The generated script will include a comment when `--live-subvol-map` is used.
 
 ### `yabsnap rollback PATH|TIMESTAMP [--live-subvol-map SUBVOL_MAP] [--noconfirm]`
 
