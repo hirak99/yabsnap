@@ -84,7 +84,7 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
         """Calls the offline rollback script generator."""
         # We do not perform the verify_volume check here because we assume the system is in an offline/recovery state.
         return rollback_btrfs.rollback_gen_offline(source_dests, live_subvol_map)
-    
+
     @override
     def sync_paths(self, paths: set[str]):
         for mount_path in sorted(paths):

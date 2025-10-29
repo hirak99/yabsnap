@@ -103,17 +103,18 @@ def rollback(
 
     # Save and execute the script.
     _save_and_execute_script(script_text)
-    
+
+
 def _get_rollback_script_text_offline(
     configs_iter: Iterable[configs.Config],
     path_suffix: str,
     live_subvol_map: dict[str, str],
 ) -> str | None:
     """Combines the OFFLINE rollback scripts from all snaps."""
-    source_dests_by_snaptype: dict[
-        snap_mechanisms.SnapType, list[tuple[str, str]]
-    ] = collections.defaultdict(list)
-    
+    source_dests_by_snaptype: dict[snap_mechanisms.SnapType, list[tuple[str, str]]] = (
+        collections.defaultdict(list)
+    )
+
     found_snap = False
     for config in configs_iter:
         snap = snap_operator.find_target(config, path_suffix)
@@ -125,7 +126,9 @@ def _get_rollback_script_text_offline(
                     (snap.metadata.source, snap.target)
                 )
             else:
-                logging.warning(f"Offline rollback is not supported for snap_type {config.snap_type}")
+                logging.warning(
+                    f"Offline rollback is not supported for snap_type {config.snap_type}"
+                )
 
     if not found_snap:
         return None
@@ -145,11 +148,15 @@ def _get_rollback_script_text_offline(
             # type checker hint, to inform mypy/pyright of the existence of `rollback_gen_offline`
             if isinstance(mechanism, btrfs_mechanism.BtrfsSnapMechanism):
                 content.append(
-                    "\n".join(mechanism.rollback_gen_offline(source_dests, live_subvol_map))
+                    "\n".join(
+                        mechanism.rollback_gen_offline(source_dests, live_subvol_map)
+                    )
                 )
         else:
-            content.append(f"# Skipping unsupported snap_type {snap_type} for offline rollback")
-            
+            content.append(
+                f"# Skipping unsupported snap_type {snap_type} for offline rollback"
+            )
+
     return "\n".join(content)
 
 
@@ -175,7 +182,9 @@ def rollback_offline(
         return
     if not no_confirm:
         print()
-        msg = "[OFFLINE] Please review the rollback script above, and confirm execution:"
+        msg = (
+            "[OFFLINE] Please review the rollback script above, and confirm execution:"
+        )
         if not os_utils.interactive_confirm(msg):
             return
 

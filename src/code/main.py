@@ -30,6 +30,7 @@ from .mechanisms import snap_mechanisms
 
 from typing import Iterable
 
+
 def _parse_live_subvol_map(map_str: str) -> dict[str, str]:
     """Helper to parse the --live-subvol-map argument."""
     try:
@@ -43,6 +44,7 @@ def _parse_live_subvol_map(map_str: str) -> dict[str, str]:
         return mapping
     except Exception as e:
         raise argparse.ArgumentTypeError(f"Invalid format for map: {e}")
+
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="yabsnap")
@@ -140,18 +142,19 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Generate rollback script and execute.",
     )
-    
+
     # Generates a rollback script from read-only snapshot.
     rollback_offline = subparsers.add_parser(
         "rollback-gen-offline",
-        help="[OFFLINE] Generate rollback script from a read-only snapshot." + source_message,
+        help="[OFFLINE] Generate rollback script from a read-only snapshot."
+        + source_message,
     )
     rollback_offline.add_argument(
         "--live-subvol-map",
         type=_parse_live_subvol_map,
         required=True,
         help="Mapping of source path to live subvolume name. "
-             'Example: --live-subvol-map "/:@ /home:@home"',
+        'Example: --live-subvol-map "/:@ /home:@home"',
     )
     rollback_offline.add_argument(
         "--execute",
@@ -163,7 +166,7 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Execute the rollback script without confirmation.",
     )
-    
+
     execute_rollback = subparsers.add_parser(
         "rollback",
         help="Generate rollback script and run. Equivalent to `rollback-gen --execute`",
@@ -174,7 +177,13 @@ def _parse_args() -> argparse.Namespace:
         help="Execute the rollback script without confirmation.",
     )
 
-    for command_with_target in [delete, rollback, execute_rollback, set_ttl, rollback_offline]:
+    for command_with_target in [
+        delete,
+        rollback,
+        execute_rollback,
+        set_ttl,
+        rollback_offline,
+    ]:
         command_with_target.add_argument(
             "target_suffix",
             help="Datetime string, or full path of a snapshot." + source_message,
