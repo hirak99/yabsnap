@@ -107,9 +107,6 @@ def rollback_gen(
         if live_subvol_map and live_path in live_subvol_map:
             # Prioritize the map which indicates system may be offline.
             live_subvol_name = live_subvol_map[live_path]
-            sh_lines.append(
-                f"# Using --live-subvol-map: {live_path!r} -> {live_subvol_name!r}."
-            )
             using_subvol_map = True
         else:
             # If map is not given, determine subvol name assuming that the system is live.
@@ -149,6 +146,11 @@ def rollback_gen(
         if current_dir != temp_mount_pt:
             sh_lines += [f"cd {temp_mount_pt}", ""]
             current_dir = temp_mount_pt
+
+        if using_subvol_map:
+            sh_lines.append(
+                f"# Using --live-subvol-map: {live_path!r} -> {live_subvol_name!r}."
+            )
 
         backup_path = f"{_drop_root_slash(snap_subvolume.subvol_name)}/rollback_{now_str}_{script_live_path}"
         backup_path_after_reboot = shlex.quote(
