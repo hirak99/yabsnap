@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-from . import common_fs_utils
+from . import mtab_parser
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -18,21 +18,21 @@ class TestCommonFsUtils(unittest.TestCase):
             # Nested subvolume @nestedvol.
             "/dev/mapper/opened_rootbtrfs on /mnt/rootbtrfs type btrfs (rw,noatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/)",
         ]
-        with mock.patch.object(common_fs_utils, "_mounts", return_value=mount_lines):
+        with mock.patch.object(mtab_parser, "_mounts", return_value=mount_lines):
             # Assertiions.
             self.assertEqual(
-                common_fs_utils.mount_attributes("/home"),
-                common_fs_utils._MountAttributes("/dev/mapper/luksdev", "/@home", 2505),
+                mtab_parser.mount_attributes("/home"),
+                mtab_parser._MountAttributes("/dev/mapper/luksdev", "/@home", 2505),
             )
             self.assertEqual(
-                common_fs_utils.mount_attributes("/home/myhome"),
-                common_fs_utils._MountAttributes(
+                mtab_parser.mount_attributes("/home/myhome"),
+                mtab_parser._MountAttributes(
                     "/dev/mapper/myhome", "/@special_home", 2506
                 ),
             )
             self.assertEqual(
-                common_fs_utils.mount_attributes("/mnt/rootbtrfs/@nestedvol"),
-                common_fs_utils._MountAttributes(
+                mtab_parser.mount_attributes("/mnt/rootbtrfs/@nestedvol"),
+                mtab_parser._MountAttributes(
                     "/dev/mapper/opened_rootbtrfs", "/@nestedvol", 5
                 ),
             )

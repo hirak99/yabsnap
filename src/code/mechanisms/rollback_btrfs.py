@@ -19,7 +19,7 @@ import shlex
 
 from .. import global_flags
 from ..utils import btrfs_utils
-from ..utils import common_fs_utils
+from ..utils import mtab_parser
 
 from typing import Iterator
 
@@ -99,7 +99,7 @@ def rollback_gen(
         # Note that live_path and snap_path must be on the same volume. This is
         # a sanity check performed on the next loop.
 
-        snap_subvolume = common_fs_utils.mount_attributes(snap_path)
+        snap_subvolume = mtab_parser.mount_attributes(snap_path)
         device = snap_subvolume.device
 
         if device not in temp_mount_points:
@@ -118,7 +118,7 @@ def rollback_gen(
     nested_subvol_commands: list[str] = []
     for live_path, snap_path in source_dests:
         # 1. We retrieve device and snapshot subvolume information from the snapshot path.
-        snap_subvolume = common_fs_utils.mount_attributes(os.path.dirname(snap_path))
+        snap_subvolume = mtab_parser.mount_attributes(os.path.dirname(snap_path))
 
         # 2. We retrieve the name of the `live_subvolume`.
         live_subvol_name: str
@@ -130,7 +130,7 @@ def rollback_gen(
         else:
             # If map is not given, determine subvol name assuming that the system is live.
             # The snapshot must be on the same block device as the original (target) volume.
-            live_subvolume = common_fs_utils.mount_attributes(live_path)
+            live_subvolume = mtab_parser.mount_attributes(live_path)
             # Sanity check: live_path and snap_path must be on same subvolume.
             if snap_subvolume.device != live_subvolume.device:
                 raise RuntimeError(

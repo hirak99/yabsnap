@@ -3,7 +3,7 @@ import logging
 import re
 import shlex
 
-from . import common_fs_utils
+from . import mtab_parser
 from . import os_utils
 
 
@@ -53,7 +53,7 @@ def _get_nested_subvs(subvolumes: list[_Subvolume], subv_id: int) -> list[str]:
 
 
 def get_nested_subvs(directory: str) -> list[str]:
-    mount_attrs = common_fs_utils.mount_attributes(directory)
+    mount_attrs = mtab_parser.mount_attributes(directory)
     try:
         subvolumes = _btrfs_list(directory)
     except os_utils.CommandError:

@@ -18,7 +18,7 @@ from unittest import mock
 from . import rollback_btrfs
 from ..snapshot_logic import snap_holder
 from ..utils import btrfs_utils
-from ..utils import common_fs_utils
+from ..utils import mtab_parser
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -26,7 +26,7 @@ from ..utils import common_fs_utils
 
 class TestRollbacker(unittest.TestCase):
     def setUp(self):
-        common_fs_utils.mount_attributes.cache_clear()
+        mtab_parser.mount_attributes.cache_clear()
         patcher = mock.patch.object(btrfs_utils, "get_nested_subvs", return_value=[])
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -46,7 +46,7 @@ class TestRollbacker(unittest.TestCase):
             "/dev/BLOCKDEV1 on /snaps type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps)",
         ]
         with mock.patch.object(
-            common_fs_utils, "_mounts", return_value=mount_lines
+            mtab_parser, "_mounts", return_value=mount_lines
         ), mock.patch.object(
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
@@ -86,7 +86,7 @@ echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
             "/dev/BLOCKDEV1 on /vol type btrfs (subvolid=123,subvol=/volume)",
         ]
         with mock.patch.object(
-            common_fs_utils, "_mounts", return_value=mount_lines
+            mtab_parser, "_mounts", return_value=mount_lines
         ), mock.patch.object(
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
@@ -132,7 +132,7 @@ echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested2"
             "/dev/BLOCKDEV1 on /snaps type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps)",
         ]
         with mock.patch.object(
-            common_fs_utils, "_mounts", return_value=mount_lines
+            mtab_parser, "_mounts", return_value=mount_lines
         ), mock.patch.object(
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
