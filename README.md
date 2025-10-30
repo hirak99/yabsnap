@@ -112,20 +112,22 @@ Below is an example layout.
 | @home (optional) | `/home`       | `subvol=@home`       |
 | @.snapshots      | `/.snapshots` | `subvol=@.snapshots` |
 
-NOTE: The names can be different; you do not need to rename your existing subvolumes.
+You can also refer to [suggested filesystem layout in Arch Wiki here](https://wiki.archlinux.org/title/Snapper#Suggested_filesystem_layout).
 
 Tips -
-- Mount by `subvol=NAME`, instead of `subvolid=NUMERIC_ID`. This is necessary to allow rollbacks without touching the fstab.
-- Create a top level subvolume for all snapshots.
+- **Do not use the root subvolume (subvolid=5) for root directly for root.** Instead use a named subvolume e.g. `@`, and mount that for your root filesystem.
+  - If you don't have a separate subvolume for root yet, you can create one by taking a snapshot of your existing root, then deleting other directories and adjusting your `fstab` to add `subvol=@` (and regenerate the GRUB config with `grub-mkconfig` if you are using grub).
+- **Mount by** `subvol=NAME`, instead of `subvolid=NUMERIC_ID`. This is necessary to allow rollbacks without touching the fstab.
+- Create a top level subvolume, e.g. `@.snapshots`, to contain all snapshots.
 
 ### Example Shell commands to set up
 
-To set this up in shell, mount the top volume and create a @.snapshots subvolume -
+Assuming you already have root mounted from a subvolume (e.g. `@`), below are some shell commands to create `@.snapshot` -
+
 ```sh
 # Mount the top level subvolume (id 5) into a temporary mount dir.
 TOP=/run/mount/btrfs_top  # Temporary path to mount subvol.
-mkdir $TOP
-mount /dev/sdX $TOP -t btrfs -o subvolid=5
+mount --mkdir /dev/sdX $TOP -t btrfs -o subvolid=5
 # Assuming @ (or root) and optionally @home already exists,
 # all you need is a new subvolume for snapshots.
 btrfs subvolume create $TOP/@.snapshots
