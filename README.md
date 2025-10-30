@@ -319,6 +319,13 @@ The optional arg `--live-subvol-map` works similarly as rollback-gen.
   - If you'd want full support on a distro, I'm happy to know so that I can
     evaluate and find a way to prioritize it. Please open an issue.
 
+- Why is Google in the copyright?
+  - I began this project while I was at Google. To release it as open source, I
+    followed Google's open-sourcing process, which required including Google in
+    the copyright notice. That said, I'm grateful to Google and my team for
+    supporting and encouraging me in my goal to share the project with the
+    community.
+
 - I deleted a snapshot manually. Will this confuse yabsnap?
   - No. You should also delete the corresponding metadata `-meta.json` manually
     (it's in the same directory). If you used `yabsnap delete PATH_TO_SNAPSHOT`,
