@@ -23,10 +23,10 @@ import json
 import logging
 import os
 
-from . import global_flags
-from .mechanisms import snap_mechanisms
-from .utils import human_interval
-from .utils import os_utils
+from .. import global_flags
+from ..mechanisms import snap_mechanisms
+from ..utils import human_interval
+from ..utils import os_utils
 
 from typing import Any
 

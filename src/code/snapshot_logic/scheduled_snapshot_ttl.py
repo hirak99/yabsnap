@@ -24,7 +24,7 @@ Additionally, it determines whether a snapshot should be created based on the de
 
 import datetime
 
-from . import configs
+from .. import configs
 
 # Since the scheduled time is not perfect, we leave a bit of buffer for all time
 # comparisons. This makes the TTL generation algorithm more robust by preventing

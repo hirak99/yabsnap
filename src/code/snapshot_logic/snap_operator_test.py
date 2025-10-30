@@ -19,11 +19,11 @@ import unittest
 from unittest import mock
 
 from . import auto_cleanup_without_ttl
-from . import configs
 from . import snap_holder
 from . import snap_operator
-from .mechanisms import btrfs_mechanism
-from .mechanisms import snap_mechanisms
+from .. import configs
+from ..mechanisms import btrfs_mechanism
+from ..mechanisms import snap_mechanisms
 
 from typing import Iterator
 

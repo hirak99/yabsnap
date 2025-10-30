@@ -16,7 +16,7 @@ import unittest
 from unittest import mock
 
 from . import rollback_btrfs
-from .. import snap_holder
+from ..snapshot_logic import snap_holder
 from ..utils import btrfs_utils
 from ..utils import common_fs_utils
 

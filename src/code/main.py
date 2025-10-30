@@ -19,12 +19,12 @@ import itertools
 import logging
 import shlex
 
-from . import batch_deleter
 from . import configs
 from . import global_flags
-from . import rollbacker
-from . import snap_operator
 from .mechanisms import snap_mechanisms
+from .snapshot_logic import batch_deleter
+from .snapshot_logic import rollbacker
+from .snapshot_logic import snap_operator
 from .utils import colored_logs
 from .utils import os_utils
 

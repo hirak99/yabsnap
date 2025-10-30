@@ -18,12 +18,12 @@ import logging
 import os
 
 from . import auto_cleanup_without_ttl
-from . import configs
-from . import global_flags
 from . import scheduled_snapshot_ttl
 from . import snap_holder
-from .utils import human_interval
-from .utils import os_utils
+from .. import configs
+from .. import global_flags
+from ..utils import human_interval
+from ..utils import os_utils
 
 from typing import Any, Iterator, Optional, TypeVar
 

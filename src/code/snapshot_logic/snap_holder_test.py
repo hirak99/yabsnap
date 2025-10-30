@@ -21,8 +21,8 @@ import unittest
 from unittest import mock
 
 from . import snap_holder
-from .mechanisms import btrfs_mechanism
-from .mechanisms import snap_mechanisms
+from ..mechanisms import btrfs_mechanism
+from ..mechanisms import snap_mechanisms
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
