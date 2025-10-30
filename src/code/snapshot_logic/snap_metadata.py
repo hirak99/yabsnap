@@ -1,4 +1,9 @@
-"""Encapsulates the JSON metadata for snapshots."""
+"""Encapsulates the JSON metadata for snapshots.
+
+Note: Pydantic is an alternative to managing our own logic to load and save things like
+enums. However, it is an additional dependency. We should consider switching only if the
+complexity grows too high.
+"""
 
 import dataclasses
 import datetime
@@ -16,7 +21,7 @@ from typing import Any
 @dataclasses.dataclass
 class SnapMetadata:
     # Snapshot type. If empty, assumed btrfs.
-    snap_type: str = snap_mechanisms.SnapType.UNKNOWN.value
+    snap_type: snap_mechanisms.SnapType = snap_mechanisms.SnapType.UNKNOWN
     # Name of the subvolume from whcih this snap was taken.
     source: str = ""
     # Can be one of -
@@ -37,7 +42,10 @@ class SnapMetadata:
 
     def _to_file_content(self) -> dict[str, Any]:
         # Ignore empty strings and None.
-        return {k: v for k, v in dataclasses.asdict(self).items() if v}
+        result = {k: v for k, v in dataclasses.asdict(self).items() if v}
+        if "snap_type" in result:
+            result["snap_type"] = result["snap_type"].value
+        return result
 
     def save_file(self, fname: str) -> None:
         data = self._to_file_content()
@@ -53,8 +61,13 @@ class SnapMetadata:
             with open(fname) as f:
                 all_args = json.load(f)
                 if "snap_type" not in all_args:
-                    # For back compatibility. Older snaps will not have snap_type.
-                    all_args["snap_type"] = "BTRFS"
+                    # For back compatibility. Older snaps do not have snap_type.
+                    all_args["snap_type"] = snap_mechanisms.SnapType.BTRFS
+                else:
+                    # snap_type is mandatory in new snaps.
+                    all_args["snap_type"] = snap_mechanisms.SnapType[
+                        all_args["snap_type"]
+                    ]
                 try:
                     return cls(**all_args)
                 except json.JSONDecodeError:

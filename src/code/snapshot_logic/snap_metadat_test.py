@@ -18,12 +18,27 @@ def _load_json(json_str: str) -> snap_metadata.SnapMetadata:
 
 
 class SnapMetadataTest(unittest.TestCase):
-    def test_reconstruction(self):
-        metadata = _load_json(
+    def test_to_file_content(self):
+        metadata = snap_metadata.SnapMetadata(
+            snap_type=snap_mechanisms.SnapType.BTRFS, source="parent", expiry=1234
+        )
+        self.assertEqual(
+            metadata._to_file_content(),
+            {
+                "snap_type": "BTRFS",
+                "source": "parent",
+                "expiry": 1234,
+            },
+        )
+
+    def test_loading(self):
+        loaded = _load_json(
             '{"snap_type": "BTRFS", "source": "parent", "trigger": "S"}'
         )
-        expected = snap_metadata.SnapMetadata("BTRFS", "parent", "S")
-        self.assertEqual(metadata, expected)
+        expected = snap_metadata.SnapMetadata(
+            snap_type=snap_mechanisms.SnapType.BTRFS, source="parent", trigger="S"
+        )
+        self.assertEqual(loaded, expected)
 
     def test_backcompat(self):
         # Test that unspecified type is read as BTRFS for back compatibility.

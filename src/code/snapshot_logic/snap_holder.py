@@ -51,14 +51,13 @@ class Snapshot:
 
     @property
     def _snap_type(self) -> snap_mechanisms.SnapType:
-        snap_type = snap_mechanisms.SnapType[self.metadata.snap_type]
-        if snap_type == snap_mechanisms.SnapType.UNKNOWN:
+        if self.metadata.snap_type == snap_mechanisms.SnapType.UNKNOWN:
             logging.warning(
                 f"Cannot determine type for '{self.target}'.\n"
                 f"This may occur if the metadata '{self._metadata_fname}' was manually deleted.\n"
                 f"If so, also delete the snapshot '{self.target}' manually."
             )
-        return snap_type
+        return self.metadata.snap_type
 
     def as_json(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -83,7 +82,7 @@ class Snapshot:
             return
         # Create the metadata before the snapshot.
         # Thus we leave trace even if snapshotting fails.
-        self.metadata.snap_type = snap_type.value
+        self.metadata.snap_type = snap_type
         self.metadata.source = parent
         self.metadata.save_file(self._metadata_fname)
         # Create the snap.
