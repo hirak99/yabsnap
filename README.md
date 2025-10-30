@@ -336,23 +336,26 @@ The optional arg `--live-subvol-map` works similarly as rollback-gen.
     subvolume snapshot del YOUR_SNAP`, and corresponding `-meta.json` files.
 
 - Does `yabsnap` support live rollback?
-  - Yes for **btrfs**. The `rollback-gen` command to generate a rollback script, or
-    `rollback` command to apply the script.
+  - Yes for **btrfs**. The `rollback-gen` command to generate a rollback script,
+    or `rollback` command to apply the script.
 
-    The generated script is designed to let you continue working in the live environment and switch over to the rolled-back state on the next reboot.
+    The generated script is designed to let you continue working in the live
+    environment and switch over to the rolled-back state on the next reboot.
 
     > [!NOTE]
-    > It is **strongly recommended** that you read and understand the script before committing to a rollback.
-    Doing so will help you see exactly what it does and how to reverse it if needed. The generated script is intentionally kept small and readable for this reason.
+    > It is **strongly recommended** that you read and understand the script
+    > before committing to a rollback. Doing so will help you see exactly what
+    > it does and how to reverse it if needed. The generated script is
+    intentionally kept small and readable for this reason.
 
 - Does `yabsnap` support offline rollback?
-  - Yes for **btrfs**. It should work normally as long as the recovery environment
-    has not altered the mount points.
+  - Sort of. It is not automatic, but is possible with the `--live-subvol-map`
+    argument.
 
-    For some recovery environments the mounts
-    may not be automatically detected. If you are using `grub-btrfs`, you'll
-    need to specify `--live-subvol-map` to let `yabsnap` know which live mount
-    points correspond to which subvolumes.
+    Since recovery environments like `grub-btrfs` mount the devices in a
+    different way than when the snapshot was taken, you'll need to specify
+    `--live-subvol-map` to let `yabsnap` know which live mount points correspond
+    to which subvolume from the snapshot.
 
     > [!NOTE]
     > NOTE: As with live rollback, it’s strongly recommended that you review the generated script before running it, to ensure you understand what it will do and how to undo it if necessary.
