@@ -20,7 +20,10 @@ def _load_json(json_str: str) -> snap_metadata.SnapMetadata:
 class SnapMetadataTest(unittest.TestCase):
     def test_to_file_content(self):
         metadata = snap_metadata.SnapMetadata(
-            snap_type=snap_type_enum.SnapType.BTRFS, source="parent", expiry=1234
+            snap_type=snap_type_enum.SnapType.BTRFS,
+            source="parent",
+            expiry=1234,
+            btrfs=snap_metadata.Btrfs(source_subvol="subvol"),
         )
         self.assertEqual(
             metadata._to_file_content(),
@@ -28,15 +31,19 @@ class SnapMetadataTest(unittest.TestCase):
                 "snap_type": "BTRFS",
                 "source": "parent",
                 "expiry": 1234,
+                "btrfs": {"source_subvol": "subvol"},
             },
         )
 
     def test_loading(self):
         loaded = _load_json(
-            '{"snap_type": "BTRFS", "source": "parent", "trigger": "S"}'
+            '{"snap_type": "BTRFS", "source": "parent", "trigger": "S", "btrfs": {"source_subvol": "subvol"}}'
         )
         expected = snap_metadata.SnapMetadata(
-            snap_type=snap_type_enum.SnapType.BTRFS, source="parent", trigger="S"
+            snap_type=snap_type_enum.SnapType.BTRFS,
+            source="parent",
+            trigger="S",
+            btrfs=snap_metadata.Btrfs(source_subvol="subvol"),
         )
         self.assertEqual(loaded, expected)
 

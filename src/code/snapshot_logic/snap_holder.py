@@ -86,9 +86,11 @@ class Snapshot:
         self.metadata.snap_type = snap_type
         self.metadata.source = parent
         self.metadata.source_uuid = os_utils.get_filesystem_uuid(parent)
+        mechanism = snap_mechanisms.get(snap_type)
+        mechanism.fill_metadata(self.metadata)
         self.metadata.save_file(self._metadata_fname)
         # Create the snap.
-        snap_mechanisms.get(snap_type).create(parent, self._target)
+        mechanism.create(parent, self._target)
 
     def delete(self) -> None:
         # First delete the snapshot.

@@ -10,12 +10,45 @@ import datetime
 import json
 import logging
 import os
+from types import UnionType
 
 from .. import global_flags
 from ..mechanisms import snap_type_enum
 from ..utils import os_utils
 
-from typing import Any
+import typing
+from typing import Any, Type
+
+
+@dataclasses.dataclass
+class Btrfs:
+    source_subvol: str
+
+
+def _load_dataclass_recursive(dataclass_type: Type[Any], data: dict[str, Any]):
+    """Loads dataclass recursively.
+
+    Identifies and loads all subfields which are also dataclasses.
+    """
+    fields_dict = {}
+    for field in dataclasses.fields(dataclass_type):
+        if field.name not in data:
+            continue
+        loaded_as_dataclass = False
+        if typing.get_origin(field.type) is UnionType:
+            # If it is a Union type, load as the first dataclass if there is any.
+            # Primarily for dataclass | None.
+            for type in typing.get_args(field.type):
+                if dataclasses.is_dataclass(type):
+                    loaded_as_dataclass = True
+                    fields_dict[field.name] = _load_dataclass_recursive(
+                        type,  # type: ignore
+                        data[field.name],
+                    )
+                break
+        if not loaded_as_dataclass:
+            fields_dict[field.name] = data[field.name]
+    return dataclass_type(**fields_dict)
 
 
 @dataclasses.dataclass
@@ -36,6 +69,10 @@ class SnapMetadata:
     # Unix datetime in seconds.
     # Note: Expiry is absolute, ttl is relative to now. Expiry = Now + Ttl.
     expiry: float | None = None
+
+    # Populated by mechanism.
+    # aux: dict[str, str] = dataclasses.field(default_factory=dict)
+    btrfs: Btrfs | None = None
 
     def is_expired(self, now: datetime.datetime) -> bool:
         if self.expiry is None:
@@ -61,17 +98,17 @@ class SnapMetadata:
     def load_file(cls, fname: str) -> "SnapMetadata":
         if os.path.isfile(fname):
             with open(fname) as f:
-                all_args = json.load(f)
-                if "snap_type" not in all_args:
-                    # For back compatibility. Older snaps do not have snap_type.
-                    all_args["snap_type"] = snap_type_enum.SnapType.BTRFS
-                else:
-                    # snap_type is mandatory in new snaps.
-                    all_args["snap_type"] = snap_type_enum.SnapType[
-                        all_args["snap_type"]
-                    ]
                 try:
-                    return cls(**all_args)
+                    all_args = json.load(f)
                 except json.JSONDecodeError:
                     logging.warning(f"Unable to parse metadata file: {fname}")
+                    return cls()
+            result = _load_dataclass_recursive(cls, all_args)
+            if "snap_type" not in all_args:
+                # For back compatibility. Older snaps do not have snap_type.
+                result.snap_type = snap_type_enum.SnapType.BTRFS
+            else:
+                # snap_type is mandatory in new snaps.
+                result.snap_type = snap_type_enum.SnapType[all_args["snap_type"]]
+            return result
         return cls()

@@ -14,6 +14,7 @@
 
 import abc
 import enum
+from ..snapshot_logic import snap_metadata
 
 
 # The type of snapshot is maintained in two places -
@@ -33,6 +34,10 @@ class SnapMechanism(abc.ABC):
     @abc.abstractmethod
     def verify_volume(self, source: str) -> bool:
         """Confirms that the source path can be snapshotted."""
+
+    def fill_metadata(self, metadata: snap_metadata.SnapMetadata) -> None:
+        """Implementations can use it to fill in additional metadata."""
+        return
 
     @abc.abstractmethod
     def create(self, source: str, destination: str):

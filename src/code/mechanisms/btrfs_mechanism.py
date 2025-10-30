@@ -17,7 +17,9 @@ import logging
 from . import abstract_mechanism
 from . import rollback_btrfs
 from .. import global_flags
+from ..snapshot_logic import snap_metadata
 from ..utils import os_utils
+from ..utils import mtab_parser
 
 from typing import override
 
@@ -50,6 +52,13 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
             )
             return False
         return True
+
+    @override
+    def fill_metadata(self, metadata: snap_metadata.SnapMetadata) -> None:
+        source = metadata.source
+        mtab = mtab_parser.mount_attributes(source)
+        # metadata.aux["source_subvol"] = mtab.subvol_name
+        metadata.btrfs = snap_metadata.Btrfs(source_subvol=mtab.subvol_name)
 
     @override
     def create(self, source: str, destination: str):
