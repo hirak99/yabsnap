@@ -24,9 +24,9 @@ import logging
 import os
 
 from . import global_flags
-from . import human_interval
-from . import os_utils
 from .mechanisms import snap_mechanisms
+from .utils import human_interval
+from .utils import os_utils
 
 from typing import Any
 

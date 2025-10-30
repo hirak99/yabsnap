@@ -7,9 +7,9 @@ import pathlib
 
 from . import configs
 from . import global_flags
-from . import human_interval
 from . import snap_holder
 from .mechanisms import snap_mechanisms
+from .utils import human_interval
 
 from typing import Any, Iterable, Iterator, Protocol
 

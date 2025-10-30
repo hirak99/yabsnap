@@ -4,7 +4,7 @@ import re
 import shlex
 
 from . import common_fs_utils
-from .. import os_utils
+from . import os_utils
 
 
 @dataclasses.dataclass

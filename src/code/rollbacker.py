@@ -20,9 +20,9 @@ import tempfile
 
 from . import configs
 from . import global_flags
-from . import os_utils
 from . import snap_operator
 from .mechanisms import snap_mechanisms
+from .utils import os_utils
 
 from typing import Iterable
 

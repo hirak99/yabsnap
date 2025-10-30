@@ -20,13 +20,13 @@ import logging
 import shlex
 
 from . import batch_deleter
-from . import colored_logs
 from . import configs
 from . import global_flags
-from . import os_utils
 from . import rollbacker
 from . import snap_operator
 from .mechanisms import snap_mechanisms
+from .utils import colored_logs
+from .utils import os_utils
 
 from typing import Iterable
 

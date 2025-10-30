@@ -17,7 +17,7 @@ import logging
 from . import abstract_mechanism
 from . import rollback_btrfs
 from .. import global_flags
-from .. import os_utils
+from ..utils import os_utils
 
 from typing import override
 

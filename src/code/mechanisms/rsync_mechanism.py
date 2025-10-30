@@ -19,7 +19,7 @@ import shlex
 
 from . import abstract_mechanism
 from .. import global_flags
-from .. import os_utils
+from ..utils import os_utils
 
 from typing import override
 

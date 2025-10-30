@@ -15,10 +15,10 @@
 import unittest
 from unittest import mock
 
-from . import btrfs_utils
-from . import common_fs_utils
 from . import rollback_btrfs
 from .. import snap_holder
+from ..utils import btrfs_utils
+from ..utils import common_fs_utils
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false

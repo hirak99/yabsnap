@@ -1,7 +1,7 @@
 import dataclasses
 import functools
 
-from .. import os_utils
+from ..utils import os_utils
 
 
 @dataclasses.dataclass

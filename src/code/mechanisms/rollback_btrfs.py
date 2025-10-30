@@ -17,9 +17,9 @@ import logging
 import os
 import shlex
 
-from . import btrfs_utils
-from . import common_fs_utils
 from .. import global_flags
+from ..utils import btrfs_utils
+from ..utils import common_fs_utils
 
 from typing import Iterator
 

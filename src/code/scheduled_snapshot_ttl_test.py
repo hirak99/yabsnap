@@ -15,8 +15,8 @@
 import datetime
 import unittest
 
-from . import human_interval
 from . import scheduled_snapshot_ttl
+from .utils import human_interval
 
 _HOUR = 60 * 60
 _DAY = 24 * _HOUR
