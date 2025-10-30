@@ -26,21 +26,21 @@ def _execute_sh(cmd: str):
     if global_flags.FLAGS.dryrun:
         os_utils.eprint("Would run " + cmd)
     else:
-        os_utils.execute_sh(cmd)
+        os_utils.runsh_or_error(cmd)
 
 
 class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
     def verify_volume(self, source: str) -> bool:
         # Based on https://stackoverflow.com/a/32865333/196462
-        fstype = os_utils.execute_sh("stat -f --format=%T " + source, error_ok=True)
+        fstype = os_utils.runsh("stat -f --format=%T " + source)
         if not fstype:
             logging.warning(f"Not btrfs (cannot determine filesystem): {source}")
             return False
         if fstype.strip() != "btrfs":
             logging.warning(f"Not btrfs (filesystem not btrfs): {source}")
             return False
-        inodenum = os_utils.execute_sh("stat --format=%i " + source, error_ok=True)
+        inodenum = os_utils.runsh("stat --format=%i " + source)
         if not inodenum:
             logging.warning(f"Not btrfs (cannot determine inode): {source}")
             return False
@@ -94,4 +94,4 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
                 os_utils.eprint(f"Would sync {mount_path}")
                 continue
             os_utils.eprint("Syncing ...", flush=True)
-            os_utils.execute_sh(f"btrfs subvolume sync {mount_path}")
+            os_utils.runsh_or_error(f"btrfs subvolume sync {mount_path}")

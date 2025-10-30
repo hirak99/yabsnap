@@ -37,7 +37,7 @@ def _parse_btrfs_list(output: str) -> list[_Subvolume]:
 def _btrfs_list(directory: str) -> list[_Subvolume]:
     # We may switch to using json output, but at the time of writing it is not
     # mature yet. Ref. https://github.com/kdave/btrfs-progs/issues/833
-    result = os_utils.execute_sh(f"btrfs subvolume list {shlex.quote(directory)}")
+    result = os_utils.runsh_or_error(f"btrfs subvolume list {shlex.quote(directory)}")
     assert result is not None
     return _parse_btrfs_list(result)
 

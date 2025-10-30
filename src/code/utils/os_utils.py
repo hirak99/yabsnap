@@ -37,12 +37,14 @@ def fatal_error(msg: str) -> NoReturn:
     sys.exit(-1)
 
 
-def execute_sh(command: str, error_ok: bool = False) -> str | None:
+def runsh_or_error(command: str) -> str:
     """Runs a shell command.
 
     Args:
       command: Command to run, e.g. "pacman-conf LogFile".
-      error_ok: If True, returns None on error.
+
+    Returns:
+      Output of command.
     """
     logging.info(f"Running {command}")
     try:
@@ -52,16 +54,20 @@ def execute_sh(command: str, error_ok: bool = False) -> str | None:
         pass
     # If we are here, the command could not be run.
     error_msg = f"Error running shell command: '{command}'"
-    if not error_ok:
-        logging.error(error_msg)
-        raise CommandError(error_msg)
-    logging.warning(error_msg)
-    return None
+    raise CommandError(error_msg)
+
+
+def runsh(command: str) -> str | None:
+    try:
+        return runsh_or_error(command)
+    except CommandError as exc:
+        logging.warning(exc)
+        return None
 
 
 def command_exists(command: str) -> bool:
     """E.g. command_exists('rsync')"""
-    return execute_sh(f"which {command}") is not None
+    return runsh(f"which {command}") is not None
 
 
 def run_user_script(script_name: str, args: list[str]) -> bool:
@@ -77,7 +83,7 @@ def run_user_script(script_name: str, args: list[str]) -> bool:
 
 
 def _get_pacman_log_path() -> str:
-    logfile = execute_sh("pacman-conf LogFile", error_ok=True)
+    logfile = runsh("pacman-conf LogFile")
     if logfile is None:
         logging.warning("Unable to determine pacman log path. Using default.")
         return "/var/log/pacman.log"

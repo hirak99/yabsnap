@@ -16,7 +16,7 @@ class _MountAttributes:
 
 @functools.cache
 def _mounts() -> list[str]:
-    result = os_utils.execute_sh("mount")
+    result = os_utils.runsh_or_error("mount")
     assert result is not None
     return result.splitlines()
 

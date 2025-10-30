@@ -12,7 +12,7 @@ def _execute_sh(cmd: str):
     if global_flags.FLAGS.dryrun:
         os_utils.eprint("Would run " + cmd)
     else:
-        os_utils.execute_sh(cmd)
+        os_utils.runsh_or_error(cmd)
 
 
 # NOTE: This is implementation is untested.
@@ -20,7 +20,7 @@ class BcachefsSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
     def verify_volume(self, source: str) -> bool:
         # Check if the mount point is a bcachefs filesystem.
-        fstype = os_utils.execute_sh("stat -f --format=%T " + source, error_ok=True)
+        fstype = os_utils.runsh("stat -f --format=%T " + source)
         if not fstype:
             logging.warning(f"Not bcachefs (cannot determine filesystem): {source}")
             return False

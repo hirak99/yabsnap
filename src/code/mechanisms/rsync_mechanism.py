@@ -28,7 +28,7 @@ def _execute_sh(cmd: str):
     if global_flags.FLAGS.dryrun:
         os_utils.eprint("Would run " + cmd)
     else:
-        os_utils.execute_sh(cmd)
+        os_utils.runsh_or_error(cmd)
 
 
 def _initialize_destination(destination: str) -> None:
