@@ -85,6 +85,7 @@ class Snapshot:
         # Thus we leave trace even if snapshotting fails.
         self.metadata.snap_type = snap_type
         self.metadata.source = parent
+        self.metadata.source_uuid = os_utils.get_filesystem_uuid(parent)
         self.metadata.save_file(self._metadata_fname)
         # Create the snap.
         snap_mechanisms.get(snap_type).create(parent, self._target)

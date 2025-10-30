@@ -24,6 +24,8 @@ class SnapMetadata:
     snap_type: snap_type_enum.SnapType = snap_type_enum.SnapType.UNKNOWN
     # Name of the subvolume from whcih this snap was taken.
     source: str = ""
+    # Filesystem UUID of source.
+    source_uuid: str | None = None
     # Can be one of -
     # I - Package installation or system update
     # S - Scheduled

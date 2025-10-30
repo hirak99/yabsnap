@@ -65,6 +65,31 @@ def runsh(command: str) -> str | None:
         return None
 
 
+def get_filesystem_uuid(path: str) -> str:
+    while True:
+        df_lines = runsh_or_error(f"df {path} --output=source").splitlines()
+        assert df_lines[0] == "Filesystem"
+        device = df_lines[1]
+        # Nested subvolumes don't seem to return a proper device.
+        if device != "-":
+            break
+        parent = os.path.dirname(path)
+        if len(parent) >= len(path):
+            raise RuntimeError()
+        path = parent
+
+    try:
+        lsblk_lines = runsh_or_error(f"lsblk -o UUID -n {device}").splitlines()
+    except CommandError as exc:
+        # Dev Note: If we see this error for no apparent reason, we can consider
+        # allowing None to be returned.
+        raise RuntimeError(
+            f"Error querying {device=} from {df_lines=} for {path=}"
+        ) from exc
+    assert len(lsblk_lines) == 1
+    return lsblk_lines[0]
+
+
 def command_exists(command: str) -> bool:
     """E.g. command_exists('rsync')"""
     return runsh(f"which {command}") is not None
