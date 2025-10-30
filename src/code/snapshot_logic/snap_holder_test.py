@@ -22,7 +22,7 @@ from unittest import mock
 
 from . import snap_holder
 from ..mechanisms import btrfs_mechanism
-from ..mechanisms import snap_mechanisms
+from ..mechanisms import snap_type_enum
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -36,7 +36,7 @@ class SnapHolderTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as dir:
             snap_destination = os.path.join(dir, "root-20231122193630")
             snap = snap_holder.Snapshot(snap_destination)
-            self.assertEqual(snap._snap_type, snap_mechanisms.SnapType.UNKNOWN)
+            self.assertEqual(snap._snap_type, snap_type_enum.SnapType.UNKNOWN)
 
             with mock.patch.object(
                 btrfs_mechanism.BtrfsSnapMechanism,
@@ -45,12 +45,12 @@ class SnapHolderTest(unittest.TestCase):
             ) as mock_verify_volume, mock.patch.object(
                 btrfs_mechanism.BtrfsSnapMechanism, "create", return_value=None
             ) as mock_create:
-                snap.create_from(snap_mechanisms.SnapType.BTRFS, "parent")
+                snap.create_from(snap_type_enum.SnapType.BTRFS, "parent")
             mock_verify_volume.assert_called_once_with("parent")
             mock_create.assert_called_once_with("parent", snap_destination)
 
             snap2 = snap_holder.Snapshot(snap_destination)
-            self.assertEqual(snap2._snap_type, snap_mechanisms.SnapType.BTRFS)
+            self.assertEqual(snap2._snap_type, snap_type_enum.SnapType.BTRFS)
 
             with open(f"{snap_destination}-meta.json") as f:
                 self.assertEqual(
@@ -118,7 +118,7 @@ class SnapHolderTest(unittest.TestCase):
             snap_destination = os.path.join(dir, "root-20231122193630")
             snap = snap_holder.Snapshot(snap_destination)
             with self.assertLogs(level=logging.WARNING) as log:
-                self.assertEqual(snap._snap_type, snap_mechanisms.SnapType.UNKNOWN)
+                self.assertEqual(snap._snap_type, snap_type_enum.SnapType.UNKNOWN)
             self.assertRegex(log.output[0], "This may occur if .* manually deleted")
 
             # Check that there is no warning if the snap type is known.
@@ -129,12 +129,12 @@ class SnapHolderTest(unittest.TestCase):
             ) as mock_verify_volume, mock.patch.object(
                 btrfs_mechanism.BtrfsSnapMechanism, "create", return_value=None
             ) as mock_create:
-                snap.create_from(snap_mechanisms.SnapType.BTRFS, "parent")
+                snap.create_from(snap_type_enum.SnapType.BTRFS, "parent")
             mock_verify_volume.assert_called_once_with("parent")
             mock_create.assert_called_once_with("parent", snap_destination)
             snap2 = snap_holder.Snapshot(snap_destination)
             with self.assertNoLogs():
-                self.assertEqual(snap2._snap_type, snap_mechanisms.SnapType.BTRFS)
+                self.assertEqual(snap2._snap_type, snap_type_enum.SnapType.BTRFS)
 
 
 if __name__ == "__main__":

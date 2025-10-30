@@ -12,32 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import enum
 import functools
 
 from . import abstract_mechanism
 from . import bcachefs_mechanism
 from . import btrfs_mechanism
 from . import rsync_mechanism
-
-
-# The type of snapshot is maintained in two places -
-# 1. Config
-# 2. Snapshot
-class SnapType(enum.Enum):
-    UNKNOWN = "UNKNOWN"
-    BTRFS = "BTRFS"
-    RSYNC = "RSYNC"
-    BCACHEFS = "BCACHEFS"
+from . import snap_type_enum
 
 
 @functools.cache
-def get(snap_type: SnapType) -> abstract_mechanism.SnapMechanism:
+def get(snap_type: snap_type_enum.SnapType) -> abstract_mechanism.SnapMechanism:
     """Singleton factory implementation."""
-    if snap_type == SnapType.BTRFS:
+    if snap_type == snap_type_enum.SnapType.BTRFS:
         return btrfs_mechanism.BtrfsSnapMechanism()
-    if snap_type == SnapType.RSYNC:
+    if snap_type == snap_type_enum.SnapType.RSYNC:
         return rsync_mechanism.RsyncSnapMechanism()
-    if snap_type == SnapType.BCACHEFS:
+    if snap_type == snap_type_enum.SnapType.BCACHEFS:
         return bcachefs_mechanism.BcachefsSnapMechanism()
     raise RuntimeError(f"Unknown snap_type {snap_type}")

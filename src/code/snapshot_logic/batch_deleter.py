@@ -8,7 +8,7 @@ import pathlib
 from . import snap_holder
 from .. import configs
 from .. import global_flags
-from ..mechanisms import snap_mechanisms
+from ..mechanisms import snap_type_enum
 from ..utils import human_interval
 
 from typing import Any, Iterable, Iterator, Protocol
@@ -177,7 +177,7 @@ def get_to_sync_list(configs: Iterable[configs.Config]) -> list[configs.Config]:
     return [
         config
         for config in configs
-        if config.snap_type == snap_mechanisms.SnapType.BTRFS
+        if config.snap_type == snap_type_enum.SnapType.BTRFS
     ]
 
 

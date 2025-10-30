@@ -20,6 +20,7 @@ import os
 import pathlib
 import shlex
 
+from .mechanisms import snap_type_enum
 from .mechanisms import snap_mechanisms
 from .utils import human_interval
 from .utils import os_utils
@@ -71,7 +72,7 @@ class Config:
     post_transaction_scripts: list[str] = dataclasses.field(default_factory=list)
 
     # If empty, btrfs is assumed.
-    snap_type: snap_mechanisms.SnapType = snap_mechanisms.SnapType.BTRFS
+    snap_type: snap_type_enum.SnapType = snap_type_enum.SnapType.BTRFS
 
     def is_schedule_enabled(self) -> bool:
         return (
@@ -99,7 +100,7 @@ class Config:
             if key == "snap_type":
                 if not value:
                     value = "BTRFS"
-                result.snap_type = snap_mechanisms.SnapType[value]
+                result.snap_type = snap_type_enum.SnapType[value]
                 continue
             if not hasattr(result, key):
                 logging.warning(f"Invalid field {key=} found in {config_file=}")

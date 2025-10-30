@@ -23,7 +23,7 @@ from . import snap_holder
 from . import snap_operator
 from .. import configs
 from ..mechanisms import btrfs_mechanism
-from ..mechanisms import snap_mechanisms
+from ..mechanisms import snap_type_enum
 
 from typing import Iterator
 
@@ -66,7 +66,7 @@ class SnapOperatorTest(unittest.TestCase):
         )
         snapper.scheduled()
         self._mock_create_from.assert_called_once_with(
-            snap_mechanisms.SnapType.BTRFS, "snap_source"
+            snap_type_enum.SnapType.BTRFS, "snap_source"
         )
 
     def test_scheduled_not_triggered(self):
@@ -114,7 +114,7 @@ class SnapOperatorTest(unittest.TestCase):
         snapper.scheduled()
         self._mock_delete.assert_called_once_with()
         self._mock_create_from.assert_called_once_with(
-            snap_mechanisms.SnapType.BTRFS, "snap_source"
+            snap_type_enum.SnapType.BTRFS, "snap_source"
         )
 
     def test_scheduled_ttl_expiry(self):
@@ -146,7 +146,7 @@ class SnapOperatorTest(unittest.TestCase):
         # Even if the scheduled() call happens before trigger, snap is deleted().
         self._mock_delete.assert_called_once_with()
         self._mock_create_from.assert_called_once_with(
-            snap_mechanisms.SnapType.BTRFS, "snap_source"
+            snap_type_enum.SnapType.BTRFS, "snap_source"
         )
 
     def test_pachook(self):
@@ -179,28 +179,28 @@ class SnapOperatorTest(unittest.TestCase):
         # Have 0, need 3 => Create 1, delete 0.
         setup_n_snaps(0)._create_and_maintain_n_backups(3, "I", None)
         self._mock_create_from.assert_called_once_with(
-            snap_mechanisms.SnapType.BTRFS, "snap_source"
+            snap_type_enum.SnapType.BTRFS, "snap_source"
         )
         self._mock_delete.assert_not_called()
 
         # Have 3, need 4 => Create 1, delete 0.
         setup_n_snaps(3)._create_and_maintain_n_backups(4, "I", None)
         self._mock_create_from.assert_called_once_with(
-            snap_mechanisms.SnapType.BTRFS, "snap_source"
+            snap_type_enum.SnapType.BTRFS, "snap_source"
         )
         self._mock_delete.assert_not_called()
 
         # Have 3, need 3 => Create 1, delete 1.
         setup_n_snaps(3)._create_and_maintain_n_backups(3, "I", None)
         self._mock_create_from.assert_called_once_with(
-            snap_mechanisms.SnapType.BTRFS, "snap_source"
+            snap_type_enum.SnapType.BTRFS, "snap_source"
         )
         self._mock_delete.assert_called_once_with()
 
         # Have 3, need 2 => Create 1, delete 2.
         setup_n_snaps(3)._create_and_maintain_n_backups(2, "I", None)
         self._mock_create_from.assert_called_once_with(
-            snap_mechanisms.SnapType.BTRFS, "snap_source"
+            snap_type_enum.SnapType.BTRFS, "snap_source"
         )
         self.assertEqual(self._mock_delete.call_count, 2)
 

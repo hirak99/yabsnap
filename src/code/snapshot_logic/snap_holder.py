@@ -23,6 +23,7 @@ import os
 
 from . import snap_metadata
 from .. import global_flags
+from ..mechanisms import snap_type_enum
 from ..mechanisms import snap_mechanisms
 from ..utils import human_interval
 from ..utils import os_utils
@@ -50,8 +51,8 @@ class Snapshot:
         return self._snaptime
 
     @property
-    def _snap_type(self) -> snap_mechanisms.SnapType:
-        if self.metadata.snap_type == snap_mechanisms.SnapType.UNKNOWN:
+    def _snap_type(self) -> snap_type_enum.SnapType:
+        if self.metadata.snap_type == snap_type_enum.SnapType.UNKNOWN:
             logging.warning(
                 f"Cannot determine type for '{self.target}'.\n"
                 f"This may occur if the metadata '{self._metadata_fname}' was manually deleted.\n"
@@ -76,7 +77,7 @@ class Snapshot:
             self.metadata.expiry = expiry.timestamp()
         self.metadata.save_file(self._metadata_fname)
 
-    def create_from(self, snap_type: snap_mechanisms.SnapType, parent: str) -> None:
+    def create_from(self, snap_type: snap_type_enum.SnapType, parent: str) -> None:
         if not snap_mechanisms.get(snap_type).verify_volume(parent):
             logging.error("Unable to validate source volume - aborting snapshot!")
             return

@@ -12,7 +12,7 @@ import logging
 import os
 
 from .. import global_flags
-from ..mechanisms import snap_mechanisms
+from ..mechanisms import snap_type_enum
 from ..utils import os_utils
 
 from typing import Any
@@ -21,7 +21,7 @@ from typing import Any
 @dataclasses.dataclass
 class SnapMetadata:
     # Snapshot type. If empty, assumed btrfs.
-    snap_type: snap_mechanisms.SnapType = snap_mechanisms.SnapType.UNKNOWN
+    snap_type: snap_type_enum.SnapType = snap_type_enum.SnapType.UNKNOWN
     # Name of the subvolume from whcih this snap was taken.
     source: str = ""
     # Can be one of -
@@ -62,10 +62,10 @@ class SnapMetadata:
                 all_args = json.load(f)
                 if "snap_type" not in all_args:
                     # For back compatibility. Older snaps do not have snap_type.
-                    all_args["snap_type"] = snap_mechanisms.SnapType.BTRFS
+                    all_args["snap_type"] = snap_type_enum.SnapType.BTRFS
                 else:
                     # snap_type is mandatory in new snaps.
-                    all_args["snap_type"] = snap_mechanisms.SnapType[
+                    all_args["snap_type"] = snap_type_enum.SnapType[
                         all_args["snap_type"]
                     ]
                 try:

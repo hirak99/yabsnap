@@ -21,6 +21,7 @@ import tempfile
 from . import snap_operator
 from .. import configs
 from .. import global_flags
+from ..mechanisms import snap_type_enum
 from ..mechanisms import snap_mechanisms
 from ..utils import os_utils
 
@@ -33,7 +34,7 @@ def _get_rollback_script_text(
     live_subvol_map: dict[str, str] | None,
 ) -> str | None:
     """Combines the rollback scripts from all snaps. Returns None if no matching snapshot exists."""
-    source_dests_by_snaptype: dict[snap_mechanisms.SnapType, list[tuple[str, str]]] = (
+    source_dests_by_snaptype: dict[snap_type_enum.SnapType, list[tuple[str, str]]] = (
         collections.defaultdict(list)
     )
     for config in configs_iter:

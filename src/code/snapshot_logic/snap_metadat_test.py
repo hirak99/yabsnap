@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from . import snap_metadata
-from ..mechanisms import snap_mechanisms
+from ..mechanisms import snap_type_enum
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -20,7 +20,7 @@ def _load_json(json_str: str) -> snap_metadata.SnapMetadata:
 class SnapMetadataTest(unittest.TestCase):
     def test_to_file_content(self):
         metadata = snap_metadata.SnapMetadata(
-            snap_type=snap_mechanisms.SnapType.BTRFS, source="parent", expiry=1234
+            snap_type=snap_type_enum.SnapType.BTRFS, source="parent", expiry=1234
         )
         self.assertEqual(
             metadata._to_file_content(),
@@ -36,14 +36,14 @@ class SnapMetadataTest(unittest.TestCase):
             '{"snap_type": "BTRFS", "source": "parent", "trigger": "S"}'
         )
         expected = snap_metadata.SnapMetadata(
-            snap_type=snap_mechanisms.SnapType.BTRFS, source="parent", trigger="S"
+            snap_type=snap_type_enum.SnapType.BTRFS, source="parent", trigger="S"
         )
         self.assertEqual(loaded, expected)
 
     def test_backcompat(self):
         # Test that unspecified type is read as BTRFS for back compatibility.
         metadata = _load_json('{"source": "parent"}')
-        self.assertEqual(metadata.snap_type, snap_mechanisms.SnapType.BTRFS)
+        self.assertEqual(metadata.snap_type, snap_type_enum.SnapType.BTRFS)
 
 
 if __name__ == "__main__":

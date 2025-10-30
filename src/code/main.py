@@ -21,6 +21,7 @@ import shlex
 
 from . import configs
 from . import global_flags
+from .mechanisms import snap_type_enum
 from .mechanisms import snap_mechanisms
 from .snapshot_logic import batch_deleter
 from .snapshot_logic import rollbacker
@@ -195,7 +196,7 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _sync(configs_to_sync: list[configs.Config]):
-    paths_to_sync: dict[snap_mechanisms.SnapType, set[str]] = collections.defaultdict(
+    paths_to_sync: dict[snap_type_enum.SnapType, set[str]] = collections.defaultdict(
         set
     )
     for config in configs_to_sync:
@@ -282,7 +283,7 @@ def _config_operation(
             raise ValueError(f"Command not implemented: {command}")
 
         if snapper.snaps_deleted:
-            if config.snap_type == snap_mechanisms.SnapType.BTRFS:
+            if config.snap_type == snap_type_enum.SnapType.BTRFS:
                 to_sync.append(config)
         if snapper.snaps_created or snapper.snaps_deleted:
             config.call_post_hooks()
