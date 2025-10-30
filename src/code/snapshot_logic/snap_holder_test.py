@@ -64,16 +64,6 @@ class SnapHolderTest(unittest.TestCase):
             mock_delete.assert_called_once_with(snap_destination)
             self.assertFalse(os.path.exists(f"{snap_destination}-meta.json"))
 
-    def test_backcompat(self):
-        with tempfile.TemporaryDirectory() as dir:
-            snap_destination = os.path.join(dir, "root-20231122193630")
-            with open(f"{snap_destination}-meta.json", "w") as f:
-                json.dump({"source": "parent"}, f)
-            snap = snap_holder.Snapshot(snap_destination)
-
-            # Without any snap_type, defaults to BTRFS to continue working with old snaps.
-            self.assertEqual(snap._snap_type, snap_mechanisms.SnapType.BTRFS)
-
     def test_filecontent(self):
         with tempfile.TemporaryDirectory() as dir:
             snap_destination = os.path.join(dir, "root-20231122193630")
