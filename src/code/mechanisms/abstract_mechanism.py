@@ -50,7 +50,7 @@ class SnapMechanism(abc.ABC):
     @abc.abstractmethod
     def rollback_gen(
         self,
-        source_dests: list[tuple[str, str]],
+        source_dests: list[tuple[snap_metadata.SnapMetadata, str]],
         live_subvol_map: dict[str, str] | None,
     ) -> list[str]:
         """Returns shell script lines to roll back snapshots.

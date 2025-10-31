@@ -18,6 +18,7 @@ import os
 import shlex
 
 from .. import global_flags
+from ..snapshot_logic import snap_metadata
 from ..utils import btrfs_utils
 from ..utils import mtab_parser
 
@@ -65,7 +66,8 @@ def _drop_root_slash(s: str) -> str:
 
 
 def rollback_gen(
-    source_dests: list[tuple[str, str]], live_subvol_map: dict[str, str] | None
+    source_dests: list[tuple[snap_metadata.SnapMetadata, str]],
+    live_subvol_map: dict[str, str] | None,
 ) -> list[str]:
     """
     Generates rollback script assuming running on a live (non-snapshot) system.
@@ -116,7 +118,8 @@ def rollback_gen(
     backup_paths: list[str] = []
     current_dir: str | None = None
     nested_subvol_commands: list[str] = []
-    for live_path, snap_path in source_dests:
+    for metadata, snap_path in source_dests:
+        live_path = metadata.source
         # 1. We retrieve device and snapshot subvolume information from the snapshot path.
         snap_subvolume = mtab_parser.mount_attributes(os.path.dirname(snap_path))
 

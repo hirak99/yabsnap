@@ -79,10 +79,11 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
     def rollback_gen(
         self,
-        source_dests: list[tuple[str, str]],
+        source_dests: list[tuple[snap_metadata.SnapMetadata, str]],
         live_subvol_map: dict[str, str] | None,
     ) -> list[str]:
-        for source, _ in source_dests:
+        for metadata, _ in source_dests:
+            source = metadata.source
             if live_subvol_map and source in live_subvol_map:
                 logging.info(
                     f"Using mapped subvol for {source}. Skipping volume verification."

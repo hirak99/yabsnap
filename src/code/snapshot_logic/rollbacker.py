@@ -21,8 +21,9 @@ import tempfile
 from . import snap_operator
 from .. import configs
 from .. import global_flags
-from ..mechanisms import snap_type_enum
 from ..mechanisms import snap_mechanisms
+from ..mechanisms import snap_type_enum
+from ..snapshot_logic import snap_metadata
 from ..utils import os_utils
 
 from typing import Iterable
@@ -34,14 +35,14 @@ def _get_rollback_script_text(
     live_subvol_map: dict[str, str] | None,
 ) -> str | None:
     """Combines the rollback scripts from all snaps. Returns None if no matching snapshot exists."""
-    source_dests_by_snaptype: dict[snap_type_enum.SnapType, list[tuple[str, str]]] = (
-        collections.defaultdict(list)
-    )
+    source_dests_by_snaptype: dict[
+        snap_type_enum.SnapType, list[tuple[snap_metadata.SnapMetadata, str]]
+    ] = collections.defaultdict(list)
     for config in configs_iter:
         snap = snap_operator.find_target(config, path_suffix)
         if snap:
             source_dests_by_snaptype[config.snap_type].append(
-                (snap.metadata.source, snap.target)
+                (snap.metadata, snap.target)
             )
     if not source_dests_by_snaptype:
         return None

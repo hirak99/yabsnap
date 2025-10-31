@@ -19,6 +19,7 @@ import shlex
 
 from . import abstract_mechanism
 from .. import global_flags
+from ..snapshot_logic import snap_metadata
 from ..utils import os_utils
 
 from typing import override
@@ -108,7 +109,7 @@ class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
     def rollback_gen(
         self,
-        source_dests: list[tuple[str, str]],
+        source_dests: list[tuple[snap_metadata.SnapMetadata, str]],
         live_subvol_map: dict[str, str] | None,
     ) -> list[str]:
         # Rollback for rsync snapshots is not directly supported in the same way as btrfs.
