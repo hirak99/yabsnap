@@ -17,9 +17,10 @@ import logging
 from . import abstract_mechanism
 from . import rollback_btrfs
 from .. import global_flags
+from ..snapshot_logic import snap_holder
 from ..snapshot_logic import snap_metadata
-from ..utils import os_utils
 from ..utils import mtab_parser
+from ..utils import os_utils
 
 from typing import override
 
@@ -79,11 +80,11 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
     def rollback_gen(
         self,
-        source_dests: list[tuple[snap_metadata.SnapMetadata, str]],
+        snapshots: list[snap_holder.Snapshot],
         live_subvol_map: dict[str, str] | None,
     ) -> list[str]:
-        for metadata, _ in source_dests:
-            source = metadata.source
+        for snap in snapshots:
+            source = snap.metadata.source
             if live_subvol_map and source in live_subvol_map:
                 logging.info(
                     f"Using mapped subvol for {source}. Skipping volume verification."
@@ -95,7 +96,7 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
                     " For certain recovery environments like grub-btrfs, volumes may not be correctly detected."
                     " You can use the `--live-subvol-map` arg to override auto detection."
                 )
-        return rollback_btrfs.rollback_gen(source_dests, live_subvol_map)
+        return rollback_btrfs.rollback_gen(snapshots, live_subvol_map)
 
     @override
     def sync_paths(self, paths: set[str]):

@@ -3,7 +3,7 @@ import shlex
 
 from . import abstract_mechanism
 from .. import global_flags
-from ..snapshot_logic import snap_metadata
+from ..snapshot_logic import snap_holder
 from ..utils import os_utils
 
 from typing import override
@@ -56,7 +56,7 @@ class BcachefsSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
     def rollback_gen(
         self,
-        source_dests: list[tuple[snap_metadata.SnapMetadata, str]],
+        snapshots: list[snap_holder.Snapshot],
         live_subvol_map: dict[str, str] | None,
     ) -> list[str]:
         # Rollback would probably be similar to btrfs, but needs to be implemented.

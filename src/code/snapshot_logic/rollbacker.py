@@ -23,7 +23,7 @@ from .. import configs
 from .. import global_flags
 from ..mechanisms import snap_mechanisms
 from ..mechanisms import snap_type_enum
-from ..snapshot_logic import snap_metadata
+from ..snapshot_logic import snap_holder
 from ..utils import os_utils
 
 from typing import Iterable
@@ -36,14 +36,12 @@ def _get_rollback_script_text(
 ) -> str | None:
     """Combines the rollback scripts from all snaps. Returns None if no matching snapshot exists."""
     source_dests_by_snaptype: dict[
-        snap_type_enum.SnapType, list[tuple[snap_metadata.SnapMetadata, str]]
+        snap_type_enum.SnapType, list[snap_holder.Snapshot]
     ] = collections.defaultdict(list)
     for config in configs_iter:
         snap = snap_operator.find_target(config, path_suffix)
         if snap:
-            source_dests_by_snaptype[config.snap_type].append(
-                (snap.metadata, snap.target)
-            )
+            source_dests_by_snaptype[config.snap_type].append(snap)
     if not source_dests_by_snaptype:
         return None
 
@@ -54,12 +52,10 @@ def _get_rollback_script_text(
         "set -uexo pipefail",
         "",
     ]
-    for snap_type, source_dests in sorted(source_dests_by_snaptype.items()):
+    for snap_type, snapshots in sorted(source_dests_by_snaptype.items()):
         content.append(
             "\n".join(
-                snap_mechanisms.get(snap_type).rollback_gen(
-                    source_dests, live_subvol_map
-                )
+                snap_mechanisms.get(snap_type).rollback_gen(snapshots, live_subvol_map)
             )
         )
     return "\n".join(content)

@@ -14,6 +14,8 @@
 
 import abc
 import enum
+
+from ..snapshot_logic import snap_holder
 from ..snapshot_logic import snap_metadata
 
 
@@ -50,7 +52,7 @@ class SnapMechanism(abc.ABC):
     @abc.abstractmethod
     def rollback_gen(
         self,
-        source_dests: list[tuple[snap_metadata.SnapMetadata, str]],
+        snapshots: list[snap_holder.Snapshot],
         live_subvol_map: dict[str, str] | None,
     ) -> list[str]:
         """Returns shell script lines to roll back snapshots.
