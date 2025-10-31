@@ -130,6 +130,8 @@ def rollback_gen(
             # Prioritize the map which indicates system may be offline.
             live_subvol_name = live_subvol_map[source]
             using_subvol_map = True
+        elif snap.metadata.btrfs and snap.metadata.btrfs.source_subvol:
+            live_subvol_name = snap.metadata.btrfs.source_subvol
         else:
             # If map is not given, determine subvol name assuming that the system is live.
             # The snapshot must be on the same block device as the original (target) volume.
