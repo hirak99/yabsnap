@@ -1,3 +1,10 @@
+"""A light-weight pydantic-like loader for dataclasses.
+
+Avoids dependency on pydantic, is lightweight, and has some important differences -
+
+- Automatically loads nested dataclasses, enums, etc.
+- The only type which is implicitly cast is list ["a", 1] to ("a", 1) when needed.
+"""
 import dataclasses
 import enum
 from types import UnionType
@@ -17,7 +24,7 @@ def _as_type(typ, value: Any):
         return load_from_dict(typ, value)  # type: ignore
     origin = typing.get_origin(typ)
 
-    # Handle enums
+    # Handle enums.
     if isinstance(typ, type) and issubclass(typ, enum.Enum):
         # Try to convert value to enum member
         try:

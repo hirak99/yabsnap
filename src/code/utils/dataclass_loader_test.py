@@ -24,6 +24,7 @@ class _TestClass:
     nested: None | _NestedClass = None
     x_tuple: tuple[str, int] | None = None
     x_enum: _TestEnum | None = None
+    nested_list: list[_NestedClass] = dataclasses.field(default_factory=list)
 
 
 class DataclassLoaderTest(unittest.TestCase):
@@ -31,9 +32,23 @@ class DataclassLoaderTest(unittest.TestCase):
         test = dataclass_loader.load_from_dict(_TestClass, {"x_list": [1, 2, 3]})
         self.assertEqual(test, _TestClass(x_list=[1, 2, 3]))
 
-    def test_nested_load(self):
+    def test_nested_dc(self):
         test = dataclass_loader.load_from_dict(_TestClass, {"nested": {"x": 1}})
         self.assertEqual(test, _TestClass(nested=_NestedClass(x=1)))
+
+    def test_dataclass_list(self):
+        test = dataclass_loader.load_from_dict(
+            _TestClass, {"nested_list": [{"x": 1}, {"x": 2}]}
+        )
+        self.assertEqual(
+            test,
+            _TestClass(
+                nested_list=[
+                    _NestedClass(x=1),
+                    _NestedClass(x=2),
+                ]
+            ),
+        )
 
     def test_tuple(self):
         test = dataclass_loader.load_from_dict(_TestClass, {"x_tuple": ["a", 1]})

@@ -10,14 +10,13 @@ import datetime
 import json
 import logging
 import os
-from types import UnionType
 
 from .. import global_flags
 from ..mechanisms import snap_type_enum
+from ..utils import dataclass_loader
 from ..utils import os_utils
 
-import typing
-from typing import Any, Type
+from typing import Any
 
 
 @dataclasses.dataclass
@@ -25,36 +24,12 @@ class Btrfs:
     source_subvol: str
 
 
-def _load_dataclass_recursive(dataclass_type: Type[Any], data: dict[str, Any]):
-    """Loads dataclass recursively.
-
-    Identifies and loads all subfields which are also dataclasses.
-    """
-    fields_dict = {}
-    for field in dataclasses.fields(dataclass_type):
-        if field.name not in data:
-            continue
-        loaded_as_dataclass = False
-        if typing.get_origin(field.type) is UnionType:
-            # If it is a Union type, load as the first dataclass if there is any.
-            # Primarily for dataclass | None.
-            for type in typing.get_args(field.type):
-                if dataclasses.is_dataclass(type):
-                    loaded_as_dataclass = True
-                    fields_dict[field.name] = _load_dataclass_recursive(
-                        type,  # type: ignore
-                        data[field.name],
-                    )
-                break
-        if not loaded_as_dataclass:
-            fields_dict[field.name] = data[field.name]
-    return dataclass_type(**fields_dict)
-
-
 @dataclasses.dataclass
 class SnapMetadata:
-    # Snapshot type. If empty, assumed btrfs.
-    snap_type: snap_type_enum.SnapType = snap_type_enum.SnapType.UNKNOWN
+    # Snapshot type.
+    # This will always be populated for new snapshots.
+    # If empty, assumed btrfs for backwards compatibility with old snaps.
+    snap_type: snap_type_enum.SnapType = snap_type_enum.SnapType.BTRFS
     # Name of the subvolume from whcih this snap was taken.
     source: str = ""
     # Filesystem UUID of source.
@@ -103,12 +78,5 @@ class SnapMetadata:
                 except json.JSONDecodeError:
                     logging.warning(f"Unable to parse metadata file: {fname}")
                     return cls()
-            result = _load_dataclass_recursive(cls, all_args)
-            if "snap_type" not in all_args:
-                # For back compatibility. Older snaps do not have snap_type.
-                result.snap_type = snap_type_enum.SnapType.BTRFS
-            else:
-                # snap_type is mandatory in new snaps.
-                result.snap_type = snap_type_enum.SnapType[all_args["snap_type"]]
-            return result
+            return dataclass_loader.load_from_dict(cls, all_args)
         return cls()
