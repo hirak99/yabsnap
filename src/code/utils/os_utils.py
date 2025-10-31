@@ -48,13 +48,17 @@ def runsh_or_error(command: str) -> str:
     """
     logging.info(f"Running {command}")
     try:
-        return subprocess.check_output(command.split(" ")).decode()
-    except subprocess.CalledProcessError:
-        # Exit context so this exception is not raised.
-        pass
-    # If we are here, the command could not be run.
-    error_msg = f"Error running shell command: '{command}'"
-    raise CommandError(error_msg)
+        return subprocess.check_output(
+            command.split(" "), stderr=subprocess.PIPE
+        ).decode()
+    except subprocess.CalledProcessError as exc:
+        # If we are here, the command could not be run.
+        error_msg = (
+            f"Error running shell command: '{command}'"
+            f"\nstdout: {exc.stdout.decode()}"
+            f"\nstderr: {exc.stderr.decode()}"
+        )
+        raise CommandError(error_msg) from exc
 
 
 def runsh(command: str) -> str | None:
