@@ -41,17 +41,15 @@ class BcachefsSnapMechanism(abstract_mechanism.SnapMechanism):
             _execute_sh(
                 f"bcachefs subvolume snapshot {shlex.quote(source)} {shlex.quote(destination)}"
             )
-        except os_utils.CommandError:
-            logging.error("Unable to create snapshot using bcachefs.")
-            raise
+        except os_utils.CommandError as exc:
+            raise RuntimeError("Unable to create; are you running as root?") from exc
 
     @override
     def delete(self, destination: str):
         try:
             _execute_sh(f"bcachefs subvolume delete {shlex.quote(destination)}")
-        except os_utils.CommandError:
-            logging.error("Unable to delete snapshot.")
-            raise
+        except os_utils.CommandError as exc:
+            raise RuntimeError("Unable to delete; are you running as root?") from exc
 
     @override
     def rollback_gen(

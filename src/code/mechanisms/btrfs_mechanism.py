@@ -65,17 +65,15 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
     def create(self, source: str, destination: str):
         try:
             _execute_sh("btrfs subvolume snapshot -r " f"{source} {destination}")
-        except os_utils.CommandError:
-            logging.error("Unable to create; are you running as root?")
-            raise
+        except os_utils.CommandError as exc:
+            raise RuntimeError("Unable to create; are you running as root?") from exc
 
     @override
     def delete(self, destination: str):
         try:
             _execute_sh(f"btrfs subvolume delete {destination}")
-        except os_utils.CommandError:
-            logging.error("Unable to delete; are you running as root?")
-            raise
+        except os_utils.CommandError as exc:
+            raise RuntimeError("Unable to delete; are you running as root?") from exc
 
     @override
     def rollback_gen(

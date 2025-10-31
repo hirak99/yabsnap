@@ -94,17 +94,15 @@ class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
             _execute_sh(
                 f"rsync -aAXHSv --delete {shlex.quote(source)}/ {shlex.quote(destination)}"
             )
-        except os_utils.CommandError:
-            logging.error("Unable to create snapshot using rsync.")
-            raise
+        except os_utils.CommandError as exc:
+            raise RuntimeError("Unable to create snapshot using rsync.") from exc
 
     @override
     def delete(self, destination: str):
         try:
             _execute_sh(f"rm -rf {shlex.quote(destination)}")
-        except os_utils.CommandError:
-            logging.error("Unable to delete snapshot.")
-            raise
+        except os_utils.CommandError as exc:
+            raise RuntimeError("Unable to delete snapshot.") from exc
 
     @override
     def rollback_gen(
