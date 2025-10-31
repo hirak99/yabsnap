@@ -19,6 +19,8 @@ from . import rollback_btrfs
 from ..snapshot_logic import snap_holder
 from ..utils import btrfs_utils
 from ..utils import mtab_parser
+from ..utils import os_utils
+
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -27,9 +29,16 @@ from ..utils import mtab_parser
 class TestRollbacker(unittest.TestCase):
     def setUp(self):
         mtab_parser.mount_attributes.cache_clear()
-        patcher = mock.patch.object(btrfs_utils, "get_nested_subvs", return_value=[])
-        patcher.start()
-        self.addCleanup(patcher.stop)
+        self._patches = [
+            mock.patch.object(btrfs_utils, "get_nested_subvs", return_value=[]),
+            mock.patch.object(os_utils, "get_filesystem_uuid", return_value="12345"),
+        ]
+        for patch in self._patches:
+            patch.start()
+
+    def tearDown(self) -> None:
+        for patch in self._patches:
+            patch.stop()
 
     def test_rollback_btrfs_for_two_snaps(self):
         # config_list = [configs.Config('test.conf', source='/home', dest_prefix='/snaps/@home-')]

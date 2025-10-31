@@ -21,6 +21,7 @@ from .. import global_flags
 from ..snapshot_logic import snap_holder
 from ..utils import btrfs_utils
 from ..utils import mtab_parser
+from ..utils import os_utils
 
 from typing import Iterator
 
@@ -90,9 +91,8 @@ def rollback_gen(
     if not live_subvol_map:
         live_subvol_map = {}
 
-    # Mount all required volumes at root.
+    # 0. Generate code to mount all the required volumes for rollback.
     temp_mount_points: dict[str, str] = {}
-    # 0. Mount the root filesystem device, e.g. `/dev/mapper/luksdev`.
     for snap in snapshots:
         # Note that live_path and snap_path must be on the same volume. This is
         # a sanity check performed on the next loop.
@@ -107,6 +107,19 @@ def rollback_gen(
                 f"mkdir -p {temp_mount_pt}",
                 f"mount {device} {temp_mount_pt} -o subvolid=5",
             ]
+            # Check if the uuids match.
+            uuid = os_utils.get_filesystem_uuid(snap.target)
+            if snap.metadata.source_uuid is not None:
+                if uuid == snap.metadata.source_uuid:
+                    logging.info(f"Verified UUID of the device with {snap.target!r}.")
+                else:
+                    logging.warning(
+                        f"UUID of the device with {snap.target!r} has changed.\n"
+                        "  This can happen if you are using the snap on a mirror volume.\n"
+                        "  Proceed with caution.\n"
+                        f"  Old UUID: {snap.metadata.source_uuid}\n"
+                        f"  New UUID: {uuid}"
+                    )
 
     now_str = _get_now_str()
 
