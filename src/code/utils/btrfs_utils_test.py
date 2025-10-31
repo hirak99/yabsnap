@@ -23,19 +23,19 @@ from . import btrfs_utils
 # # ls @B/C
 
 # Paths shown when `btrfs subv list .` is invoked from mounted "@".
-_TEST_SUBVOLS = """ID 279 gen 60 top level 285 path @B_old
-ID 280 gen 52 top level 279 path @B_old/C
-ID 282 gen 58 top level 285 path @B
-ID 283 gen 52 top level 280 path @B_old/C/D
-ID 284 gen 54 top level 282 path @B/E
-ID 285 gen 61 top level 5 path @
-ID 287 gen 60 top level 285 path a_dir/@B2"""
+_TEST_SUBVOLS = """ID 279 gen 60 top level 285 path <FS_TREE>/@B_old
+ID 280 gen 52 top level 279 path <FS_TREE>/@B_old/C
+ID 282 gen 58 top level 285 path <FS_TREE>/@B
+ID 283 gen 52 top level 280 path <FS_TREE>/@B_old/C/D
+ID 284 gen 54 top level 282 path <FS_TREE>/@B/E
+ID 285 gen 61 top level 5 path <FS_TREE>/@
+ID 287 gen 60 top level 285 path <FS_TREE>/@a_dir/@B2"""
 
 
 class TestBtrfsUtils(unittest.TestCase):
     def test_find_nested_subvs(self):
         subvols = btrfs_utils._parse_btrfs_list(_TEST_SUBVOLS)
         self.assertEqual(
-            btrfs_utils._get_nested_subvs(subvols, 285),
-            ["@B", "@B_old", "a_dir/@B2"],
+            btrfs_utils._get_nested_subvs(subvols, "@a_dir"),
+            ["@B", "@B_old", "@a_dir/@B2"],
         )
