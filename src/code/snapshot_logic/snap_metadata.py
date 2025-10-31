@@ -78,5 +78,5 @@ class SnapMetadata:
                 except json.JSONDecodeError:
                     logging.warning(f"Unable to parse metadata file: {fname}")
                     return cls()
-            return dataclass_loader.load_from_dict(cls, all_args)
+            return dataclass_loader.load_dataclass(cls, all_args)
         return cls()
