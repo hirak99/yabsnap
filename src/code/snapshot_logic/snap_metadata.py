@@ -18,6 +18,16 @@ from ..utils import os_utils
 
 from typing import Any
 
+# Version to be reported for snapshots taken before the version field existed.
+_UNKNOWN_VERSION = "1.0.0"
+
+# Current metadata version.
+# Increase to match yabsnap version when there are significant changes.
+# List of all versions -
+#   1.0.0 - The version before version field was established.
+#   2.3.0 - Added source_uuid and btrfs.
+_CURRENT_VERSION = "2.3.0"
+
 
 @dataclasses.dataclass
 class Btrfs:
@@ -26,6 +36,8 @@ class Btrfs:
 
 @dataclasses.dataclass
 class SnapMetadata:
+    # Metadata version.
+    version: str = _CURRENT_VERSION
     # Snapshot type.
     # This will always be populated for new snapshots.
     # If empty, assumed btrfs for backwards compatibility with old snaps.
@@ -78,5 +90,7 @@ class SnapMetadata:
                 except json.JSONDecodeError:
                     logging.warning(f"Unable to parse metadata file: {fname}")
                     return cls()
+            if "version" not in all_args:
+                all_args["version"] = _UNKNOWN_VERSION
             return dataclass_loader.load_dataclass(cls, all_args)
         return cls()
