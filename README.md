@@ -83,7 +83,7 @@ snapshot system.
 (2) At the time of writing, `timeshift-autosnap` does not tag the snapshot with
 pacman command used.
 
-(3) Automatic rollback is only implemented for btrfs, not for rsync.
+(3) Automatic rollback is only implemented for btrfs snapshots (as of 202511).
 
 
 # Usage
@@ -303,6 +303,8 @@ The optional arg `--live-subvol-map` works similarly as rollback-gen.
 
 # FAQ
 
+## General
+
 - Why Python?
   - Python, when written with high code quality, serves as an excellent
     orchestrator. This is precisely what we needed for Yabsnap, with a focus on
@@ -326,21 +328,29 @@ The optional arg `--live-subvol-map` works similarly as rollback-gen.
     supporting and encouraging me in my goal to share the project with the
     community.
 
+## Operational
+
 - I deleted a snapshot manually. Will this confuse yabsnap?
   - No. You should also delete the corresponding metadata `-meta.json` manually
     (it's in the same directory). If you used `yabsnap delete PATH_TO_SNAPSHOT`,
     it would take care of that for you.
 
 - How do I delete multiple snaps?
-  - The quickest way is to delete them manually. Remove the snaps with `btrfs
-    subvolume snapshot del YOUR_SNAP`, and corresponding `-meta.json` files.
+  - You can use `yabsnap batch-delete ...`
+  - You can also delete them manually. Remove the snaps with `btrfs subvolume snapshot
+    del YOUR_SNAP`, and corresponding `-meta.json` files.
 
-- Does `yabsnap` support live rollback?
-  - Yes for **btrfs**. The `rollback-gen` command to generate a rollback script,
-    or `rollback` command to apply the script.
+## Rollback Related
 
-    The generated script is designed to let you continue working in the live
-    environment and switch over to the rolled-back state on the next reboot.
+- Can I roll back rsync or bcachefs snapshots?
+  - Not currently. Rollback is supported only for btrfs snapshots.
+
+- Does `yabsnap` support _online_ rollback?
+  - Yes. The `rollback-gen` command to generate a rollback script, or `rollback` command
+    to apply the script. It can be run and executed even when the subvolume is mounted.
+
+    The generated script is designed to let you continue working in the live environment
+    and switch over to the rolled-back state on the next reboot.
 
     > [!NOTE]
     > It is **strongly recommended** that you read and understand the script
@@ -348,30 +358,29 @@ The optional arg `--live-subvol-map` works similarly as rollback-gen.
     > it does and how to reverse it if needed. The generated script is
     intentionally kept small and readable for this reason.
 
-- Does `yabsnap` support offline rollback?
-  - Sort of. It is not automatic, but is possible with the `--live-subvol-map`
+- Does `yabsnap` support _offline_ rollback?
+  - Yes! Starting from `v2.3.0`, `yabsnap` stores the necessary information to perform
+    offline rollbacks in snapshots.
+  - **For snapshots taken prior to `v2.3.0`, an additional argument is required.** For
+    these snapshots, `yabsnap` relies on the currently mounted subvolume to determine
+    the subvolume to rollback. While this works well for online rollbacks, it's not
+    suitable for offline environments. For example, `grub-btrfs` might mount the
+    subvolume `/@.snapshots/@root-20250921193009` as root, allowing you to log into it.
+    However, to roll back, `yabsnap` needs to know that root subvolume is `@` under
+    normal operations. To specify this, you can use the `--live-subvol-map "/:@"`
     argument.
 
-    Since recovery environments like `grub-btrfs` mount the devices in a
-    different way than when the snapshot was taken, you'll need to specify
-    `--live-subvol-map` to let `yabsnap` know which live mount points correspond
-    to which subvolume from the snapshot.
+    > [!NOTE] NOTE: As with live rollback, it’s strongly recommended that you review the
+    > generated script before running it, to ensure you understand what it will do and
+    > how to undo it if necessary.
 
-    > [!NOTE]
-    > NOTE: As with live rollback, it’s strongly recommended that you review the generated script before running it, to ensure you understand what it will do and how to undo it if necessary.
+- How is rollback handled for nested subvolumes?
+  - Rolling back nested subvolumes is supported. However, due to the way BTRFS handles
+    subvolumes, additional steps are required to move them over after you log in to the
+    rolled-back snapshot following a reboot.
 
-## Handling Nested Subvolumes in BTRFS Rollbacks
+    The rollback script will automatically generate the necessary instructions for you to follow.
 
-BTRFS allows the creation of subvolumes, which are essentially independent filesystems that can be nested inside directories or other subvolumes. Sometimes, these subvolumes may be nested within other BTRFS volumes, creating complex hierarchical structures.
-
-When performing a rollback on a parent subvolume, it can be desirable to automatically roll back any nested subvolumes as well. However, due to how subvolumes work in BTRFS, this automatic behavior can be problematic.
-
-### Issues With Fully Automatic Rollback of Subvolumes
-
-1. When rolling back a parent subvolume, nested subvolumes (such as `~/.cache`) may be in use by other jobs. If the rollback operation moves them to a separate volume, they will suddenly become absent. This can leave the jobs using them in an inconsistent state. Moreover this can lead to corruption of the data in the subvolume which will persist after the rollback is completed and the system rebooted.
-
-2. One possible workaround would be to take snapshots of all nested subvolumes while performing the rollback. However, this introduces additional challenges. Subvolumes can be configured with the `nodatacow` attribute, which disables copy-on-write for improved performance. When a snapshot of such a volume is taken this attribute will be ignored, potentially leading to fragmentation. Moreover if it happens automatically it will be easy for the user to miss, leaving the reason for any possible degradation unnoticed.
-
-For this reasons it is best to let the user decide what works best for them.
-
-Hence yabsnap provides suggestions in the form of generated scripts to review and run after reboot,  to assist users in manually moving any nested subvolumes after a rollback.
+  - For more context, refer to the discussion in [Issue
+    #52](https://github.com/hirak99/yabsnap/issues/52), especially [this
+    comment](https://github.com/hirak99/yabsnap/issues/52#issuecomment-2746173900).
