@@ -340,7 +340,6 @@ def main():
             live_subvol_map=args.live_subvol_map,
             execute=args.execute,
         )
-        # Does `rollback-gen` subcommand require the optional parameter `--nocofirm` ?
     else:
         comment = getattr(args, "comment", "")
         _config_operation(
