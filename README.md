@@ -262,7 +262,7 @@ yabsnap batch-delete --start 2022-09-25_17:21
 yabsnap batch-delete --indicator S --end 2022-10-06_15:30  # :00 is understood
 ```
 
-### `yabsnap rollback-gen PATH|TIMESTAMP [--live-subvol-map SUBVOL_MAP]`
+### `yabsnap rollback-gen PATH|TIMESTAMP [--subvol-map SUBVOL_MAP]`
 Generates a script for rolling back.
 
 E.g.
@@ -275,31 +275,31 @@ Just running it will not carry out any changes, it will only display a script on
 the console. \
 The script must be stored and executed to perform the rollback operation.
 
-**`... --live-subvol-map SUBVOL_MAP`**
+**`... --subvol-map SUBVOL_MAP`**
 
 By default, rollback detects mount points using '/etc/mtab'. However, for
  certain recovery environments (such as `grub-btrfs`), that may not work. In
-such cases, you can use `--live-subvol-map SUBVOL_MAP` to specify
+such cases, you can use `--subvol-map SUBVOL_MAP` to specify
 mount-point-to-subvolume mappings.
 
 `SUBVOL_MAP` must be of the formt `"MOUNT_DIR:SUBVOL_NAME
 ..."`,
 where you provide the current mount points and their corresponding subvolumes. The device name will be auto-detected from the snapshot location. Multiple mappings can be separated by spaces. For example:
-`--live-subvol-map "/:@ /home:@home"`.
+`--subvol-map "/:@ /home:@home"`.
 
 Note that the subvolumes should exist in the snapshot or recovery environment
 for the rollback to work as expected.
 
-The generated script will include a comment when `--live-subvol-map` is used.
+The generated script will include a comment when `--subvol-map` is used.
 
-### `yabsnap rollback PATH|TIMESTAMP [--live-subvol-map SUBVOL_MAP] [--noconfirm]`
+### `yabsnap rollback PATH|TIMESTAMP [--subvol-map SUBVOL_MAP] [--noconfirm]`
 
 Shows a rollback script, interactively confirms, and executes it.
 
 If you are a person who likes taking heavy risks, you can skip the confirmation
 with `... --noconfirm`.
 
-The optional arg `--live-subvol-map` works similarly as rollback-gen.
+The optional arg `--subvol-map` works similarly as rollback-gen.
 
 # FAQ
 
@@ -367,7 +367,7 @@ The optional arg `--live-subvol-map` works similarly as rollback-gen.
     suitable for offline environments. For example, `grub-btrfs` might mount the
     subvolume `/@.snapshots/@root-20250921193009` as root, allowing you to log into it.
     However, to roll back, `yabsnap` needs to know that root subvolume is `@` under
-    normal operations. To specify this, you can use the `--live-subvol-map "/:@"`
+    normal operations. To specify this, you can use the `--subvol-map "/:@"`
     argument.
 
     > [!NOTE] NOTE: As with live rollback, it’s strongly recommended that you review the

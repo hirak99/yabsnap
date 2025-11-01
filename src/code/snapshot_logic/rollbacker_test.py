@@ -21,7 +21,7 @@ class TestCreateAndChmodScript(unittest.TestCase):
             rollbacker, "_save_and_execute_script"
         ) as mock_execute:
             mock_script.return_value = "echo Rollback"
-            rollbacker.rollback(configs_iter=[], path_suffix="", live_subvol_map=None)
+            rollbacker.rollback(configs_iter=[], path_suffix="", subvol_map=None)
 
         mock_print.assert_called_once_with("echo Rollback")
         mock_execute.assert_not_called()
@@ -37,7 +37,7 @@ class TestCreateAndChmodScript(unittest.TestCase):
                 rollbacker.rollback(
                     configs_iter=[],
                     path_suffix="",
-                    live_subvol_map=None,
+                    subvol_map=None,
                     execute=True,
                     no_confirm=True,
                 )
@@ -57,7 +57,7 @@ class TestCreateAndChmodScript(unittest.TestCase):
                 rollbacker.rollback(
                     configs_iter=[],
                     path_suffix="",
-                    live_subvol_map=None,
+                    subvol_map=None,
                     execute=True,
                     no_confirm=False,
                 )

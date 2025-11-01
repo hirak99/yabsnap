@@ -108,7 +108,7 @@ class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
     def rollback_gen(
         self,
         snapshots: list[snap_holder.Snapshot],
-        live_subvol_map: dict[str, str] | None,
+        subvol_map: dict[str, str] | None,
     ) -> list[str]:
         # Rollback for rsync snapshots is not directly supported in the same way as btrfs.
         # For now, we raise NotImplementedError. A possible implementation could involve

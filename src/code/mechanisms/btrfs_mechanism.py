@@ -79,11 +79,11 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
     def rollback_gen(
         self,
         snapshots: list[snap_holder.Snapshot],
-        live_subvol_map: dict[str, str] | None,
+        subvol_map: dict[str, str] | None,
     ) -> list[str]:
         for snap in snapshots:
             source = snap.metadata.source
-            if live_subvol_map and source in live_subvol_map:
+            if subvol_map and source in subvol_map:
                 logging.info(
                     f"Using mapped subvol for {source}. Skipping volume verification."
                 )
@@ -92,9 +92,9 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
                 raise RuntimeError(
                     f"Mount point may no longer be a btrfs volume: {source!r}. "
                     " For certain recovery environments like grub-btrfs, volumes may not be correctly detected."
-                    " You can use the `--live-subvol-map` arg to override auto detection."
+                    " You can use the `--subvol-map` arg to override auto detection."
                 )
-        return rollback_btrfs.rollback_gen(snapshots, live_subvol_map)
+        return rollback_btrfs.rollback_gen(snapshots, subvol_map)
 
     @override
     def sync_paths(self, paths: set[str]):

@@ -55,7 +55,7 @@ class BcachefsSnapMechanism(abstract_mechanism.SnapMechanism):
     def rollback_gen(
         self,
         snapshots: list[snap_holder.Snapshot],
-        live_subvol_map: dict[str, str] | None,
+        subvol_map: dict[str, str] | None,
     ) -> list[str]:
         # Rollback would probably be similar to btrfs, but needs to be implemented.
         raise NotImplementedError(

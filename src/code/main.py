@@ -32,10 +32,10 @@ from .utils import os_utils
 from typing import Iterable
 
 
-def _parse_live_subvol_map(map_str: str) -> dict[str, str]:
-    """Helper to parse the --live-subvol-map argument.
+def _parse_subvol_map(map_str: str) -> dict[str, str]:
+    """Helper to parse the --subvol-map argument.
 
-    Example: --live-subvol-map "/:@ /home:@home"
+    Example: --subvol-map "/:@ /home:@home"
     will be parsed as {"/": "@", "/home": "home"}.
     """
     mapping: dict[str, str] = {}
@@ -165,14 +165,14 @@ def _parse_args() -> argparse.Namespace:
         # > /@.snapshots/snap...) or an overlay, preventing the generation of a
         # > correct rollback script.
         rollback_command.add_argument(
-            "--live-subvol-map",
-            type=_parse_live_subvol_map,
+            "--subvol-map",
+            type=_parse_subvol_map,
             required=False,
             help="Mapping of source path to live subvolume name. "
             "Specify this if the system is in a recovery mode and subvolume names are not auto-detected. "
-            'Example: --live-subvol-map "/:@"'
+            'Example: --subvol-map "/:@"'
             "Use space to delimit multiple mappings if multiple subvolumes are rolled back. "
-            'Example: --live-subvol-map "/:@ /home:@home"',
+            'Example: --subvol-map "/:@ /home:@home"',
         )
 
     for command_with_target in [
@@ -329,7 +329,7 @@ def main():
         rollbacker.rollback(
             configs.iterate_configs(source=args.source),
             args.target_suffix,
-            live_subvol_map=args.live_subvol_map,
+            subvol_map=args.subvol_map,
             execute=True,
             no_confirm=args.noconfirm,
         )
@@ -337,7 +337,7 @@ def main():
         rollbacker.rollback(
             configs.iterate_configs(source=args.source),
             args.target_suffix,
-            live_subvol_map=args.live_subvol_map,
+            subvol_map=args.subvol_map,
             execute=args.execute,
         )
     else:

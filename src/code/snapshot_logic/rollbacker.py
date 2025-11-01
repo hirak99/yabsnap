@@ -32,7 +32,7 @@ from typing import Iterable
 def _get_rollback_script_text(
     configs_iter: Iterable[configs.Config],
     path_suffix: str,
-    live_subvol_map: dict[str, str] | None,
+    subvol_map: dict[str, str] | None,
 ) -> str | None:
     """Combines the rollback scripts from all snaps. Returns None if no matching snapshot exists."""
     source_dests_by_snaptype: dict[
@@ -55,7 +55,7 @@ def _get_rollback_script_text(
     for snap_type, snapshots in sorted(source_dests_by_snaptype.items()):
         content.append(
             "\n".join(
-                snap_mechanisms.get(snap_type).rollback_gen(snapshots, live_subvol_map)
+                snap_mechanisms.get(snap_type).rollback_gen(snapshots, subvol_map)
             )
         )
     return "\n".join(content)
@@ -83,13 +83,13 @@ def _save_and_execute_script(contents: str) -> None:
 def rollback(
     configs_iter: Iterable[configs.Config],
     path_suffix: str,
-    live_subvol_map: dict[str, str] | None,
+    subvol_map: dict[str, str] | None,
     *,
     execute: bool = False,
     no_confirm: bool = False,
 ) -> None:
     # Obtain and display the text of rollback.
-    script_text = _get_rollback_script_text(configs_iter, path_suffix, live_subvol_map)
+    script_text = _get_rollback_script_text(configs_iter, path_suffix, subvol_map)
     if script_text is None:
         os_utils.eprint("No matching snapshots.")
         return

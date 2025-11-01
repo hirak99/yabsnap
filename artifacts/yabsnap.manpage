@@ -91,31 +91,31 @@ Batch delete snapshots. All snaps with start <= snap.time < end, optionally
 matching the `--indicator` will be deleted. Matching snapshots will be displayed
 and confirmed interactively before deletion.
 
-.SS yabsnap [--dry-run] rollback-gen TARGET_SUFFIX [--live-subvol-map SUBVOL_MAP]
+.SS yabsnap [--dry-run] rollback-gen TARGET_SUFFIX [--subvol-map SUBVOL_MAP]
 
 Generates a script to roll back to a particular snapshot. It can be redirected
 to a file with `... > rollback.sh`. It can also be executed with `... | bash`,
 but this is not advisable since it deny a chance to view or review the script.
 
-.B --live-subvol-map SUBVOL_MAP
+.B --subvol-map SUBVOL_MAP
 
 By default, yabsnap detects mount points using '/etc/mtab'. However, for certain
 recovery environments, such as `grub-btrfs`, that may not work. In such cases,
-use `--live-subvol-map SUBVOL_MAP` to specify mount-point-to-subvolume mappings.
+use `--subvol-map SUBVOL_MAP` to specify mount-point-to-subvolume mappings.
 
 `SUBVOL_MAP` must be of the formt `"MOUNT_DIR:SUBVOL_NAME ..."`, where
 `MOUNT_DIR` is the mount point and `SUBVOL_NAME` is the corresponding subvolume.
 The device name will be auto-detected from the snapshot location. Multiple
 mappings are separated by spaces. For example:
 
-`--live-subvol-map "/:@ /home:@home"`
+`--subvol-map "/:@ /home:@home"`
 
 Note: Ensure the subvolumes exist in the snapshot or recovery environment for
 the rollback to function correctly.
 
-The generated script will include a comment when `--live-subvol-map` is used.
+The generated script will include a comment when `--subvol-map` is used.
 
-.SS yabsnap [--dry-run] rollback TARGET_SUFFIX [--live-subvol-map SUBVOL_MAP] [--noconfirm]
+.SS yabsnap [--dry-run] rollback TARGET_SUFFIX [--subvol-map SUBVOL_MAP] [--noconfirm]
 
 Generates and a rollback script, executes it after interactively confirming.
 

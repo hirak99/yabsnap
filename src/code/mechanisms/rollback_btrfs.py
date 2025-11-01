@@ -68,7 +68,7 @@ def _drop_root_slash(s: str) -> str:
 
 def rollback_gen(
     snapshots: list[snap_holder.Snapshot],
-    live_subvol_map: dict[str, str] | None,
+    subvol_map: dict[str, str] | None,
 ) -> list[str]:
     """
     Generates rollback script assuming running on a live (non-snapshot) system.
@@ -76,7 +76,7 @@ def rollback_gen(
     Args:
         snapshots: List of snapshots to roll back.
 
-        live_subvol_map: For any paths here, we will directly use it to find the
+        subvol_map: For any paths here, we will directly use it to find the
           subvolume name, and not depend on /etc/mtab.
           E.g. {"/": "@", "/home": "@home"}.
 
@@ -88,8 +88,8 @@ def rollback_gen(
 
     sh_lines: list[str] = []
 
-    if not live_subvol_map:
-        live_subvol_map = {}
+    if not subvol_map:
+        subvol_map = {}
 
     # 0. Generate code to mount all the required volumes for rollback.
     temp_mount_points: dict[str, str] = {}
@@ -136,12 +136,12 @@ def rollback_gen(
 
         # 2. We retrieve the name of the `live_subvolume`.
         live_subvol_name: str
-        # Using user defined --live-subvol-map for this snapshot?
+        # Using user defined --subvol-map for this snapshot?
         using_subvol_map = False
 
-        if snap_source in live_subvol_map:
+        if snap_source in subvol_map:
             # Prioritize the map which indicates system may be offline.
-            live_subvol_name = live_subvol_map[snap_source]
+            live_subvol_name = subvol_map[snap_source]
             using_subvol_map = True
             logging.info(f"Using mapped subvol for {snap_source!r}.")
 
@@ -177,7 +177,7 @@ def rollback_gen(
         nested_subdirs: list[str] = []
         if using_subvol_map:
             logging.warning(
-                f"Skipped any nested subvolume detection with {snap_source!r} in --live-subvol-map."
+                f"Skipped any nested subvolume detection with {snap_source!r} in --subvol-map."
             )
         else:
             nested_subdirs = btrfs_utils.get_nested_subvs(snap.target, live_subvol_name)
@@ -202,7 +202,7 @@ def rollback_gen(
 
         if using_subvol_map:
             sh_lines.append(
-                f"# Using --live-subvol-map: {snap_source!r} -> {live_subvol_name!r}."
+                f"# Using --subvol-map: {snap_source!r} -> {live_subvol_name!r}."
             )
 
         backup_path = f"{_drop_root_slash(snap_subvolume.subvol_name)}/rollback_{now_str}_{script_live_path}"

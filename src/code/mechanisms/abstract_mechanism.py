@@ -53,7 +53,7 @@ class SnapMechanism(abc.ABC):
     def rollback_gen(
         self,
         snapshots: list[snap_holder.Snapshot],
-        live_subvol_map: dict[str, str] | None,
+        subvol_map: dict[str, str] | None,
     ) -> list[str]:
         """Returns shell script lines to roll back snapshots.
 
@@ -66,7 +66,7 @@ class SnapMechanism(abc.ABC):
             ('/home', '/.snapshots/@home-20250921193009'),
           ]
 
-        live_subvol_map: A map from live_path (e.g., '/') to the subvolume name
+        subvol_map: A map from live_path (e.g., '/') to the subvolume name
           where it is currently mounted (e.g. '@'). This should not be required
           during normal operation. However, this parameter may be passed by the
           user when it cannot be auto detected, e.g. during offline recovery.

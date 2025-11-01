@@ -61,7 +61,7 @@ class TestRollbacker(unittest.TestCase):
         ):
             generated = rollback_btrfs.rollback_gen(
                 snapshots=snaps_list,
-                live_subvol_map=None,
+                subvol_map=None,
             )
 
         expected = """mkdir -p /run/mount/_yabsnap_internal_0
@@ -101,7 +101,7 @@ echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
         ):
             generated = rollback_btrfs.rollback_gen(
                 snapshots=snaps_list,
-                live_subvol_map=None,
+                subvol_map=None,
             )
 
         expected = """mkdir -p /run/mount/_yabsnap_internal_0
@@ -147,7 +147,7 @@ echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested2"
         ):
             generated = rollback_btrfs.rollback_gen(
                 snapshots=snaps_list,
-                live_subvol_map={"/home": "/subv_home", "/root": "/subv_root"},
+                subvol_map={"/home": "/subv_home", "/root": "/subv_root"},
             )
 
         expected = """mkdir -p /run/mount/_yabsnap_internal_0
@@ -155,11 +155,11 @@ mount /dev/BLOCKDEV1 /run/mount/_yabsnap_internal_0 -o subvolid=5
 
 cd /run/mount/_yabsnap_internal_0
 
-# Using --live-subvol-map: '/home' -> '/subv_home'.
+# Using --subvol-map: '/home' -> '/subv_home'.
 mv subv_home subv_snaps/rollback_20220202220000_subv_home
 btrfs subvolume snapshot /snaps/@home-20220101130000 subv_home
 
-# Using --live-subvol-map: '/root' -> '/subv_root'.
+# Using --subvol-map: '/root' -> '/subv_root'.
 mv subv_root subv_snaps/rollback_20220202220000_subv_root
 btrfs subvolume snapshot /snaps/@root-20220101140000 subv_root
 
