@@ -99,21 +99,26 @@ but this is not advisable since it deny a chance to view or review the script.
 
 .B --subvol-map SUBVOL_MAP
 
-By default, yabsnap detects mount points using '/etc/mtab'. However, for certain
-recovery environments, such as `grub-btrfs`, that may not work. In such cases,
-use `--subvol-map SUBVOL_MAP` to specify mount-point-to-subvolume mappings.
+An advanced option used to override automatic detection of subvolumes during rollback.
 
-`SUBVOL_MAP` must be of the formt `"MOUNT_DIR:SUBVOL_NAME ..."`, where
-`MOUNT_DIR` is the mount point and `SUBVOL_NAME` is the corresponding subvolume.
-The device name will be auto-detected from the snapshot location. Multiple
-mappings are separated by spaces. For example:
+The `SUBVOL_MAP` must be specified in this format: `"MOUNT_DIR:SUBVOL_NAME ..."`.
 
-`--subvol-map "/:@ /home:@home"`
+Example usage:
+`--subvol-map "/:@ /home:@home"`.
 
-Note: Ensure the subvolumes exist in the snapshot or recovery environment for
-the rollback to function correctly.
+When this option is used, the generated script will include a comment confirming the
+override.
 
-The generated script will include a comment when `--subvol-map` is used.
+Context: This option is particularly relevant for rolling back snapshots taken before
+version `v2.3.0`. Earlier versions did not store subvolume names with snapshots, and
+instead detected them based on mount points of directories like `"/"` or `"/home"`.
+While this worked for online rollbacks (where the subvolumes were mounted consistently
+with the snapshot), it failed in offline environments where subvolumes could be mounted
+differently (e.g., mounting`/@.snapshots/@root-20250921193009` as root, when the actual
+subvolume to roll back is `@`).
+
+For snapshots taken **after** `v2.3.0`, this option is no longer necessary, as the
+subvolume names are now stored with the snapshots.
 
 .SS yabsnap [--dry-run] rollback TARGET_SUFFIX [--subvol-map SUBVOL_MAP] [--noconfirm]
 
