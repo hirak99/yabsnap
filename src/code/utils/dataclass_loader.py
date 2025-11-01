@@ -110,9 +110,12 @@ def load_dataclass(
     unseen_fields = set(data.keys()) - set(fields_dict.keys())
     if unseen_fields:
         unknown_fields_dict = {k: data[k] for k in unseen_fields}
-        error_msg = f"Unknown fields: {unknown_fields_dict} for {dataclass_type=}"
         if ignore_unknown_fields:
-            logging.warning(error_msg)
+            logging.warning(
+                f"Unknown fields ignored: {unknown_fields_dict} for {dataclass_type=}"
+            )
         else:
-            raise UnknownFieldsError(error_msg)
+            raise UnknownFieldsError(
+                f"Unknown fields: {unknown_fields_dict} for {dataclass_type=}"
+            )
     return dataclass_type(**fields_dict)
