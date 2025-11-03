@@ -53,15 +53,23 @@ class _CustomFormatter(logging.Formatter):
             logging.CRITICAL: bold_red,
         }
 
-        log_format = "%(levelname)s: %(message)s"
+        common_fmt = "%(levelname)s: [%(filename)s:%(lineno)d] %(message)s"
+        # ERROR or CRITICAL is meant for unexpected scenarios, which if happens
+        # should be rectified.
+        critical = "\nPlease run with `--verbose` and report a bug."
+        self._level_formats = {
+            logging.DEBUG: common_fmt,
+            logging.INFO: common_fmt,
+            logging.WARNING: common_fmt,
+            logging.ERROR: common_fmt + critical,
+            logging.CRITICAL: common_fmt + critical,
+        }
 
         if _is_ansi_color_supported(sys.stderr):
             self._level_formats = {
-                level: color + log_format + reset
+                level: color + self._level_formats[level] + reset
                 for level, color in level_colors.items()
             }
-        else:
-            self._level_formats = {level: log_format for level in level_colors}
 
     def format(self, record: logging.LogRecord) -> str:
         log_fmt = self._level_formats.get(record.levelno)
