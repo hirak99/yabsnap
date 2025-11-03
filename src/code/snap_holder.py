@@ -73,10 +73,23 @@ class _Metadata:
                 if "snap_type" not in all_args:
                     # For back compatibility. Older snaps will not have snap_type.
                     all_args["snap_type"] = "BTRFS"
-                try:
-                    return cls(**all_args)
-                except json.JSONDecodeError:
-                    logging.warning(f"Unable to parse metadata file: {fname}")
+
+                # Temporarily ignore fields added by version 2.3.0.
+                # Filter out fields not in the class.
+                known_fields = {f.name for f in dataclasses.fields(cls)}
+                unknown_fields = {}
+                filtered_all_args = {}
+                # all_args = {k: v for k, v in all_args.items() if k in known_fields}
+                for k, v in all_args.items():
+                    if k in known_fields:
+                        filtered_all_args[k] = v
+                    else:
+                        unknown_fields[k] = v
+                if unknown_fields:
+                    # Not a warning, but once bug #69 is fixed this should turn into a warning.
+                    logging.info(f"{unknown_fields=}")
+
+                return cls(**filtered_all_args)
         return cls()
 
 
