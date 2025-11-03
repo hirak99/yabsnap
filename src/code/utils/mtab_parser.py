@@ -1,5 +1,7 @@
 import dataclasses
 import functools
+import logging
+import os
 
 from ..utils import os_utils
 
@@ -36,7 +38,7 @@ def _get_mtab_param(*, key: str, all_params: str) -> str:
 @dataclasses.dataclass
 class _MountLineTokens:
     device: str
-    mount_pt: str
+    mtab_mount_pt: str
     fs: str
     params: str
 
@@ -49,7 +51,7 @@ def _parse_mount_line(line: str) -> _MountLineTokens:
         raise ValueError(f"Unexpected - mount params not parenthesized: {line!r}")
     return _MountLineTokens(
         device=tokens[0],
-        mount_pt=tokens[2],
+        mtab_mount_pt=tokens[2],
         fs=tokens[4],
         params=tokens[5].removeprefix("(").removesuffix(")"),
     )
@@ -57,10 +59,12 @@ def _parse_mount_line(line: str) -> _MountLineTokens:
 
 @functools.cache
 def mount_attributes(mount_point: str) -> _MountAttributes:
+    logging.info(f"Searching {mount_point=} in /etc/mtab.")
     # For a mount point, this denotes the longest path that was seen in /etc/mtab.
     # This is therefore the point where that directory is mounted.
     longest_match_to_mount_point = ""
-    # Which line matches the mount point.
+    # Find the longest match for the mount point.
+    # I.e. consider line for "/parent/nested" over line for "/parent" alone.
     matched_line: str = ""
     for this_line in _mounts():
         this_tokens = _parse_mount_line(this_line)
@@ -68,14 +72,16 @@ def mount_attributes(mount_point: str) -> _MountAttributes:
             # For autofs, another entry should exist which as "btrfs".
             # See also #54.
             continue
-        if mount_point.startswith(this_tokens.mount_pt):
-            if len(this_tokens.mount_pt) > len(longest_match_to_mount_point):
-                longest_match_to_mount_point = this_tokens.mount_pt
+        if mount_point.startswith(this_tokens.mtab_mount_pt):
+            if len(this_tokens.mtab_mount_pt) > len(longest_match_to_mount_point):
+                longest_match_to_mount_point = this_tokens.mtab_mount_pt
                 matched_line = this_line
 
     if not matched_line:
         raise ValueError(f"Mount point not found: {mount_point}")
+    logging.info(f"Found matching mount line: {matched_line!r}")
     tokens = _parse_mount_line(matched_line)
+    logging.info(f"Parsed into {tokens=}")
 
     if tokens.fs != "btrfs":
         raise ValueError(
@@ -86,12 +92,27 @@ def mount_attributes(mount_point: str) -> _MountAttributes:
 
     subvol_name = _get_mtab_param(key="subvol", all_params=tokens.params)
     subvol_id = int(_get_mtab_param(key="subvolid", all_params=tokens.params))
+    logging.info(f"{subvol_name=}, {subvol_id=}")
 
-    if tokens.mount_pt != mount_point:
-        nested_subvol = mount_point.removeprefix(tokens.mount_pt)
-        if not nested_subvol.startswith("/"):
-            raise ValueError(f"{nested_subvol=} does not start with /.")
-        subvol_name = nested_subvol
+    if tokens.mtab_mount_pt != mount_point:
+        # The mount point was mounted automatically as a nested volume.
+        #
+        # Example 1: For mtab line -
+        # '/dev/mapper/opened_rootbtrfs on /mnt/rootbtrfs type btrfs (rw,noatime,ssd,discard=async,space_cache=v2,subvolid=5,subvol=/)'
+        # subvol_name="/"
+        # mount_point="/mnt/rootbtrfs/@nestedvol"
+        # tokens.mtab_mount_pt="/mnt/rootbtrfs".
+        # REVISED subvol_name="/@nestedvol"
+        #
+        # Example 2: For mtab line -
+        # '/dev/vda2 on / type btrfs (rw,relatime,discard=async,space_cache=v2,subvolid=258,subvol=/@)'
+        # subvol_name="/@"
+        # mount_point="/testnested"
+        # tokens.mtab_mount_pt="/"
+        # REVISED subvol_name="/@/testnested"
+        #
+        nested_part = mount_point.removeprefix(tokens.mtab_mount_pt)
+        subvol_name = os.path.join(subvol_name, nested_part)
     return _MountAttributes(
         device=tokens.device, subvol_name=subvol_name, subvol_id=subvol_id
     )
