@@ -47,8 +47,12 @@ def _handle_nested_subvolume(
         Lines which must be shell executable or shell comments.
     """
     for nested_dir in nested_dirs:
-        yield f'echo "sudo rmdir {new_live_path}/{nested_dir}"  # Empty, if snapshot was taken with the nested subvolume.'
-        yield f'echo "sudo mv {old_live_path}/{nested_dir} {new_live_path}/{nested_dir}"'
+        full_live_path = os.path.join(new_live_path, nested_dir)
+        # `rmdir` will work if snapshot was taken with the subdir.
+        # It can fail if the subdir was already moved (e.g. it had its own snapshot).
+        # Or if a the directory was created by an applicaiton (and not a subvolume).
+        yield f'echo "sudo rmdir {full_live_path}"  # Empty, otherwise validate subdir is already moved.'
+        yield f'echo "sudo mv {old_live_path}/{nested_dir} {full_live_path}"'
 
 
 def _drop_root_slash(s: str) -> str:
@@ -61,8 +65,6 @@ def _drop_root_slash(s: str) -> str:
 
     if s[0] != "/":
         raise RuntimeError(f"Could not drop initial / from {s!r}")
-    if "/" in s[1:]:
-        raise RuntimeError(f"Unexpected / after the first one in subvolume {s!r}")
     return s[1:]
 
 
@@ -205,7 +207,14 @@ def rollback_gen(
                 f"# Using --subvol-map: {snap_source!r} -> {live_subvol_name!r}."
             )
 
-        backup_path = f"{_drop_root_slash(snap_subvolume.subvol_name)}/rollback_{now_str}_{script_live_path}"
+        # If the subvolume being rolled back is nested, normalize for the backup path.
+        normalized_live_path = script_live_path.replace("/", "_")
+        if script_live_path != normalized_live_path:
+            logging.warning(
+                f"Rolling back snapshot of nested subvolume {script_live_path!r} is experimental."
+            )
+
+        backup_path = f"{_drop_root_slash(snap_subvolume.subvol_name)}/rollback_{now_str}_{normalized_live_path}"
         backup_path_after_reboot = shlex.quote(
             f"{os.path.dirname(snap.target)}/rollback_{now_str}_{script_live_path}"
         )
