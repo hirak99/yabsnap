@@ -90,8 +90,7 @@ def mount_attributes(mount_point: str) -> _MountAttributes:
     if tokens.mount_pt != mount_point:
         nested_subvol = mount_point.removeprefix(tokens.mount_pt)
         if not nested_subvol.startswith("/"):
-            raise ValueError()
-        assert nested_subvol.startswith("/")
+            raise ValueError(f"{nested_subvol=} does not start with /.")
         subvol_name = nested_subvol
     return _MountAttributes(
         device=tokens.device, subvol_name=subvol_name, subvol_id=subvol_id
