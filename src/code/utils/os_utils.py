@@ -69,17 +69,20 @@ def runsh(command: str) -> str | None:
         return None
 
 
-def get_filesystem_uuid(path: str) -> str:
+def get_filesystem_uuid(path: str) -> str | None:
     while True:
         df_lines = runsh_or_error(f"df {path} --output=source").splitlines()
-        assert df_lines[0] == "Filesystem"
+        # Note: We cannot assume the first line to be Filesystem.
+        # The output of df _depends on the locale_.
+        # See https://github.com/hirak99/yabsnap/issues/70
         device = df_lines[1]
         # Nested subvolumes don't seem to return a proper device.
         if device != "-":
             break
         parent = os.path.dirname(path)
         if len(parent) >= len(path):
-            raise RuntimeError()
+            logging.error(f"{parent=} is longer than {path=}.")
+            return None
         path = parent
 
     try:
@@ -87,10 +90,11 @@ def get_filesystem_uuid(path: str) -> str:
     except CommandError as exc:
         # Dev Note: If we see this error for no apparent reason, we can consider
         # allowing None to be returned.
-        raise RuntimeError(
-            f"Error querying {device=} from {df_lines=} for {path=}"
-        ) from exc
-    assert len(lsblk_lines) == 1
+        logging.error(f"Error querying {device=} from {df_lines=} for {path=}, {exc=}")
+        return None
+    if len(lsblk_lines) != 1:
+        logging.error(f"Expected 1 line but found: {lsblk_lines}")
+        return None
     return lsblk_lines[0]
 
 
