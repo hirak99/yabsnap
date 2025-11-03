@@ -92,5 +92,7 @@ class SnapMetadata:
                     return cls()
             if "version" not in all_args:
                 all_args["version"] = _UNKNOWN_VERSION
-            return dataclass_loader.load_dataclass(cls, all_args)
+            return dataclass_loader.load_dataclass(
+                cls, all_args, ignore_unknown_fields=True
+            )
         return cls()
