@@ -87,14 +87,10 @@ class _TimeScopeFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnused
 
     def __init__(self, *, start: str = "", end: str = ""):
         self._start_datetime = (
-            datetime.datetime.strptime(start, global_flags.TIME_FORMAT)
-            if start
-            else datetime.datetime.min
+            _parse_iso8601_datetime(start) if start else datetime.datetime.min
         )
         self._end_datetime = (
-            datetime.datetime.strptime(end, global_flags.TIME_FORMAT)
-            if end
-            else datetime.datetime.max
+            _parse_iso8601_datetime(end) if end else datetime.datetime.max
         )
         logging.info(
             f"Added _TimeScopeFilter: ({self._start_datetime}, {self._end_datetime})"
@@ -181,7 +177,7 @@ def get_to_sync_list(configs: Iterable[configs.Config]) -> list[configs.Config]:
     ]
 
 
-def iso8601_to_timestamp_string(suffix: str) -> str:
+def _iso8601_to_timestamp_string(suffix: str) -> str:
     """Convert an ISO 8601 compliant datetime string to a timestamp string"""
     with contextlib.suppress(ValueError):
         dt = datetime.datetime.strptime(suffix, global_flags.TIME_FORMAT)
@@ -197,3 +193,10 @@ def iso8601_to_timestamp_string(suffix: str) -> str:
         )
     else:
         return dt.strftime(global_flags.TIME_FORMAT)
+
+
+# TODO: Combine into _iso8601_to_timestamp_string(datetime_str).
+def _parse_iso8601_datetime(datetime_str: str) -> datetime.datetime:
+    return datetime.datetime.strptime(
+        _iso8601_to_timestamp_string(datetime_str), global_flags.TIME_FORMAT
+    )

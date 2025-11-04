@@ -1,7 +1,11 @@
+"""Sets up ArgumentParser for yabsnap.
+
+This is also used for shell completion.
+This should be kept free of yabsnap-specific code.
+"""
+
 import argparse
 import shlex
-
-from .snapshot_logic import batch_deleter
 
 
 def _parse_subvol_map(map_str: str) -> dict[str, str]:
@@ -95,13 +99,13 @@ def make_parser() -> argparse.ArgumentParser:
     )
     batch_delete.add_argument(
         "--start",
-        type=batch_deleter.iso8601_to_timestamp_string,
+        type=str,
         default=None,
         help="Where to start deleting snapshots. Timestamp can be 'YYYY-MM-DD HH:MM[:SS]'",
     )
     batch_delete.add_argument(
         "--end",
-        type=batch_deleter.iso8601_to_timestamp_string,
+        type=str,
         default=None,
         help="Where to stop deleting snapshots. Timestamp can be 'YYYY-MM-DD HH:MM[:SS]'",
     )

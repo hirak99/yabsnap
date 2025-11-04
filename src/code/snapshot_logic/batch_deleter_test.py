@@ -20,7 +20,7 @@ class TestISO8601ToTimestampString(unittest.TestCase):
             "2024-11-01 20:10",
         ]
 
-        convert_results = map(batch_deleter.iso8601_to_timestamp_string, suffix_list)
+        convert_results = map(batch_deleter._iso8601_to_timestamp_string, suffix_list)
         excepted_results = [
             "20241101201015",
             "20241101201015",
@@ -41,7 +41,7 @@ class TestISO8601ToTimestampString(unittest.TestCase):
         for suffix in suffix_list:
             with self.subTest(suffix=suffix):
                 with self.assertRaises(ValueError):
-                    batch_deleter.iso8601_to_timestamp_string(suffix)
+                    batch_deleter._iso8601_to_timestamp_string(suffix)
 
 
 class TestRegisterFilter(unittest.TestCase):
