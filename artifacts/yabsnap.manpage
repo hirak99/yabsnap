@@ -60,8 +60,16 @@ Lists all existing snapshots managed by yabsnap.
 
 .SS yabsnap list-json
 
-Machine readable lists of all snapshots managed by yabsnap. With bash, this may
-be piped into jq for further filtering or restructuring.
+Produces a machine-readable list of all snapshots managed by yabsnap, outputting the
+data in JSONL (JSON Lines) format.
+
+This format is useful for further processing or automation. For example, you can pipe
+the output to tools like `jq` to filter or manipulate the data:
+
+  $ yabsnap list-json | jq
+
+.B Tip:
+In nushell, you can use `... | from json --objects` to read JSONL.
 
 .SS yabsnap [--dry-run] [--sync] create [--comment COMMENT]
 
@@ -104,16 +112,17 @@ An advanced option used to override automatic detection of subvolumes during rol
 The `SUBVOL_MAP` must be specified in this format: `"MOUNT_DIR:SUBVOL_NAME ..."`.
 
 Example usage:
-`--subvol-map "/:@ /home:@home"`.
+
+  $ yabsnap rollback-gen 20251104163041 --subvol-map "/:@ /home:@home"
 
 When this option is used, the generated script will include a comment confirming the
 override.
 
-Context: This option is particularly relevant for rolling back snapshots taken before
-version `v2.3.0`. Earlier versions did not store subvolume names with snapshots, and
-instead detected them based on mount points of directories like `"/"` or `"/home"`.
-While this worked for online rollbacks (where the subvolumes were mounted consistently
-with the snapshot), it failed in offline environments where subvolumes could be mounted
+This option is particularly relevant for rolling back snapshots taken before version
+`v2.3.0`. Earlier versions did not store subvolume names with snapshots, and instead
+detected them based on mount points of directories like `"/"` or `"/home"`. While this
+worked for online rollbacks (where the subvolumes were mounted consistently with the
+snapshot), it failed in offline environments where subvolumes could be mounted
 differently (e.g., mounting`/@.snapshots/@root-20250921193009` as root, when the actual
 subvolume to roll back is `@`).
 

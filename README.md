@@ -198,21 +198,31 @@ Snaps at: /.snapshots/@root-...
 
 ### `yabsnap list-json`
 
-Similar to list, but as machine readable JSON.
+Similar to list, but as machine readable **JSONL** (JSON Lines).
 
-This can be useful to build commands. For instance, with bash you could use `jq` to filter -
+This is useful for programmatically building commands.
+
+You can pipe the output through tools like [jq](https://jqlang.org/) to filter or
+manipulate data. For example, you can use `jq` to filter:
 
 ```sh
 # Filter all snaps created during installation.
 yabsnap list-json | jq -c 'select(.trigger=="I")'
+
 # Filter all snaps created during installation, and using home.conf.
 yabsnap list-json | jq -c 'select(.trigger=="I" and (.config_file | endswith("/home.conf")))'
 ```
 
-Or restructure -
+You can also restructure the output:
 ```sh
 # Show only the timestamps.
 yabsnap list-json | jq '.file.timestamp'
+```
+
+In [nushell](https://www.nushell.sh/), you process the JSONL output natively:
+
+```nushell
+yabsnap list-json | from json --objects
 ```
 
 ### `yabsnap create`
