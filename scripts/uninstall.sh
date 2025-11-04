@@ -35,4 +35,5 @@ rm -f /usr/bin/yabsnap
 rm -rf /usr/share/yabsnap 2> /dev/null
 
 rm -f /usr/share/bash-completion/completions/yabsnap
+rm -f /usr/share/zsh/site-functions/_yabsnap
 rm -f /usr/share/man/man1/yabsnap.1.gz

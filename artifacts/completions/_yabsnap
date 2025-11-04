@@ -1,0 +1,13 @@
+#compdef yabsnap
+
+_yabsnap() {
+  # Path where yabsnap.sh is also present.
+  pushd -q "/usr/share/yabsnap"
+  local output=("$(python -O -u -m code.shell_completions "${words[@]}")")
+  local -a reply=("${=output}")
+  reply=(${reply[@]#*( )}) # Remove any blank entries
+  compadd -a reply
+  popd -q
+}
+
+compdef _yabsnap yabsnap

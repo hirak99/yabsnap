@@ -1,7 +1,7 @@
 _yabsnap_completions() {
     # Path where yabsnap.sh is also present.
     cd "/usr/share/yabsnap"
-    COMPREPLY=( $(python -O -u -m code.shell_completions "${COMP_LINE}" "${COMP_POINT}" "$COMP_CWORD" "${COMP_WORDS[@]}") )
+    COMPREPLY=( $(python -O -u -m code.shell_completions "${COMP_WORDS[@]}") )
     return 0
 }
 

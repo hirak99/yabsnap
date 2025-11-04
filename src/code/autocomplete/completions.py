@@ -11,12 +11,13 @@ import logging
 #     cmd="${COMP_WORDS[0]}"  # The command name (myprog)
 #
 #     # Call the Python script for completion
-#     # sys.argv[1]: Entire line including the command.
-#     # sys.argv[2]: Column where cursor is.
-#     # sys.argv[3]: Current word number.
-#     # sys.argv[4]: The command.
-#     # sys.argv[5:]: List of all words following the command.
-#     COMPREPLY=( $(python3 myprog_completions.py "${COMP_LINE}" "${COMP_POINT}" "$COMP_CWORD" "${COMP_WORDS[@]}") )
+#     # "${COMP_LINE}"  : Entire line including commant.
+#     # "${COMP_POINT}" : Where the cursor is.
+#     # "$COMP_CWORD"   : Current word.
+#     # "${COMP_WORDS[@]}" : Multiple args, e.g. ['command', 'arg1', 'arg2', ...].
+#     # sys.argv[1]: The command.
+#     # sys.argv[2:]: List of all words following the command.
+#     COMPREPLY=( $(python3 myprog_completions.py "${COMP_WORDS[@]}") )
 #
 #     return 0
 # }

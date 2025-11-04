@@ -10,7 +10,7 @@ _IGNORE_ARGS = {"internal-cronrun", "internal-preupdate"}
 def main():
     parser = arg_parser.make_parser()
     completer = completions.Completer()
-    results = completer.get_completions(parser, sys.argv[5:])
+    results = completer.get_completions(parser, sys.argv[2:])
     print(" ".join(x for x in results if x not in _IGNORE_ARGS))
 
 
