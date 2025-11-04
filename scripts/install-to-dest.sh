@@ -34,15 +34,16 @@ pushd src/
 tar -cf - \
   $(find -type f -not -name "*_test.py" \( -name "*.py" -o -name "*.conf" \)) |
   tar -xf - -C "$DEST"/ --no-same-owner
-pushd "$DEST"/
-chmod -R u=rwX,go=rX .
-popd
+  pushd "$DEST"/
+    chmod -R u=rwX,go=rX .
+  popd
 popd
 
 cd artifacts
 install -Dm 644 services/"$PKGNAME".{service,timer}      -t "$PKGDIR"/usr/lib/systemd/system/
 install -Dm 664 pacman/*.hook     -t "$PKGDIR"/usr/share/libalpm/hooks/
 install -Dm 644 yabsnap.manpage   "$PKGDIR"/usr/share/man/man1/yabsnap.1
+install -Dm 644 completions/"$PKGNAME" "$PKGDIR"/usr/share/bash-completion/completions
 gzip -f "$PKGDIR"/usr/share/man/man1/"$PKGNAME".1
 cd ../src
 install -Dm 755 "$PKGNAME".sh -t "$DEST"/
