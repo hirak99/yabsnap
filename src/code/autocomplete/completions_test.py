@@ -1,10 +1,20 @@
 import argparse
+import os
 import unittest
+from unittest import mock
 
 from . import completions
 
 
 class CompletionsTest(unittest.TestCase):
+    def setUp(self) -> None:
+        # Mock os.environ variable STYLE to be "bash".
+        self.patcher = mock.patch.dict(os.environ, {"STYLE": "bash"})
+        self.patcher.start()
+
+    def tearDown(self) -> None:
+        self.patcher.stop()
+
     def test_completions(self):
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument(
@@ -29,37 +39,33 @@ class CompletionsTest(unittest.TestCase):
         foo_command.add_argument("positional", type=str, help="Positional help.")
 
         # Test top-level completions.
-        self.assertCountEqual(
-            completions.get_completions(parser, ["--"]), ["--foo", "--bar"]
-        )
-        self.assertCountEqual(completions.get_completions(parser, ["--f"]), ["--foo"])
-        self.assertCountEqual(
-            completions.get_completions(parser, [""]), ["--foo", "--bar", "foo-command"]
+        self.assertEqual(completions.get_completions(parser, ["--"]), "--foo --bar")
+        self.assertEqual(completions.get_completions(parser, ["--f"]), "--foo")
+        self.assertEqual(
+            completions.get_completions(parser, [""]), "--foo --bar foo-command"
         )
 
         # Test subcommand completions.
-        self.assertCountEqual(
-            completions.get_completions(parser, ["foo-command", "--"]), ["--baz"]
+        self.assertEqual(
+            completions.get_completions(parser, ["foo-command", "--"]), "--baz"
         )
-        self.assertCountEqual(
-            completions.get_completions(parser, ["foo-command", "--b"]), ["--baz"]
+        self.assertEqual(
+            completions.get_completions(parser, ["foo-command", "--b"]), "--baz"
         )
 
         # Positional arg produces no result even if there are options.
-        self.assertCountEqual(
-            completions.get_completions(parser, ["foo-command", ""]), []
-        )
+        self.assertEqual(completions.get_completions(parser, ["foo-command", ""]), "")
 
         # Test positional argument completions.
         def positional_hints(name: str) -> list[str]:
             self.assertEqual(name, "positional")
             return ["value1-for-positional", "value2-for-positional"]
 
-        self.assertCountEqual(
+        self.assertEqual(
             completions.get_completions(
                 parser, ["foo-command", ""], positional_arg_values=positional_hints
             ),
-            ["value1-for-positional", "value2-for-positional"],
+            "value1-for-positional value2-for-positional",
         )
 
     def test_positional_acceptance(self):
@@ -76,19 +82,19 @@ class CompletionsTest(unittest.TestCase):
         )
 
         # Test that options are generated after positional.
-        self.assertCountEqual(
+        self.assertEqual(
             completions.get_completions(
                 parser, ["foo-command", "any_positional_value", "--"]
             ),
-            ["--bar"],
+            "--bar",
         )
 
         # After the positional is used up, it now shows options.
-        self.assertCountEqual(
+        self.assertEqual(
             completions.get_completions(
                 parser, ["foo-command", "any_positional_value", ""]
             ),
-            ["--bar"],
+            "--bar",
         )
 
     def test_exceptions_handled(self):
@@ -103,21 +109,21 @@ class CompletionsTest(unittest.TestCase):
             self.assertEqual(name, "positional")
             return ["value1"]
 
-        self.assertCountEqual(
+        self.assertEqual(
             completions.get_completions(
                 parser, [""], positional_arg_values=positional_hints
             ),
-            ["value1"],
+            "value1",
         )
 
         def positional_hints_with_error(name: str) -> list[str]:
             raise RuntimeError("This error is expected for testing.")
 
-        self.assertCountEqual(
+        self.assertEqual(
             completions.get_completions(
                 parser, [""], positional_arg_values=positional_hints_with_error
             ),
-            [],
+            "",
         )
 
 
