@@ -28,7 +28,7 @@ from ..utils import os_utils
 from typing import Any, Iterator, Optional, TypeVar
 
 
-def _get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
+def get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
     """Returns existing backups in chronological order."""
     destdir = os.path.dirname(config.dest_prefix)
 
@@ -64,7 +64,7 @@ def find_target(config: configs.Config, suffix: str) -> Optional[snap_holder.Sna
             "Length of snapshot identifier suffix "
             f"must be at least {global_flags.TIME_FORMAT_LEN}."
         )
-    for snap in _get_existing_snaps(config):
+    for snap in get_existing_snaps(config):
         if snap.target.endswith(suffix):
             return snap_holder.Snapshot(snap.target)
     return None
@@ -222,9 +222,7 @@ class SnapOperator:
         # Find previous snaps.
         # Doing this before the update handles dryrun (where no new snap is created).
         previous_snaps = [
-            x
-            for x in _get_existing_snaps(self._config)
-            if x.metadata.trigger == trigger
+            x for x in get_existing_snaps(self._config) if x.metadata.trigger == trigger
         ]
 
         if count > 0:
@@ -260,7 +258,7 @@ class SnapOperator:
 
     def on_pacman(self):
         last_snap: Optional[snap_holder.Snapshot] = None
-        for snap in _get_existing_snaps(self._config):
+        for snap in get_existing_snaps(self._config):
             if snap.metadata.trigger == "I":
                 last_snap = snap
         if last_snap is not None:
@@ -309,7 +307,7 @@ class SnapOperator:
         self._scheduled_to_delete = []
 
         # Delete expired snaps with TTL. Carry out irrespective of the waiting time.
-        snaps = list(_get_existing_snaps(self._config))
+        snaps = list(get_existing_snaps(self._config))
         snaps = self._delete_expired_ttl(snaps)
 
         # All _scheduled_ snaps that will remain.
@@ -327,7 +325,7 @@ class SnapOperator:
         # Just display the log if it's not a btrfs volume.
         _ = self._config.is_compatible_volume()
         print(f"Snaps at: {self._config.dest_prefix}...")
-        for snap in _get_existing_snaps(self._config):
+        for snap in get_existing_snaps(self._config):
             columns: list[str] = []
             columns.append("  " + snap.target.removeprefix(self._config.dest_prefix))
             trigger_str = "".join(
@@ -357,7 +355,7 @@ class SnapOperator:
         # Just display the log if it's not a btrfs volume.
         _ = self._config.is_compatible_volume()
         result["file"] = {"prefix": self._config.dest_prefix}
-        for snap in _get_existing_snaps(self._config):
+        for snap in get_existing_snaps(self._config):
             result["file"]["timestamp"] = snap.target.removeprefix(
                 self._config.dest_prefix
             )
