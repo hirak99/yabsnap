@@ -7,14 +7,7 @@ from . import completions
 
 
 class CompletionsTest(unittest.TestCase):
-    def setUp(self) -> None:
-        # Mock os.environ variable STYLE to be "bash".
-        self.patcher = mock.patch.dict(os.environ, {"STYLE": "bash"})
-        self.patcher.start()
-
-    def tearDown(self) -> None:
-        self.patcher.stop()
-
+    @mock.patch.dict(os.environ, {"STYLE": "array"})
     def test_completions(self):
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument(
@@ -68,6 +61,7 @@ class CompletionsTest(unittest.TestCase):
             "value1-for-positional value2-for-positional",
         )
 
+    @mock.patch.dict(os.environ, {"STYLE": "array"})
     def test_positional_acceptance(self):
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument(
@@ -97,6 +91,7 @@ class CompletionsTest(unittest.TestCase):
             "--bar",
         )
 
+    @mock.patch.dict(os.environ, {"STYLE": "array"})
     def test_exceptions_handled(self):
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument(
@@ -124,6 +119,43 @@ class CompletionsTest(unittest.TestCase):
                 parser, [""], positional_arg_values=positional_hints_with_error
             ),
             "",
+        )
+
+    @mock.patch.dict(os.environ, {"STYLE": "bash"})
+    def test_bash(self):
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument(
+            "--arg1",
+            type=str,
+            help="Arg1 help.",
+        )
+
+        self.assertEqual(
+            completions.get_completions(parser, ["--"]), "COMPREPLY=( --arg1 )"
+        )
+
+    @mock.patch.dict(os.environ, {"STYLE": "zsh"})
+    def test_zsh(self):
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument(
+            "--arg1",
+            type=str,
+            help="Arg1 help.",
+        )
+
+        self.assertEqual(
+            completions.get_completions(parser, ["--"]).splitlines(),
+            [
+                "local -a yabsnap_commands",
+                "yabsnap_commands=(",
+                ")",
+                "local -a yabsnap_options",
+                "yabsnap_options=(",
+                "  '--arg1:Arg1 help.'",
+                ")",
+                "_describe -t commands 'yabsnap command' yabsnap_commands",
+                "_describe -t options 'yabsnap options' yabsnap_options",
+            ],
         )
 
 

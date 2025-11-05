@@ -27,6 +27,7 @@ import enum
 import functools
 import logging
 import os
+import shlex
 
 from typing import Callable
 
@@ -248,14 +249,24 @@ def get_completions(
             return result
 
         return "\n".join(
-            [""]
-            + surround("yabsnap_commands", command_lines)
+            surround("yabsnap_commands", command_lines)
             + surround("yabsnap_options", option_lines)
+            + [
+                "_describe -t commands 'yabsnap command' yabsnap_commands",
+                "_describe -t options 'yabsnap options' yabsnap_options",
+            ]
         )
 
-    if style == "bash":
-        # Return array of words. This is good for bash. Hopefully other shells too.
+    if style == "array":
+        # Return array of words. Good for testing.
         return " ".join(x.name for x in candidates if x.name.startswith(words[-1]))
+
+    if style == "bash":
+        # Return commands to be eval'ed in bash.
+        words_str = " ".join(
+            f"{shlex.quote(x.name)}" for x in candidates if x.name.startswith(words[-1])
+        )
+        return f"COMPREPLY=( {words_str} )"
 
     logging.warning(f"STYLE not provided or is unknown: {style=}")
     return ""
