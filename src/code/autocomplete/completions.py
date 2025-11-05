@@ -1,9 +1,3 @@
-import argparse
-import dataclasses
-import enum
-import functools
-import logging
-
 # The following when run will enable completions. It can be placed into -
 # # /usr/share/bash-completion/completions/myprog
 
@@ -24,6 +18,15 @@ import logging
 # }
 #
 # complete -F _myprog_completions myprog
+
+
+import argparse
+import dataclasses
+import enum
+import functools
+import logging
+
+from typing import Callable
 
 
 class _OptionType(enum.Enum):
@@ -71,9 +74,6 @@ def _get_parser_accepted_args(parser: argparse.ArgumentParser) -> dict[str, _Opt
     return cands
 
 
-from typing import Callable
-
-
 def get_completions(
     root_parser: argparse.ArgumentParser,
     words: list[str],
@@ -92,19 +92,26 @@ def get_completions(
             if nargs_to_read > 0:
                 nargs_to_read -= 1
                 continue
+            if any(
+                option.type == _OptionType.POSITIONAL
+                for option in valid_options.values()
+            ):
+                # Accept anything for positional.
+                continue
             if word not in valid_options:
-                # TODO: If the option is positional, ensure unknown words don't stop parsing.
                 logging.debug(f"Unknown {word=}")
                 return []
-            need = valid_options[word]
-            if need.subparser:
-                parser = need.subparser
+            this_option = valid_options[word]
+            if this_option.subparser:
+                parser = this_option.subparser
                 valid_options = _get_parser_accepted_args(parser)
             else:
-                if need.nargs is None:
-                    logging.debug(f"For non subparsers, nargs cannot be none: {need=}")
+                if this_option.nargs is None:
+                    logging.debug(
+                        f"For non subparsers, nargs cannot be none: {this_option=}"
+                    )
                     return []
-                nargs_to_read = need.nargs
+                nargs_to_read = this_option.nargs
 
         if nargs_to_read == 0:
             options: list[str] = []

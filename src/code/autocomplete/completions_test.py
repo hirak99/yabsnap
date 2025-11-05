@@ -62,17 +62,39 @@ class CompletionsTest(unittest.TestCase):
             ["value1-for-positional", "value2-for-positional"],
         )
 
+    def test_positional_acceptance(self):
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument(
+            "positional",
+            type=str,
+            help="Positional help.",
+        )
+        parser.add_argument(
+            "--bar",
+            type=str,
+            help="Bar help.",
+        )
+
+        # Test that options are generated after positional.
+        self.assertCountEqual(
+            completions.get_completions(
+                parser, ["foo-command", "any_positional_value", "--"]
+            ),
+            ["--bar"],
+        )
+
     def test_exceptions_handled(self):
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument(
             "positional",
             type=str,
-            help="Foo help.",
+            help="Positional help.",
         )
 
         def positional_hints(name: str) -> list[str]:
             self.assertEqual(name, "positional")
             return ["value1"]
+
         self.assertCountEqual(
             completions.get_completions(
                 parser, [""], positional_arg_values=positional_hints
@@ -82,6 +104,7 @@ class CompletionsTest(unittest.TestCase):
 
         def positional_hints_with_error(name: str) -> list[str]:
             raise RuntimeError("This error is expected for testing.")
+
         self.assertCountEqual(
             completions.get_completions(
                 parser, [""], positional_arg_values=positional_hints_with_error
