@@ -7,7 +7,7 @@ from . import configs
 from .autocomplete import completions
 from .snapshot_logic import snap_operator
 
-_IGNORE_ARGS = {"internal-cronrun", "internal-preupdate"}
+_IGNORE_ARGS = {"internal-cronrun", "internal-preupdate", "-h"}
 
 
 def _positional_args(name: str) -> list[str]:
