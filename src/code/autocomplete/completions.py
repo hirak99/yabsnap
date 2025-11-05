@@ -62,40 +62,51 @@ def get_completions(
     optional_arg_values: Callable[[str], list[str]] | None = None,
     positional_arg_values: Callable[[str], list[str]] | None = None,
 ) -> list[str]:
-    parser = root_parser
-    args = _get_parser_accepted_args(parser)
     logging.debug(f"Initial args: {words}")
-    num_values = 0
-    for word in words[:-1]:
-        if num_values > 0:
-            num_values -= 1
-            continue
-        if word not in args:
-            return []
-        need = args[word]
-        if isinstance(need, argparse.ArgumentParser):
-            parser = need
-            args = _get_parser_accepted_args(parser)
-        else:
-            num_values = need
-    if num_values == 0:
-        options: list[str] = []
-        positional: _Positional | None = None
-        for k in args.keys():
-            if isinstance(k, _Positional):
-                positional = k
-            else:
-                options.append(k)
-        if positional:
-            # If user started typing "-", return options.
-            if words[-1].startswith("-"):
-                return options
-            # If no function is specified to retrieve positional args, don't hint.
-            if positional_arg_values is None:
+
+    def internal():
+        parser = root_parser
+        args = _get_parser_accepted_args(parser)
+        num_values = 0
+        for word in words[:-1]:
+            if num_values > 0:
+                num_values -= 1
+                continue
+            if word not in args:
                 return []
-            # Else return what values this positional can take.
-            return positional_arg_values(positional.name)
-        return options
-    if optional_arg_values is None:
+            need = args[word]
+            if isinstance(need, argparse.ArgumentParser):
+                parser = need
+                args = _get_parser_accepted_args(parser)
+            else:
+                num_values = need
+        if num_values == 0:
+            options: list[str] = []
+            positional: _Positional | None = None
+            for k in args.keys():
+                if isinstance(k, _Positional):
+                    positional = k
+                else:
+                    options.append(k)
+            if positional:
+                # If user started typing "-", return options.
+                if words[-1].startswith("-"):
+                    return options
+                # If no function is specified to retrieve positional args, don't hint.
+                if positional_arg_values is None:
+                    return []
+                # Else return what values this positional can take.
+                return positional_arg_values(positional.name)
+            return options
+        if optional_arg_values is None:
+            return []
+        return optional_arg_values(words[-1])
+
+    # Catch all exceptions - since there should be no error during completions.
+    try:
+        result = internal()
+    except Exception as e:
+        logging.error(f"Error during completion: {e}")
         return []
-    return optional_arg_values(words[-1])
+
+    return [x for x in result if x.startswith(words[-1])]
