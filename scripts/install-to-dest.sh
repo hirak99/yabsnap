@@ -41,7 +41,7 @@ popd
 
 cd artifacts
 install -Dm 644 services/"$PKGNAME".{service,timer}      -t "$PKGDIR"/usr/lib/systemd/system/
-install -Dm 664 pacman/*.hook     -t "$PKGDIR"/usr/share/libalpm/hooks/
+install -Dm 664 pacman/01-yabsnap-pacman-pre.hook     -t "$PKGDIR"/usr/share/libalpm/hooks/
 install -Dm 644 yabsnap.manpage   "$PKGDIR"/usr/share/man/man1/yabsnap.1
 install -Dm 644 completions/bash_"$PKGNAME" "$PKGDIR"/usr/share/bash-completion/completions/"$PKGNAME"
 install -Dm 644 completions/zsh_"$PKGNAME" "$PKGDIR"/usr/share/zsh/site-functions/_"$PKGNAME"
