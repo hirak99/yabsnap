@@ -17,7 +17,6 @@ import logging
 from . import abstract_mechanism
 from . import rollback_btrfs
 from .. import global_flags
-from ..snapshot_logic import snap_holder
 from ..snapshot_logic import snap_metadata
 from ..utils import mtab_parser
 from ..utils import os_utils
@@ -78,7 +77,7 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
     def rollback_gen(
         self,
-        snapshots: list[snap_holder.Snapshot],
+        snapshots: list[abstract_mechanism.LightSnapshot],
         subvol_map: dict[str, str] | None,
     ) -> list[str]:
         for snap in snapshots:

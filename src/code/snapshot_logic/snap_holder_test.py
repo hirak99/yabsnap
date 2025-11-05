@@ -20,9 +20,12 @@ import tempfile
 import unittest
 from unittest import mock
 
+from ..utils import os_utils
 from . import snap_holder
+from . import snap_metadata
 from ..mechanisms import btrfs_mechanism
 from ..mechanisms import snap_type_enum
+from ..snapshot_logic import snap_metadata
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -32,6 +35,15 @@ _NOW = datetime.datetime(2025, 1, 30, hour=12, minute=0, second=0)
 
 
 class SnapHolderTest(unittest.TestCase):
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Mock os_utils.get_filesystem_uuid(path).
+        mock_get_filesystem_uuid = mock.patch.object(
+            os_utils, "get_filesystem_uuid", return_value="Mock_UUID"
+        ).start()
+        self.addCleanup(mock_get_filesystem_uuid.stop)
+
     def test_create_and_delete(self):
         with tempfile.TemporaryDirectory() as dir:
             snap_destination = os.path.join(dir, "root-20231122193630")
@@ -44,17 +56,26 @@ class SnapHolderTest(unittest.TestCase):
                 return_value=True,
             ) as mock_verify_volume, mock.patch.object(
                 btrfs_mechanism.BtrfsSnapMechanism, "create", return_value=None
-            ) as mock_create:
+            ) as mock_create, mock.patch.object(
+                btrfs_mechanism.BtrfsSnapMechanism, "fill_metadata", return_value=None
+            ) as mock_fill_metadata:
                 snap.create_from(snap_type_enum.SnapType.BTRFS, "parent")
             mock_verify_volume.assert_called_once_with("parent")
             mock_create.assert_called_once_with("parent", snap_destination)
+            mock_fill_metadata.assert_called_once_with(snap.metadata)
 
             snap2 = snap_holder.Snapshot(snap_destination)
             self.assertEqual(snap2._snap_type, snap_type_enum.SnapType.BTRFS)
 
             with open(f"{snap_destination}-meta.json") as f:
                 self.assertEqual(
-                    json.load(f), {"snap_type": "BTRFS", "source": "parent"}
+                    json.load(f),
+                    {
+                        "version": snap_metadata._CURRENT_VERSION,
+                        "snap_type": "BTRFS",
+                        "source": "parent",
+                        "source_uuid": "Mock_UUID",
+                    },
                 )
 
             with mock.patch.object(
@@ -68,19 +89,29 @@ class SnapHolderTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as dir:
             snap_destination = os.path.join(dir, "root-20231122193630")
             snap = snap_holder.Snapshot(snap_destination)
-            self.assertEqual(snap.metadata._to_file_content(), {"snap_type": "UNKNOWN"})
+            self.assertEqual(
+                snap.metadata._to_file_content(),
+                {"version": snap_metadata._CURRENT_VERSION, "snap_type": "UNKNOWN"},
+            )
 
             snap.set_ttl("1 hour", now=_NOW)
 
             expected_expiry_ts = (_NOW + datetime.timedelta(hours=1)).timestamp()
             self.assertEqual(
                 snap.metadata._to_file_content(),
-                {"snap_type": "UNKNOWN", "expiry": expected_expiry_ts},
+                {
+                    "version": snap_metadata._CURRENT_VERSION,
+                    "snap_type": "UNKNOWN",
+                    "expiry": expected_expiry_ts,
+                },
             )
 
             # Setting to empty string erases ttl.
             snap.set_ttl("", now=_NOW)
-            self.assertEqual(snap.metadata._to_file_content(), {"snap_type": "UNKNOWN"})
+            self.assertEqual(
+                snap.metadata._to_file_content(),
+                {"version": snap_metadata._CURRENT_VERSION, "snap_type": "UNKNOWN"},
+            )
 
     def test_expired(self):
         with tempfile.TemporaryDirectory() as dir:
@@ -128,10 +159,14 @@ class SnapHolderTest(unittest.TestCase):
                 return_value=True,
             ) as mock_verify_volume, mock.patch.object(
                 btrfs_mechanism.BtrfsSnapMechanism, "create", return_value=None
-            ) as mock_create:
+            ) as mock_create, mock.patch.object(
+                btrfs_mechanism.BtrfsSnapMechanism, "fill_metadata", return_value=None
+            ) as mock_fill_metadata:
                 snap.create_from(snap_type_enum.SnapType.BTRFS, "parent")
             mock_verify_volume.assert_called_once_with("parent")
             mock_create.assert_called_once_with("parent", snap_destination)
+            mock_fill_metadata.assert_called_once_with(snap.metadata)
+
             snap2 = snap_holder.Snapshot(snap_destination)
             with self.assertNoLogs():
                 self.assertEqual(snap2._snap_type, snap_type_enum.SnapType.BTRFS)

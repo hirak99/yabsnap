@@ -29,5 +29,5 @@ pyright code/
 
 mypy --ignore-missing-imports --show-column-numbers --check-untyped-defs --show-error-codes code/
 
-python -m unittest discover -s . -p '*_test.py'
+find -type f -iname '*_test.py' -exec python -m unittest {} +
 

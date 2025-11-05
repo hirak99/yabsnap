@@ -19,4 +19,4 @@ set -uexo pipefail
 readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 
 cd ${MY_PATH}
-python -m unittest discover -s . -p '*_test.py'
+find -type f -iname '*_test.py' -exec python -m unittest {} +

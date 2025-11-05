@@ -46,5 +46,5 @@ class TestCommonFsUtils(unittest.TestCase):
             )
             self.assertEqual(
                 mtab_parser.mount_attributes("/testnested"),
-                mtab_parser._MountAttributes("/testnested", "/@/testnested", 258),
+                mtab_parser._MountAttributes("/dev/vda2", "/@/testnested", 258),
             )

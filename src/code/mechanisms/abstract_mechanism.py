@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import abc
+import dataclasses
 import enum
 
-from ..snapshot_logic import snap_holder
 from ..snapshot_logic import snap_metadata
 
 
@@ -25,6 +25,14 @@ from ..snapshot_logic import snap_metadata
 class SnapType(enum.Enum):
     UNKNOWN = "UNKNOWN"
     BTRFS = "BTRFS"
+
+
+@dataclasses.dataclass
+class LightSnapshot:
+    """Used to avoid circular reference in rollback generation."""
+
+    target: str
+    metadata: snap_metadata.SnapMetadata
 
 
 class SnapMechanism(abc.ABC):
@@ -52,7 +60,7 @@ class SnapMechanism(abc.ABC):
     @abc.abstractmethod
     def rollback_gen(
         self,
-        snapshots: list[snap_holder.Snapshot],
+        snapshots: list[LightSnapshot],
         subvol_map: dict[str, str] | None,
     ) -> list[str]:
         """Returns shell script lines to roll back snapshots.

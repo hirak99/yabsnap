@@ -53,9 +53,10 @@ def _get_rollback_script_text(
         "",
     ]
     for snap_type, snapshots in sorted(source_dests_by_snaptype.items()):
+        light_snapshots = [s.to_light_snapshot() for s in snapshots]
         content.append(
             "\n".join(
-                snap_mechanisms.get(snap_type).rollback_gen(snapshots, subvol_map)
+                snap_mechanisms.get(snap_type).rollback_gen(light_snapshots, subvol_map)
             )
         )
     return "\n".join(content)

@@ -23,6 +23,7 @@ import os
 
 from . import snap_metadata
 from .. import global_flags
+from ..mechanisms import abstract_mechanism
 from ..mechanisms import snap_type_enum
 from ..mechanisms import snap_mechanisms
 from ..utils import human_interval
@@ -41,6 +42,12 @@ class Snapshot:
         self._metadata_fname = target + "-meta.json"
         self.metadata = snap_metadata.SnapMetadata.load_file(self._metadata_fname)
         self._dryrun = False
+
+    # The LightSnapshot avoids circular references in certain operations.
+    def to_light_snapshot(self) -> abstract_mechanism.LightSnapshot:
+        return abstract_mechanism.LightSnapshot(
+            target=self.target, metadata=self.metadata
+        )
 
     @property
     def target(self) -> str:

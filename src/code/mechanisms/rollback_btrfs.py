@@ -18,7 +18,7 @@ import os
 import shlex
 
 from .. import global_flags
-from ..snapshot_logic import snap_holder
+from ..mechanisms import abstract_mechanism
 from ..utils import btrfs_utils
 from ..utils import mtab_parser
 from ..utils import os_utils
@@ -69,7 +69,7 @@ def _drop_root_slash(s: str) -> str:
 
 
 def rollback_gen(
-    snapshots: list[snap_holder.Snapshot],
+    snapshots: list[abstract_mechanism.LightSnapshot],
     subvol_map: dict[str, str] | None,
 ) -> list[str]:
     """

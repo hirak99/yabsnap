@@ -60,7 +60,7 @@ class TestRollbacker(unittest.TestCase):
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
             generated = rollback_btrfs.rollback_gen(
-                snapshots=snaps_list,
+                snapshots=[s.to_light_snapshot() for s in snaps_list],
                 subvol_map=None,
             )
 
@@ -100,7 +100,7 @@ echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
             generated = rollback_btrfs.rollback_gen(
-                snapshots=snaps_list,
+                snapshots=[s.to_light_snapshot() for s in snaps_list],
                 subvol_map=None,
             )
 
@@ -146,7 +146,7 @@ echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested2"
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
             generated = rollback_btrfs.rollback_gen(
-                snapshots=snaps_list,
+                snapshots=[s.to_light_snapshot() for s in snaps_list],
                 subvol_map={"/home": "/subv_home", "/root": "/subv_root"},
             )
 

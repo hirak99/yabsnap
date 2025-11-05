@@ -40,8 +40,7 @@ class SnapMetadata:
     version: str = _CURRENT_VERSION
     # Snapshot type.
     # This will always be populated for new snapshots.
-    # If empty, assumed btrfs for backwards compatibility with old snaps.
-    snap_type: snap_type_enum.SnapType = snap_type_enum.SnapType.BTRFS
+    snap_type: snap_type_enum.SnapType = snap_type_enum.SnapType.UNKNOWN
     # Name of the subvolume from whcih this snap was taken.
     source: str = ""
     # Filesystem UUID of source.
@@ -92,6 +91,10 @@ class SnapMetadata:
                     return cls()
             if "version" not in all_args:
                 all_args["version"] = _UNKNOWN_VERSION
+            if "snap_type" not in all_args:
+                # This is because there was a time when the snap_type was not written.
+                # TODO: Drop support for back-compatibility after enough time.
+                all_args["snap_type"] = snap_type_enum.SnapType.BTRFS.value
             return dataclass_loader.load_dataclass(
                 cls, all_args, ignore_unknown_fields=True
             )
