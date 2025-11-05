@@ -58,6 +58,7 @@ from typing import Callable
 def get_completions(
     root_parser: argparse.ArgumentParser,
     words: list[str],
+    *,
     optional_arg_values: Callable[[str], list[str]] | None = None,
     positional_arg_values: Callable[[str], list[str]] | None = None,
 ) -> list[str]:
@@ -93,7 +94,7 @@ def get_completions(
             if positional_arg_values is None:
                 return []
             # Else return what values this positional can take.
-            return positional_arg_values(words[-1])
+            return positional_arg_values(positional.name)
         return options
     if optional_arg_values is None:
         return []
