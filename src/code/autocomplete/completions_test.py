@@ -83,6 +83,14 @@ class CompletionsTest(unittest.TestCase):
             ["--bar"],
         )
 
+        # After the positional is used up, it now shows options.
+        self.assertCountEqual(
+            completions.get_completions(
+                parser, ["foo-command", "any_positional_value", ""]
+            ),
+            ["--bar"],
+        )
+
     def test_exceptions_handled(self):
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument(

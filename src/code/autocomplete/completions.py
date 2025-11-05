@@ -1,3 +1,5 @@
+"""General purpose auto-complete handler."""
+
 # The following when run will enable completions. It can be placed into -
 # # /usr/share/bash-completion/completions/myprog
 
@@ -83,60 +85,75 @@ def get_completions(
 ) -> list[str]:
     logging.debug(f"Initial args: {words}")
 
-    def internal():
-        parser = root_parser
-        valid_options = _get_parser_accepted_args(parser)
+    @dataclasses.dataclass
+    class ParserWrapper:
+        """Convenience class to manage parsing."""
+
+        parser: argparse.ArgumentParser
         nargs_to_read: int = 0
+        num_positionals_used: int = 0
+
+        def __post_init__(self):
+            self.valid_options = _get_parser_accepted_args(self.parser)
+            self.positionals: list[str] = [
+                x.name
+                for x in self.valid_options.values()
+                if x.type == _OptionType.POSITIONAL
+            ]
+
+        def filter_by_types(self, types: list[_OptionType]) -> list[str]:
+            return [x.name for x in self.valid_options.values() if x.type in types]
+
+    def internal() -> list[str]:
+        parserw = ParserWrapper(root_parser)
 
         for word in words[:-1]:
-            if nargs_to_read > 0:
-                nargs_to_read -= 1
+            if parserw.nargs_to_read > 0:
+                parserw.nargs_to_read -= 1
                 continue
             if any(
                 option.type == _OptionType.POSITIONAL
-                for option in valid_options.values()
+                for option in parserw.valid_options.values()
             ):
                 # Accept anything for positional.
+                parserw.num_positionals_used += 1
                 continue
-            if word not in valid_options:
+            if word not in parserw.valid_options:
                 logging.debug(f"Unknown {word=}")
                 return []
-            this_option = valid_options[word]
+            this_option = parserw.valid_options[word]
             if this_option.subparser:
-                parser = this_option.subparser
-                valid_options = _get_parser_accepted_args(parser)
+                parserw = ParserWrapper(this_option.subparser)
             else:
                 if this_option.nargs is None:
                     logging.debug(
                         f"For non subparsers, nargs cannot be none: {this_option=}"
                     )
                     return []
-                nargs_to_read = this_option.nargs
+                parserw.nargs_to_read = this_option.nargs
 
-        if nargs_to_read == 0:
-            options: list[str] = []
-            positional: str | None = None
-            for cand in valid_options.values():
-                if cand.type in {_OptionType.OPTION, _OptionType.SUBPARSER}:
-                    options.append(cand.name)
-                elif cand.type == _OptionType.POSITIONAL:
-                    positional = cand.name
-                else:
-                    logging.warning(f"Unhandled option type: {cand.type}")
+        if parserw.nargs_to_read > 0:
+            # Look for argument completion.
+            if optional_arg_values is None:
+                return []
+            return optional_arg_values(words[-1])
 
-            if positional:
-                # If user started typing "-", return options.
-                if words[-1].startswith("-"):
-                    return options
-                # If no function is specified to retrieve positional args, don't hint.
-                if positional_arg_values is None:
-                    return []
-                # Else return what values this positional can take.
-                return positional_arg_values(positional)
-            return options
-        if optional_arg_values is None:
-            return []
-        return optional_arg_values(words[-1])
+        # No more throw-away args. Therefore we should show options from valid_options.
+
+        if len(parserw.positionals) > parserw.num_positionals_used:
+            # There are more positional args to be passed.
+            positional = parserw.positionals[parserw.num_positionals_used]
+            # If user started typing "-", return options.
+            if words[-1].startswith("-"):
+                # Return all OPTIONs, but not SUBPARSERs.
+                return parserw.filter_by_types([_OptionType.OPTION])
+            # If no function is specified to retrieve positional args, don't hint.
+            if positional_arg_values is None:
+                return []
+            # Else return what values this positional can take.
+            return positional_arg_values(positional)
+
+        return parserw.filter_by_types([_OptionType.OPTION, _OptionType.SUBPARSER])
 
     # Catch all exceptions - since there should be no error during completions.
     try:
