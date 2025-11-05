@@ -43,8 +43,8 @@ cd artifacts
 install -Dm 644 services/"$PKGNAME".{service,timer}      -t "$PKGDIR"/usr/lib/systemd/system/
 install -Dm 664 pacman/*.hook     -t "$PKGDIR"/usr/share/libalpm/hooks/
 install -Dm 644 yabsnap.manpage   "$PKGDIR"/usr/share/man/man1/yabsnap.1
-install -Dm 644 completions/"$PKGNAME" "$PKGDIR"/usr/share/bash-completion/completions/"$PKGNAME"
-install -Dm 644 completions/_"$PKGNAME" "$PKGDIR"/usr/share/zsh/site-functions/_"$PKGNAME"
+install -Dm 644 completions/bash_"$PKGNAME" "$PKGDIR"/usr/share/bash-completion/completions/"$PKGNAME"
+install -Dm 644 completions/zsh_"$PKGNAME" "$PKGDIR"/usr/share/zsh/site-functions/_"$PKGNAME"
 gzip -f "$PKGDIR"/usr/share/man/man1/"$PKGNAME".1
 cd ../src
 install -Dm 755 "$PKGNAME".sh -t "$DEST"/
