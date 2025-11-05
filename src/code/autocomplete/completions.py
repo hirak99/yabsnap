@@ -26,6 +26,7 @@ import dataclasses
 import enum
 import functools
 import logging
+import os
 
 from typing import Callable
 
@@ -202,7 +203,6 @@ def get_completions(
     *,
     optional_arg_values: Callable[[str], list[str]] | None = None,
     positional_arg_values: Callable[[str], list[str]] | None = None,
-    iszsh: bool = False,
     ignore_args: set[str] | None = None,
 ) -> str:
     logging.debug(f"Initial args: {words}")
@@ -222,7 +222,8 @@ def get_completions(
     if ignore_args is not None:
         candidates = [x for x in candidates if x.name not in ignore_args]
 
-    if iszsh:
+    style = os.environ.get("STYLE", "")
+    if style == "zsh":
         # Returns lines defining two arres.
         # They are meant to be `eval`-ed.
         command_lines: list[str] = []
@@ -252,5 +253,9 @@ def get_completions(
             + surround("yabsnap_options", option_lines)
         )
 
-    # Return array of words. This is good for bash. Hopefully other shells too.
-    return " ".join(x.name for x in candidates if x.name.startswith(words[-1]))
+    if style == "bash":
+        # Return array of words. This is good for bash. Hopefully other shells too.
+        return " ".join(x.name for x in candidates if x.name.startswith(words[-1]))
+
+    logging.warning(f"STYLE not provided or is unknown: {style=}")
+    return ""

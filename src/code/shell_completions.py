@@ -1,3 +1,10 @@
+"""Yabsnap shell completions.
+
+To test, run -
+
+$ STYLE=zsh python -m src.code.shell_completions debug ""
+"""
+
 import logging
 import os
 import sys
@@ -28,14 +35,11 @@ def _positional_args(name: str) -> list[str]:
 
 
 def main():
-    iszsh = "zsh" in os.environ.get("SHELL", "").lower()
-
     parser = arg_parser.make_parser()
     result = completions.get_completions(
         parser,
         sys.argv[2:],
         positional_arg_values=_positional_args,
-        iszsh=iszsh,
         ignore_args=_IGNORE_ARGS,
     )
     print(result)
