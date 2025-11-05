@@ -1,5 +1,6 @@
 import argparse
 import dataclasses
+import enum
 import functools
 import logging
 
@@ -25,31 +26,49 @@ import logging
 # complete -F _myprog_completions myprog
 
 
+class _OptionType(enum.Enum):
+    OPTION = 1
+    SUBPARSER = 2
+    POSITIONAL = 3
+
+
 @dataclasses.dataclass(frozen=True)
-class _Positional:
+class _Option:
     name: str
+    type: _OptionType
+    # None iff type == SUBPARSER.
+    nargs: int | None
+    # Present iff type == SUBPARSER.
+    subparser: argparse.ArgumentParser | None = None
 
 
 @functools.cache
-def _get_parser_accepted_args(parser: argparse.ArgumentParser):
+def _get_parser_accepted_args(parser: argparse.ArgumentParser) -> dict[str, _Option]:
     # Argument, and how many words to follow.
-    accepted: list[tuple[str | _Positional, int | argparse.ArgumentParser]] = []
+    cands: dict[str, _Option] = {}
     for action in parser._actions:
         match action:
-            case argparse._HelpAction():  # pyright: ignore
-                accepted += [(x, 0) for x in action.option_strings]
-            case argparse._StoreConstAction():  # pyright: ignore
-                accepted += [(x, 0) for x in action.option_strings]
+            case (
+                argparse._HelpAction() | argparse._StoreConstAction()  # pyright: ignore
+            ):
+                for x in action.option_strings:
+                    cands[x] = _Option(name=x, nargs=0, type=_OptionType.OPTION)
             case argparse._StoreAction():  # pyright: ignore
                 if action.option_strings:
-                    accepted += [(x, 1) for x in action.option_strings]
+                    for x in action.option_strings:
+                        cands[x] = _Option(name=x, nargs=1, type=_OptionType.OPTION)
                 else:
-                    accepted += [(_Positional(name=action.dest), 1)]
+                    cands[action.dest] = _Option(
+                        name=action.dest, nargs=0, type=_OptionType.POSITIONAL
+                    )
             case argparse._SubParsersAction():  # pyright: ignore
-                accepted += [(k, v) for k, v in action.choices.items()]
+                for k, v in action.choices.items():
+                    cands[k] = _Option(
+                        name=k, nargs=None, type=_OptionType.SUBPARSER, subparser=v
+                    )
             case _:
                 pass
-    return {k: v for k, v in accepted}
+    return cands
 
 
 from typing import Callable
@@ -66,28 +85,38 @@ def get_completions(
 
     def internal():
         parser = root_parser
-        args = _get_parser_accepted_args(parser)
-        num_values = 0
+        valid_options = _get_parser_accepted_args(parser)
+        nargs_to_read: int = 0
+
         for word in words[:-1]:
-            if num_values > 0:
-                num_values -= 1
+            if nargs_to_read > 0:
+                nargs_to_read -= 1
                 continue
-            if word not in args:
+            if word not in valid_options:
+                # TODO: If the option is positional, ensure unknown words don't stop parsing.
+                logging.debug(f"Unknown {word=}")
                 return []
-            need = args[word]
-            if isinstance(need, argparse.ArgumentParser):
-                parser = need
-                args = _get_parser_accepted_args(parser)
+            need = valid_options[word]
+            if need.subparser:
+                parser = need.subparser
+                valid_options = _get_parser_accepted_args(parser)
             else:
-                num_values = need
-        if num_values == 0:
+                if need.nargs is None:
+                    logging.debug(f"For non subparsers, nargs cannot be none: {need=}")
+                    return []
+                nargs_to_read = need.nargs
+
+        if nargs_to_read == 0:
             options: list[str] = []
-            positional: _Positional | None = None
-            for k in args.keys():
-                if isinstance(k, _Positional):
-                    positional = k
+            positional: str | None = None
+            for cand in valid_options.values():
+                if cand.type in {_OptionType.OPTION, _OptionType.SUBPARSER}:
+                    options.append(cand.name)
+                elif cand.type == _OptionType.POSITIONAL:
+                    positional = cand.name
                 else:
-                    options.append(k)
+                    logging.warning(f"Unhandled option type: {cand.type}")
+
             if positional:
                 # If user started typing "-", return options.
                 if words[-1].startswith("-"):
@@ -96,7 +125,7 @@ def get_completions(
                 if positional_arg_values is None:
                     return []
                 # Else return what values this positional can take.
-                return positional_arg_values(positional.name)
+                return positional_arg_values(positional)
             return options
         if optional_arg_values is None:
             return []
