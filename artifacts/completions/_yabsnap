@@ -3,10 +3,10 @@
 _yabsnap() {
   # Path where yabsnap.sh is also present.
   local script_dir="/usr/share/yabsnap"
-  local output=("$(PYTHONPATH=$script_dir python -O -u -m code.shell_completions "${words[@]}")")
-  local -a reply=("${=output}")
-  reply=(${reply[@]#*( )}) # Remove any blank entries
-  compadd -a reply
+  local output=$(PYTHONPATH=$script_dir python -O -u -m code.shell_completions "${words[@]}")
+  eval "$output"
+  _describe -t commands 'yabsnap command' yabsnap_commands
+  _describe -t options 'yabsnap options' yabsnap_options
 }
 
 compdef _yabsnap yabsnap

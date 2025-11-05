@@ -21,7 +21,6 @@
 #
 # complete -F _myprog_completions myprog
 
-
 import argparse
 import dataclasses
 import enum
@@ -46,26 +45,6 @@ class _Option:
     nargs: int | None
     # Present iff type == SUBPARSER.
     subparser: argparse.ArgumentParser | None = None
-
-
-@dataclasses.dataclass
-class _ParserWrapper:
-    """Convenience class to bookkeep parser related fields."""
-
-    parser: argparse.ArgumentParser
-    nargs_to_read: int = 0
-    num_positionals_used: int = 0
-
-    def __post_init__(self):
-        self.valid_options = _get_parser_accepted_args(self.parser)
-        self.positionals: list[str] = [
-            x.name
-            for x in self.valid_options.values()
-            if x.type == _OptionType.POSITIONAL
-        ]
-
-    def filter_by_types(self, types: list[_OptionType]) -> list[str]:
-        return [x.name for x in self.valid_options.values() if x.type in types]
 
 
 @functools.cache
@@ -95,17 +74,63 @@ def _get_parser_accepted_args(parser: argparse.ArgumentParser) -> dict[str, _Opt
                         help=action.help,
                     )
             case argparse._SubParsersAction():  # pyright: ignore
-                for k, v in action.choices.items():
-                    cands[k] = _Option(
-                        name=k,
+                for subaction in action._get_subactions():
+                    cands[subaction.dest] = _Option(
+                        name=subaction.dest,
                         nargs=None,
                         type=_OptionType.SUBPARSER,
-                        subparser=v,
-                        help=action.help,
+                        subparser=action.choices[subaction.dest],
+                        help=subaction.help,
                     )
             case _:
                 pass
     return cands
+
+
+class _CompletionType(enum.Enum):
+    COMMAND = 1
+    OPTION = 2
+
+
+@dataclasses.dataclass
+class _Completion:
+    name: str
+    help: str | None
+    type: _CompletionType
+
+
+@dataclasses.dataclass
+class _ParserWrapper:
+    """Convenience class to bookkeep parser related fields."""
+
+    parser: argparse.ArgumentParser
+    nargs_to_read: int = 0
+    num_positionals_used: int = 0
+
+    def __post_init__(self):
+        self.valid_options = _get_parser_accepted_args(self.parser)
+        self.positionals: list[str] = [
+            x.name
+            for x in self.valid_options.values()
+            if x.type == _OptionType.POSITIONAL
+        ]
+
+    def filter_by_types(self, types: list[_OptionType]) -> list[_Completion]:
+        result: list[_Completion] = []
+        for x in self.valid_options.values():
+            if x.type in types:
+                result.append(
+                    _Completion(
+                        name=x.name,
+                        help=x.help,
+                        type=(
+                            _CompletionType.OPTION
+                            if x.type == _OptionType.OPTION
+                            else _CompletionType.COMMAND
+                        ),
+                    )
+                )
+        return result
 
 
 def _internal(
@@ -114,7 +139,7 @@ def _internal(
     *,
     optional_arg_values: Callable[[str], list[str]] | None = None,
     positional_arg_values: Callable[[str], list[str]] | None = None,
-) -> list[str]:
+) -> list[_Completion]:
     parserw = _ParserWrapper(root_parser)
 
     for word in words[:-1]:
@@ -146,7 +171,9 @@ def _internal(
         # Look for argument completion.
         if optional_arg_values is None:
             return []
-        return optional_arg_values(words[-1])
+        return [
+            _Completion(name=x, help=None, type=_CompletionType.COMMAND) for x in words
+        ]
 
     # No more throw-away args. Therefore we should show options from valid_options.
 
@@ -161,7 +188,10 @@ def _internal(
         if positional_arg_values is None:
             return []
         # Else return what values this positional can take.
-        return positional_arg_values(positional)
+        return [
+            _Completion(name=x, help=None, type=_CompletionType.COMMAND)
+            for x in positional_arg_values(positional)
+        ]
 
     return parserw.filter_by_types([_OptionType.OPTION, _OptionType.SUBPARSER])
 
@@ -172,12 +202,14 @@ def get_completions(
     *,
     optional_arg_values: Callable[[str], list[str]] | None = None,
     positional_arg_values: Callable[[str], list[str]] | None = None,
-) -> list[str]:
+    iszsh: bool = False,
+    ignore_args: set[str] | None = None,
+) -> str:
     logging.debug(f"Initial args: {words}")
 
     # Catch all exceptions - since there should be no error during completions.
     try:
-        result = _internal(
+        candidates = _internal(
             root_parser=root_parser,
             words=words,
             optional_arg_values=optional_arg_values,
@@ -185,6 +217,40 @@ def get_completions(
         )
     except Exception as e:
         logging.error(f"Error during completion: {e}")
-        return []
+        return ""
 
-    return [x for x in result if x.startswith(words[-1])]
+    if ignore_args is not None:
+        candidates = [x for x in candidates if x.name not in ignore_args]
+
+    if iszsh:
+        # Returns lines defining two arres.
+        # They are meant to be `eval`-ed.
+        command_lines: list[str] = []
+        option_lines: list[str] = []
+        for x in candidates:
+            entry = x.name
+            if x.help:
+                entry += f":{x.help}"
+            if x.type == _CompletionType.COMMAND:
+                command_lines.append(entry)
+            elif x.type == _CompletionType.OPTION:
+                option_lines.append(entry)
+            else:
+                logging.warning(f"Unknown completion type: {x.type}")
+
+        def surround(varname: str, lines: list[str]) -> list[str]:
+            result: list[str] = []
+            result += [f"local -a {varname}"]
+            result += [f"{varname}=("]
+            result += [f"  '{x}'" for x in lines]
+            result += [f")"]
+            return result
+
+        return "\n".join(
+            [""]
+            + surround("yabsnap_commands", command_lines)
+            + surround("yabsnap_options", option_lines)
+        )
+
+    # Return array of words. This is good for bash. Hopefully other shells too.
+    return " ".join(x.name for x in candidates if x.name.startswith(words[-1]))

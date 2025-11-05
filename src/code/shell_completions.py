@@ -28,11 +28,17 @@ def _positional_args(name: str) -> list[str]:
 
 
 def main():
+    iszsh = "zsh" in os.environ.get("SHELL", "").lower()
+
     parser = arg_parser.make_parser()
-    results = completions.get_completions(
-        parser, sys.argv[2:], positional_arg_values=_positional_args
+    result = completions.get_completions(
+        parser,
+        sys.argv[2:],
+        positional_arg_values=_positional_args,
+        iszsh=iszsh,
+        ignore_args=_IGNORE_ARGS,
     )
-    print(" ".join(x for x in results if x not in _IGNORE_ARGS))
+    print(result)
 
 
 # To debug, run with the first parameter as anything but "yabsnap". E.g. -
