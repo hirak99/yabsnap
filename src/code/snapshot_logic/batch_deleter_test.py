@@ -54,7 +54,7 @@ class TestParseISO8601Datetime(unittest.TestCase):
 
 
 class TestRegisterFilter(unittest.TestCase):
-    class NothingFilter(batch_deleter._SnapshotFilterProtocol):
+    class NothingFilter(batch_deleter._SnapshotBaseFilter):
         arg_name_set = ("test",)
 
         def __init__(self, take_none: None): ...

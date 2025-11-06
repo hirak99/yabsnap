@@ -10,9 +10,9 @@ from .. import global_flags
 from ..mechanisms import snap_type_enum
 from ..utils import human_interval
 
-from typing import Any, Iterable, Iterator, Protocol
+from typing import Any, Iterable, Iterator
 
-_FILTERS: dict[str, type["_SnapshotFilterProtocol"]] = {}
+_FILTERS: dict[str, type["_SnapshotBaseFilter"]] = {}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -45,27 +45,28 @@ def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
             logging.warning(f"Could not parse timestamp, ignoring: {pathname}")
 
 
-def get_filters(args: dict[str, Any]) -> Iterator["_SnapshotFilterProtocol"]:
+def get_filters(args: dict[str, Any]) -> Iterator["_SnapshotBaseFilter"]:
     for arg_name, arg_value in args.items():
         if arg_name in _FILTERS and arg_value is not None:
             yield _FILTERS[arg_name](**{arg_name: arg_value})
 
 
-def _register_filter(cls: type["_SnapshotFilterProtocol"]):
+def _register_filter(cls: type["_SnapshotBaseFilter"]):
     for name in cls.arg_name_set:
         _FILTERS[name] = cls
 
 
-class _SnapshotFilterProtocol(Protocol):
+class _SnapshotBaseFilter:
     arg_name_set: tuple[str, ...]
 
     def __init__(self, **kwargs): ...
 
-    def __call__(self, snap: snap_holder.Snapshot) -> bool: ...
+    def __call__(self, snap: snap_holder.Snapshot) -> bool:
+        raise NotImplementedError
 
 
 @_register_filter
-class _IndicatorFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnusedClass]
+class _IndicatorFilter(_SnapshotBaseFilter):  # pyright: ignore[reportUnusedClass]
     arg_name_set = ("indicator",)
 
     def __init__(self, *, indicator: str):
@@ -81,7 +82,7 @@ class _IndicatorFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnused
 
 
 @_register_filter
-class _TimeScopeFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnusedClass]
+class _TimeScopeFilter(_SnapshotBaseFilter):  # pyright: ignore[reportUnusedClass]
     arg_name_set = ("start", "end")
 
     def __init__(self, *, start: str = "", end: str = ""):
@@ -109,7 +110,7 @@ class _TimeScopeFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnused
 
 def apply_snapshot_filters(
     config_snaps_mapping: Iterable[_ConfigSnapshotsRelation],
-    *filters: _SnapshotFilterProtocol,
+    *filters: _SnapshotBaseFilter,
 ) -> Iterator[_ConfigSnapshotsRelation]:
     """Use the filter to select the snapshots\
        that actually need to be processed for each configuration."""
