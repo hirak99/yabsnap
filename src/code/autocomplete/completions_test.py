@@ -77,17 +77,13 @@ class CompletionsTest(unittest.TestCase):
 
         # Test that options are generated after positional.
         self.assertEqual(
-            completions.get_completions(
-                parser, ["foo-command", "any_positional_value", "--"]
-            ),
+            completions.get_completions(parser, ["any_positional_value", "--"]),
             "--bar",
         )
 
         # After the positional is used up, it now shows options.
         self.assertEqual(
-            completions.get_completions(
-                parser, ["foo-command", "any_positional_value", ""]
-            ),
+            completions.get_completions(parser, ["any_positional_value", ""]),
             "--bar",
         )
 
@@ -100,7 +96,7 @@ class CompletionsTest(unittest.TestCase):
             help="Positional help.",
         )
 
-        def positional_hints(option: str, arg_index) -> list[str]:
+        def positional_hints(option: str, arg_index: int) -> list[str]:
             self.assertEqual(option, "positional")
             return ["value1"]
 
@@ -144,14 +140,10 @@ class CompletionsTest(unittest.TestCase):
         self.assertEqual(
             completions.get_completions(parser, ["--"]).splitlines(),
             [
-                "local -a yabsnap_commands",
-                "yabsnap_commands=(",
-                ")",
                 "local -a yabsnap_options",
                 "yabsnap_options=(",
                 "  '--arg1:Arg1 help.'",
                 ")",
-                "_describe -t commands 'yabsnap command' yabsnap_commands",
                 "_describe -t options 'yabsnap options' yabsnap_options",
             ],
         )

@@ -15,8 +15,8 @@ import sys
 
 from . import arg_parser
 from . import configs
-from .autocomplete import completions
 from .autocomplete import comp_types
+from .autocomplete import completions
 from .snapshot_logic import snap_operator
 
 # If set to True, yabsnap completions will print debug output.
@@ -25,9 +25,7 @@ _DEBUG_ENV_FLAG = "YABSNAP_COMPLETION_DEBUG"
 _IGNORE_ARGS = {"internal-cronrun", "internal-preupdate", "-h"}
 
 
-def _dynamic_args(
-    option: str, arg_index: int
-) -> list[str | comp_types.FileCompletion]:
+def _dynamic_args(option: str, arg_index: int) -> list[str | comp_types.FileCompletion]:
     logging.debug(f"Dynamic args for {option=}, {arg_index=}")
 
     if option == "target_suffix":
@@ -62,5 +60,5 @@ if __name__ == "__main__":
     if sys.argv[1] != "yabsnap" or os.getenv(_DEBUG_ENV_FLAG, "").lower() == "true":
         # Assume this is a direct run for debugging.
         logging.basicConfig(level=logging.DEBUG)
-    logging.debug(sys.argv)
+    logging.debug(f"{sys.argv=}")
     main()

@@ -103,6 +103,7 @@ class _ParserWrapper:
         self.positionals: list[_Option] = [
             x for x in self.valid_options.values() if x.type == _OptionType.POSITIONAL
         ]
+        logging.debug(f"{len(self.positionals)=}")
 
     def filter_by_types(self, types: list[_OptionType]) -> list[comp_types.Completion]:
         result: list[comp_types.Completion] = []
@@ -134,6 +135,9 @@ def _internal(
 
     # If args are being read, which option they are for.
     last_named_arg: _Option | None = None
+    if parserw.positionals:
+        last_named_arg = parserw.positionals[0]
+
     # Index of options for the arg.
     arg_index = 0
 
@@ -146,11 +150,11 @@ def _internal(
         arg_index = 0
 
         if len(parserw.positionals) > parserw.num_positionals_used:
+            logging.debug(f"Positional arg: {word}")
             last_named_arg = parserw.positionals[parserw.num_positionals_used]
             parserw.num_positionals_used += 1
             continue
-
-        if word not in parserw.valid_options:
+        elif word not in parserw.valid_options:
             logging.debug(f"Unknown {word=}")
             return []
         this_option = parserw.valid_options[word]
@@ -167,24 +171,37 @@ def _internal(
             parserw.nargs_to_read = this_option.nargs
 
     def get_dyn_options() -> Sequence[comp_types.AnyCompletionType]:
+        def format_help(name: str, help: str | None) -> str:
+            message = name
+            if help:
+                message += f": {help}"
+            return message
+
         if last_named_arg is None:
             logging.warning(f"last_named_arg is None for {words=}")
             return []
-        if dynamic_args_fn is not None:
-            result = dynamic_args_fn(last_named_arg.option, arg_index)
-            if result:
-                return result
-        # No user completion. Show a default help.
+
+        # If positional, name of the arg e.g. 'target_suffix'.
+        # If value of an arg, name of the option e.g. '--source'.
+        arg_name: str | None = None
+        arg_help: str | None = None
+
         if last_named_arg.subparser:
             positional_actions = last_named_arg.subparser._get_positional_actions()
             if len(positional_actions) > arg_index:
-                help = positional_actions[arg_index].help
-                if help:
-                    return [comp_types.Message(help)]
-            return []
-        if last_named_arg.help:
-            return [comp_types.Message(last_named_arg.help)]
-        return []
+                positional_arg = positional_actions[arg_index]
+                arg_name = positional_arg.dest
+                arg_help = positional_arg.help
+        if arg_name is None:
+            arg_name = last_named_arg.option
+            arg_help = last_named_arg.help
+
+        if dynamic_args_fn is not None:
+            result = dynamic_args_fn(arg_name, arg_index)
+            if result:
+                return result
+
+        return [comp_types.Message(format_help(arg_name, arg_help))]
 
     if parserw.nargs_to_read > 0:
         # Look for argument completion.

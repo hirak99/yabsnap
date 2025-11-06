@@ -34,6 +34,14 @@ def shell_commands(
 ):
     style = os.environ.get("STYLE", "")
     if style == "zsh":
+        # NOTE:
+        # To view documentation on `compadd`, do this -
+        # ```sh
+        # unalias run-help
+        # autoload run-help
+        # run-help compadd
+        # ```
+
         if file_completions:
             return "_path_files"
 
@@ -52,37 +60,24 @@ def shell_commands(
             else:
                 logging.warning(f"Unknown completion type: {x.type}")
 
-        def surround(varname: str, lines: list[str]) -> list[str]:
+        def describe(tag: str, lines: list[str]) -> list[str]:
             result: list[str] = []
-            result += [f"local -a {varname}"]
-            result += [f"{varname}=("]
+            result += [f"local -a yabsnap_{tag}"]
+            result += [f"yabsnap_{tag}=("]
             result += [f"  {shlex.quote(x)}" for x in lines]
             result += [f")"]
+            result += [f"_describe -t {tag} 'yabsnap {tag}' yabsnap_{tag}"]
             return result
 
-        return "\n".join(
-            surround("yabsnap_commands", command_lines)
-            + surround("yabsnap_options", option_lines)
-            + [
-                "_describe -t commands 'yabsnap command' yabsnap_commands",
-                "_describe -t options 'yabsnap options' yabsnap_options",
-            ]
+        sh_lines: list[str] = []
+        if command_lines:
+            sh_lines += describe("commands", command_lines)
+        if option_lines:
+            sh_lines += describe("options", option_lines)
+        if messages:
+            sh_lines += [f"compadd -x {shlex.quote(x.message)}" for x in messages]
 
-            # TODO: Improve displaying a message.
-            # Below is the closest I had it to work. However, zsh still completes from
-            # the message which is not what we want.
-            #
-            + surround("yabsnap_messages", [x.message for x in messages])
-            + [
-                # I admit, it is unclear to me how _message exactly works.
-                # But removing this line makes the message not display correctly.
-                # Perhaps it is just setting some kind of context.
-                "_message -e messages",
-                # Still, needs _describe to actually display them.
-                "_describe -t messages 'yabsnap message' yabsnap_messages",
-            ]
-
-        )
+        return "\n".join(sh_lines)
 
     if style == "array":
         # Return array of words. Good for testing.
