@@ -60,7 +60,9 @@ def _get_nested_subvs(subvolumes: list[_Subvolume], subv_name: str) -> list[str]
         # subvolume dir. Since .snapshots should not have nested subvols, all subvs will be
         # absolute.
         if not subv.is_absolute:
-            logging.error(f"Unexpected: Subvolumes are not absolute.")
+            logging.error(
+                f"Unexpected: Subvolumes are not absolute. Please create a bug."
+            )
 
         if subv.path.startswith(subv_name):
             nested_dirs.append(subv.path.removeprefix(subv_name))

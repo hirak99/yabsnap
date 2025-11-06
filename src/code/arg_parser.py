@@ -32,7 +32,7 @@ def make_parser() -> argparse.ArgumentParser:
         action="store_true",
     )
     parser.add_argument("--config-file", help="Specify a config file to use.")
-    parser.add_argument("--source", help="Restrict to config with this source path.")
+    parser.add_argument("--source", help="Restrict to config with matching `source`.")
     parser.add_argument(
         "--dry-run",
         help="If passed, will disable all snapshot creation and deletion.",

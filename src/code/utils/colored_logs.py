@@ -54,15 +54,12 @@ class _CustomFormatter(logging.Formatter):
         }
 
         common_fmt = "%(levelname)s: [%(filename)s:%(lineno)d] %(message)s"
-        # ERROR or CRITICAL is meant for unexpected scenarios, which if happens
-        # should be rectified.
-        critical = "\nPlease run with `--verbose` and report a bug."
         self._level_formats = {
             logging.DEBUG: common_fmt,
             logging.INFO: common_fmt,
             logging.WARNING: common_fmt,
-            logging.ERROR: common_fmt + critical,
-            logging.CRITICAL: common_fmt + critical,
+            logging.ERROR: common_fmt,
+            logging.CRITICAL: common_fmt,
         }
 
         if _is_ansi_color_supported(sys.stderr):

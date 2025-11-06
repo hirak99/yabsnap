@@ -26,4 +26,4 @@ class Completion:
 
 
 # If it is a single str, it is interpreted as a command.
-AnyCompletionType = Completion | FileCompletion | Message| str
+AnyCompletionType = Completion | FileCompletion | Message | str
