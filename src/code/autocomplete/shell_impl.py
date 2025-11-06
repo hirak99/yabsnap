@@ -28,11 +28,11 @@ done
 
 def shell_commands(
     completions: list[comp_types.Completion],
-    special_completions: list[comp_types.SpecialCompletion],
+    file_completions: list[comp_types.FileCompletion],
 ):
     style = os.environ.get("STYLE", "")
     if style == "zsh":
-        if comp_types.SpecialCompletion.FILES in special_completions:
+        if file_completions:
             return "_files"
 
         # Returns lines defining two arres.
@@ -73,7 +73,7 @@ def shell_commands(
 
     if style == "bash":
         # Return commands to be eval'ed in bash.
-        if comp_types.SpecialCompletion.FILES in special_completions:
+        if file_completions:
             return _BASH_COMPREPLY_FILES
         words_str = " ".join(f"{shlex.quote(x.option)}" for x in completions)
         return f"COMPREPLY=( {words_str} )"

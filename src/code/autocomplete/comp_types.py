@@ -2,13 +2,15 @@ import enum
 import dataclasses
 
 
-class SpecialCompletion(enum.Enum):
-    FILES = "filename"
-
-
 class CompletionType(enum.Enum):
     COMMAND = 1
     OPTION = 2
+
+
+# In the future, can add stuff such as extension.
+@dataclasses.dataclass(frozen=True)
+class FileCompletion:
+    pass
 
 
 @dataclasses.dataclass(frozen=True)
@@ -19,4 +21,4 @@ class Completion:
 
 
 # If it is a single str, it is interpreted as a command.
-AllCompletionsT = Completion | SpecialCompletion | str
+AllCompletionsT = Completion | FileCompletion | str

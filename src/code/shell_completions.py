@@ -27,7 +27,7 @@ _IGNORE_ARGS = {"internal-cronrun", "internal-preupdate", "-h"}
 
 def _dynamic_args(
     option: str, arg_index: int
-) -> list[str | comp_types.SpecialCompletion]:
+) -> list[str | comp_types.FileCompletion]:
     logging.debug(f"Dynamic args for {option=}, {arg_index=}")
 
     if option == "target_suffix":
@@ -41,7 +41,7 @@ def _dynamic_args(
         return list(candidates)
 
     if option == "--source":
-        return [comp_types.SpecialCompletion.FILES]
+        return [comp_types.FileCompletion()]
 
     logging.debug(f"Dynamic arg for candidate is not handled: '{option}'")
     return []

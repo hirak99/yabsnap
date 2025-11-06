@@ -194,11 +194,11 @@ def _internal(
 
 def _as_completions(
     candidates: Sequence[comp_types.AllCompletionsT],
-) -> tuple[list[comp_types.Completion], list[comp_types.SpecialCompletion]]:
-    special_completions: list[comp_types.SpecialCompletion] = []
+) -> tuple[list[comp_types.Completion], list[comp_types.FileCompletion]]:
+    special_completions: list[comp_types.FileCompletion] = []
     completions: list[comp_types.Completion] = []
     for x in candidates:
-        if isinstance(x, comp_types.SpecialCompletion):
+        if isinstance(x, comp_types.FileCompletion):
             special_completions.append(x)
         elif isinstance(x, str):
             completions.append(

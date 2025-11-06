@@ -5,8 +5,6 @@ _yabsnap() {
   local script_dir="/usr/share/yabsnap"
   local output=$(STYLE=zsh PYTHONPATH=$script_dir python -O -u -m code.shell_completions "${words[@]}")
   eval "$output"
-  _describe -t commands 'yabsnap command' yabsnap_commands
-  _describe -t options 'yabsnap options' yabsnap_options
 }
 
 compdef _yabsnap yabsnap
