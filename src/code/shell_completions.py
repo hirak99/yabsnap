@@ -16,6 +16,7 @@ import sys
 from . import arg_parser
 from . import configs
 from .autocomplete import completions
+from .autocomplete import comp_types
 from .snapshot_logic import snap_operator
 
 # If set to True, yabsnap completions will print debug output.
@@ -24,10 +25,12 @@ _DEBUG_ENV_FLAG = "YABSNAP_COMPLETION_DEBUG"
 _IGNORE_ARGS = {"internal-cronrun", "internal-preupdate", "-h"}
 
 
-def _positional_args(name: str) -> list[str]:
-    logging.debug(f"Positional args for '{name}'")
+def _dynamic_args(
+    option: str, arg_index: int
+) -> list[str | comp_types.SpecialCompletion]:
+    logging.debug(f"Dynamic args for {option=}, {arg_index=}")
 
-    if name == "target_suffix":
+    if option == "target_suffix":
         candidates: set[str] = set()
 
         for config in configs.iterate_configs(source=None):
@@ -35,9 +38,12 @@ def _positional_args(name: str) -> list[str]:
                 candidates.add(os.path.basename(snap.target))
                 target_suffix = snap.target.removeprefix(config.dest_prefix)
                 candidates.add(target_suffix)
-        return sorted(candidates)
+        return list(candidates)
 
-    logging.debug(f"Positional arg candidates is not handled: '{name}'")
+    if option == "--source":
+        return [comp_types.SpecialCompletion.FILES]
+
+    logging.debug(f"Dynamic arg for candidate is not handled: '{option}'")
     return []
 
 
@@ -46,7 +52,7 @@ def main():
     result = completions.get_completions(
         parser,
         sys.argv[2:],
-        positional_arg_values=_positional_args,
+        dynamic_args=_dynamic_args,
         ignore_args=_IGNORE_ARGS,
     )
     print(result)

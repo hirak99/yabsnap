@@ -50,15 +50,15 @@ class CompletionsTest(unittest.TestCase):
         self.assertEqual(completions.get_completions(parser, ["foo-command", ""]), "")
 
         # Test positional argument completions.
-        def positional_hints(name: str) -> list[str]:
-            self.assertEqual(name, "positional")
-            return ["value1-for-positional", "value2-for-positional"]
+        def positional_hints(option: str, arg_index: int) -> list[str]:
+            self.assertEqual(option, "positional")
+            return ["common", f"value{arg_index}"]
 
         self.assertEqual(
             completions.get_completions(
-                parser, ["foo-command", ""], positional_arg_values=positional_hints
+                parser, ["foo-command", ""], dynamic_args=positional_hints
             ),
-            "value1-for-positional value2-for-positional",
+            "common value0",
         )
 
     @mock.patch.dict(os.environ, {"STYLE": "array"})
@@ -100,23 +100,21 @@ class CompletionsTest(unittest.TestCase):
             help="Positional help.",
         )
 
-        def positional_hints(name: str) -> list[str]:
-            self.assertEqual(name, "positional")
+        def positional_hints(option: str, arg_index) -> list[str]:
+            self.assertEqual(option, "positional")
             return ["value1"]
 
         self.assertEqual(
-            completions.get_completions(
-                parser, [""], positional_arg_values=positional_hints
-            ),
+            completions.get_completions(parser, [""], dynamic_args=positional_hints),
             "value1",
         )
 
-        def positional_hints_with_error(name: str) -> list[str]:
+        def positional_hints_with_error(option: str, arg_index) -> list[str]:
             raise RuntimeError("This error is expected for testing.")
 
         self.assertEqual(
             completions.get_completions(
-                parser, [""], positional_arg_values=positional_hints_with_error
+                parser, [""], dynamic_args=positional_hints_with_error
             ),
             "",
         )

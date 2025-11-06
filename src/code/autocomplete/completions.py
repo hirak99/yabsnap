@@ -26,10 +26,11 @@ import dataclasses
 import enum
 import functools
 import logging
-import os
-import shlex
 
-from typing import Callable
+from . import comp_types
+from . import shell_impl
+
+from typing import Callable, Sequence
 
 
 class _OptionType(enum.Enum):
@@ -89,18 +90,6 @@ def _get_parser_accepted_args(parser: argparse.ArgumentParser) -> dict[str, _Opt
     return cands
 
 
-class _CompletionType(enum.Enum):
-    COMMAND = 1
-    OPTION = 2
-
-
-@dataclasses.dataclass
-class _Completion:
-    name: str
-    help: str | None
-    type: _CompletionType
-
-
 @dataclasses.dataclass
 class _ParserWrapper:
     """Convenience class to bookkeep parser related fields."""
@@ -117,18 +106,18 @@ class _ParserWrapper:
             if x.type == _OptionType.POSITIONAL
         ]
 
-    def filter_by_types(self, types: list[_OptionType]) -> list[_Completion]:
-        result: list[_Completion] = []
+    def filter_by_types(self, types: list[_OptionType]) -> list[comp_types.Completion]:
+        result: list[comp_types.Completion] = []
         for x in self.valid_options.values():
             if x.type in types:
                 result.append(
-                    _Completion(
-                        name=x.name,
+                    comp_types.Completion(
+                        option=x.name,
                         help=x.help,
                         type=(
-                            _CompletionType.OPTION
+                            comp_types.CompletionType.OPTION
                             if x.type == _OptionType.OPTION
-                            else _CompletionType.COMMAND
+                            else comp_types.CompletionType.COMMAND
                         ),
                     )
                 )
@@ -139,15 +128,24 @@ def _internal(
     root_parser: argparse.ArgumentParser,
     words: list[str],
     *,
-    optional_arg_values: Callable[[str], list[str]] | None = None,
-    positional_arg_values: Callable[[str], list[str]] | None = None,
-) -> list[_Completion]:
+    dynamic_args: Callable[[str, int], Sequence[comp_types.AllCompletionsT]] | None,
+) -> Sequence[comp_types.AllCompletionsT]:
     parserw = _ParserWrapper(root_parser)
+
+    # If args are being read, which option they are for.
+    args_for: str = ""
+    # Count of this arg.
+    arg_index = 0
 
     for word in words[:-1]:
         if parserw.nargs_to_read > 0:
             parserw.nargs_to_read -= 1
+            arg_index += 1
             continue
+
+        args_for = word
+        arg_index = 0
+
         if any(
             option.type == _OptionType.POSITIONAL
             for option in parserw.valid_options.values()
@@ -171,11 +169,10 @@ def _internal(
 
     if parserw.nargs_to_read > 0:
         # Look for argument completion.
-        if optional_arg_values is None:
+        if dynamic_args is None:
             return []
-        return [
-            _Completion(name=x, help=None, type=_CompletionType.COMMAND) for x in words
-        ]
+        logging.debug(words)
+        return dynamic_args(args_for, arg_index)
 
     # No more throw-away args. Therefore we should show options from valid_options.
 
@@ -187,23 +184,41 @@ def _internal(
             # Return all OPTIONs, but not SUBPARSERs.
             return parserw.filter_by_types([_OptionType.OPTION])
         # If no function is specified to retrieve positional args, don't hint.
-        if positional_arg_values is None:
+        if dynamic_args is None:
             return []
         # Else return what values this positional can take.
-        return [
-            _Completion(name=x, help=None, type=_CompletionType.COMMAND)
-            for x in positional_arg_values(positional)
-        ]
+        return dynamic_args(positional, arg_index)
 
     return parserw.filter_by_types([_OptionType.OPTION, _OptionType.SUBPARSER])
+
+
+def _as_completions(
+    candidates: Sequence[comp_types.AllCompletionsT],
+) -> tuple[list[comp_types.Completion], list[comp_types.SpecialCompletion]]:
+    special_completions: list[comp_types.SpecialCompletion] = []
+    completions: list[comp_types.Completion] = []
+    for x in candidates:
+        if isinstance(x, comp_types.SpecialCompletion):
+            special_completions.append(x)
+        elif isinstance(x, str):
+            completions.append(
+                comp_types.Completion(
+                    option=x, help=None, type=comp_types.CompletionType.COMMAND
+                )
+            )
+        else:
+            completions.append(x)
+
+    return completions, special_completions
 
 
 def get_completions(
     root_parser: argparse.ArgumentParser,
     words: list[str],
     *,
-    optional_arg_values: Callable[[str], list[str]] | None = None,
-    positional_arg_values: Callable[[str], list[str]] | None = None,
+    dynamic_args: (
+        Callable[[str, int], Sequence[comp_types.AllCompletionsT]] | None
+    ) = None,
     ignore_args: set[str] | None = None,
 ) -> str:
     logging.debug(f"Initial args: {words}")
@@ -213,60 +228,21 @@ def get_completions(
         candidates = _internal(
             root_parser=root_parser,
             words=words,
-            optional_arg_values=optional_arg_values,
-            positional_arg_values=positional_arg_values,
+            dynamic_args=dynamic_args,
         )
     except Exception as e:
         logging.error(f"Error during completion: {e}")
         return ""
 
-    if ignore_args is not None:
-        candidates = [x for x in candidates if x.name not in ignore_args]
+    completions, special_completions = _as_completions(candidates)
 
-    style = os.environ.get("STYLE", "")
-    if style == "zsh":
-        # Returns lines defining two arres.
-        # They are meant to be `eval`-ed.
-        command_lines: list[str] = []
-        option_lines: list[str] = []
-        for x in candidates:
-            entry = x.name
-            if x.help:
-                entry += f":{x.help}"
-            if x.type == _CompletionType.COMMAND:
-                command_lines.append(entry)
-            elif x.type == _CompletionType.OPTION:
-                option_lines.append(entry)
-            else:
-                logging.warning(f"Unknown completion type: {x.type}")
+    del candidates  # Want to use this no more.
 
-        def surround(varname: str, lines: list[str]) -> list[str]:
-            result: list[str] = []
-            result += [f"local -a {varname}"]
-            result += [f"{varname}=("]
-            result += [f"  '{x}'" for x in lines]
-            result += [f")"]
-            return result
+    completions = [
+        x
+        for x in completions
+        if (not ignore_args or x.option not in ignore_args)
+        and x.option.startswith(words[-1])
+    ]
 
-        return "\n".join(
-            surround("yabsnap_commands", command_lines)
-            + surround("yabsnap_options", option_lines)
-            + [
-                "_describe -t commands 'yabsnap command' yabsnap_commands",
-                "_describe -t options 'yabsnap options' yabsnap_options",
-            ]
-        )
-
-    if style == "array":
-        # Return array of words. Good for testing.
-        return " ".join(x.name for x in candidates if x.name.startswith(words[-1]))
-
-    if style == "bash":
-        # Return commands to be eval'ed in bash.
-        words_str = " ".join(
-            f"{shlex.quote(x.name)}" for x in candidates if x.name.startswith(words[-1])
-        )
-        return f"COMPREPLY=( {words_str} )"
-
-    logging.warning(f"STYLE not provided or is unknown: {style=}")
-    return ""
+    return shell_impl.shell_commands(completions, special_completions)

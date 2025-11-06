@@ -1,7 +1,8 @@
 _yabsnap_completions() {
     # Path where yabsnap.sh is also present.
     local script_dir="/usr/share/yabsnap"
-    eval $(STYLE=bash PYTHONPATH=$script_dir python -O -u -m code.shell_completions "${COMP_WORDS[@]}")
+    local output=$(STYLE=bash PYTHONPATH=$script_dir python -O -u -m code.shell_completions "${COMP_WORDS[@]}")
+    eval "$output"
     return 0
 }
 
