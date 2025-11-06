@@ -1,4 +1,3 @@
-import contextlib
 import dataclasses
 import datetime
 import logging
@@ -177,26 +176,29 @@ def get_to_sync_list(configs: Iterable[configs.Config]) -> list[configs.Config]:
     ]
 
 
-def _iso8601_to_timestamp_string(suffix: str) -> str:
-    """Convert an ISO 8601 compliant datetime string to a timestamp string"""
-    with contextlib.suppress(ValueError):
-        dt = datetime.datetime.strptime(suffix, global_flags.TIME_FORMAT)
-        return suffix
+def _parse_iso8601_datetime(datetime_str: str) -> datetime.datetime:
+    """Check and parse ISO 8601 datetime string"""
+    if len(datetime_str) < global_flags.TIME_FORMAT_LEN:
+        raise ValueError(
+            f"The length of the datetime string must not be less than {global_flags.TIME_FORMAT_LEN} characters."
+        )
+    # Quickly verify whether the format specifications are met and return a result promptly.
+    # Otherwise, continue with the verification process.
+    try:
+        valid_datetime_format = datetime.datetime.strptime(
+            datetime_str, global_flags.TIME_FORMAT
+        )
+        return valid_datetime_format
+    except ValueError:
+        pass
 
     try:
-        dt = datetime.datetime.fromisoformat(suffix)
+        valid_iso8601_datetime = datetime.datetime.fromisoformat(datetime_str)
     except ValueError:
         raise ValueError(
             "Suffix only accepts the following formats:\n"
             "  1. %Y%m%d%H%M%S (e.g. 20241101201015)\n"
             "  2. ISO 8601 compliant timestamp string (e.g. 2024-11-01_20:10:15)"
         )
-    else:
-        return dt.strftime(global_flags.TIME_FORMAT)
 
-
-# TODO: Combine into _iso8601_to_timestamp_string(datetime_str).
-def _parse_iso8601_datetime(datetime_str: str) -> datetime.datetime:
-    return datetime.datetime.strptime(
-        _iso8601_to_timestamp_string(datetime_str), global_flags.TIME_FORMAT
-    )
+    return valid_iso8601_datetime
