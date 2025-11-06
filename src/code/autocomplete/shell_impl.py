@@ -33,7 +33,7 @@ def shell_commands(
     style = os.environ.get("STYLE", "")
     if style == "zsh":
         if file_completions:
-            return "_files"
+            return "_path_files"
 
         # Returns lines defining two arres.
         # They are meant to be `eval`-ed.

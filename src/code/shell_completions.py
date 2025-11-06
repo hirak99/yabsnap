@@ -40,7 +40,7 @@ def _dynamic_args(
                 candidates.add(target_suffix)
         return list(candidates)
 
-    if option == "--source":
+    if option == "--config-file":
         return [comp_types.FileCompletion()]
 
     logging.debug(f"Dynamic arg for candidate is not handled: '{option}'")
