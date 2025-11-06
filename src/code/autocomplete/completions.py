@@ -41,7 +41,7 @@ class _OptionType(enum.Enum):
 
 @dataclasses.dataclass(frozen=True)
 class _Option:
-    name: str
+    option: str
     help: str | None
     type: _OptionType
     # None iff type == SUBPARSER.
@@ -61,17 +61,17 @@ def _get_parser_accepted_args(parser: argparse.ArgumentParser) -> dict[str, _Opt
             ):
                 for x in action.option_strings:
                     cands[x] = _Option(
-                        name=x, nargs=0, type=_OptionType.OPTION, help=action.help
+                        option=x, nargs=0, type=_OptionType.OPTION, help=action.help
                     )
             case argparse._StoreAction():  # pyright: ignore
                 if action.option_strings:
                     for x in action.option_strings:
                         cands[x] = _Option(
-                            name=x, nargs=1, type=_OptionType.OPTION, help=action.help
+                            option=x, nargs=1, type=_OptionType.OPTION, help=action.help
                         )
                 else:
                     cands[action.dest] = _Option(
-                        name=action.dest,
+                        option=action.dest,
                         nargs=0,
                         type=_OptionType.POSITIONAL,
                         help=action.help,
@@ -79,7 +79,7 @@ def _get_parser_accepted_args(parser: argparse.ArgumentParser) -> dict[str, _Opt
             case argparse._SubParsersAction():  # pyright: ignore
                 for subaction in action._get_subactions():
                     cands[subaction.dest] = _Option(
-                        name=subaction.dest,
+                        option=subaction.dest,
                         nargs=None,
                         type=_OptionType.SUBPARSER,
                         subparser=action.choices[subaction.dest],
@@ -100,10 +100,8 @@ class _ParserWrapper:
 
     def __post_init__(self):
         self.valid_options = _get_parser_accepted_args(self.parser)
-        self.positionals: list[str] = [
-            x.name
-            for x in self.valid_options.values()
-            if x.type == _OptionType.POSITIONAL
+        self.positionals: list[_Option] = [
+            x for x in self.valid_options.values() if x.type == _OptionType.POSITIONAL
         ]
 
     def filter_by_types(self, types: list[_OptionType]) -> list[comp_types.Completion]:
@@ -112,7 +110,7 @@ class _ParserWrapper:
             if x.type in types:
                 result.append(
                     comp_types.Completion(
-                        option=x.name,
+                        option=x.option,
                         help=x.help,
                         type=(
                             comp_types.CompletionType.OPTION
@@ -128,13 +126,15 @@ def _internal(
     root_parser: argparse.ArgumentParser,
     words: list[str],
     *,
-    dynamic_args: Callable[[str, int], Sequence[comp_types.AllCompletionsT]] | None,
-) -> Sequence[comp_types.AllCompletionsT]:
+    dynamic_args_fn: (
+        Callable[[str, int], Sequence[comp_types.AnyCompletionType]] | None
+    ),
+) -> Sequence[comp_types.AnyCompletionType]:
     parserw = _ParserWrapper(root_parser)
 
     # If args are being read, which option they are for.
-    args_for: str = ""
-    # Count of this arg.
+    last_named_arg: _Option | None = None
+    # Index of options for the arg.
     arg_index = 0
 
     for word in words[:-1]:
@@ -142,21 +142,20 @@ def _internal(
             parserw.nargs_to_read -= 1
             arg_index += 1
             continue
-
-        args_for = word
+        last_named_arg = None  # Not known yet, fill in below.
         arg_index = 0
 
-        if any(
-            option.type == _OptionType.POSITIONAL
-            for option in parserw.valid_options.values()
-        ):
-            # Accept anything for positional.
+        if len(parserw.positionals) > parserw.num_positionals_used:
+            last_named_arg = parserw.positionals[parserw.num_positionals_used]
             parserw.num_positionals_used += 1
             continue
+
         if word not in parserw.valid_options:
             logging.debug(f"Unknown {word=}")
             return []
         this_option = parserw.valid_options[word]
+        last_named_arg = this_option
+
         if this_option.subparser:
             parserw = _ParserWrapper(this_option.subparser)
         else:
@@ -167,36 +166,55 @@ def _internal(
                 return []
             parserw.nargs_to_read = this_option.nargs
 
+    def get_dyn_options() -> Sequence[comp_types.AnyCompletionType]:
+        if last_named_arg is None:
+            logging.warning(f"last_named_arg is None for {words=}")
+            return []
+        if dynamic_args_fn is not None:
+            result = dynamic_args_fn(last_named_arg.option, arg_index)
+            if result:
+                return result
+        # No user completion. Show a default help.
+        if last_named_arg.subparser:
+            positional_actions = last_named_arg.subparser._get_positional_actions()
+            if len(positional_actions) > arg_index:
+                help = positional_actions[arg_index].help
+                if help:
+                    return [comp_types.Message(help)]
+            return []
+        if last_named_arg.help:
+            return [comp_types.Message(last_named_arg.help)]
+        return []
+
     if parserw.nargs_to_read > 0:
         # Look for argument completion.
-        if dynamic_args is None:
+        logging.debug(f"Argument expected for {last_named_arg}")
+        if dynamic_args_fn is None:
             return []
-        logging.debug(words)
-        return dynamic_args(args_for, arg_index)
+        return get_dyn_options()
 
     # No more throw-away args. Therefore we should show options from valid_options.
-
     if len(parserw.positionals) > parserw.num_positionals_used:
-        # There are more positional args to be passed.
-        positional = parserw.positionals[parserw.num_positionals_used]
+        # There are positional args to be passed.
         # If user started typing "-", return options.
         if words[-1].startswith("-"):
             # Return all OPTIONs, but not SUBPARSERs.
             return parserw.filter_by_types([_OptionType.OPTION])
         # If no function is specified to retrieve positional args, don't hint.
-        if dynamic_args is None:
-            return []
-        # Else return what values this positional can take.
-        return dynamic_args(positional, arg_index)
+        return get_dyn_options()
 
     return parserw.filter_by_types([_OptionType.OPTION, _OptionType.SUBPARSER])
 
 
-def _as_completions(
-    candidates: Sequence[comp_types.AllCompletionsT],
-) -> tuple[list[comp_types.Completion], list[comp_types.FileCompletion]]:
-    special_completions: list[comp_types.FileCompletion] = []
+def _get_shell_commands(
+    candidates: Sequence[comp_types.AnyCompletionType],
+    *,
+    ignore_args: set[str] | None = None,
+    cur_word: str,
+) -> str:
     completions: list[comp_types.Completion] = []
+    special_completions: list[comp_types.FileCompletion] = []
+    messages: list[comp_types.Message] = []
     for x in candidates:
         if isinstance(x, comp_types.FileCompletion):
             special_completions.append(x)
@@ -206,18 +224,27 @@ def _as_completions(
                     option=x, help=None, type=comp_types.CompletionType.COMMAND
                 )
             )
+        elif isinstance(x, comp_types.Message):
+            messages.append(x)
         else:
             completions.append(x)
 
-    return completions, special_completions
+    completions = [
+        x
+        for x in completions
+        if (not ignore_args or x.option not in ignore_args)
+        and x.option.startswith(cur_word)
+    ]
+
+    return shell_impl.shell_commands(completions, special_completions, messages)
 
 
 def get_completions(
     root_parser: argparse.ArgumentParser,
     words: list[str],
     *,
-    dynamic_args: (
-        Callable[[str, int], Sequence[comp_types.AllCompletionsT]] | None
+    dynamic_args_fn: (
+        Callable[[str, int], Sequence[comp_types.AnyCompletionType]] | None
     ) = None,
     ignore_args: set[str] | None = None,
 ) -> str:
@@ -228,21 +255,10 @@ def get_completions(
         candidates = _internal(
             root_parser=root_parser,
             words=words,
-            dynamic_args=dynamic_args,
+            dynamic_args_fn=dynamic_args_fn,
         )
     except Exception as e:
         logging.error(f"Error during completion: {e}")
         return ""
 
-    completions, special_completions = _as_completions(candidates)
-
-    del candidates  # Want to use this no more.
-
-    completions = [
-        x
-        for x in completions
-        if (not ignore_args or x.option not in ignore_args)
-        and x.option.startswith(words[-1])
-    ]
-
-    return shell_impl.shell_commands(completions, special_completions)
+    return _get_shell_commands(candidates, ignore_args=ignore_args, cur_word=words[-1])

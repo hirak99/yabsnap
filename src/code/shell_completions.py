@@ -52,7 +52,7 @@ def main():
     result = completions.get_completions(
         parser,
         sys.argv[2:],
-        dynamic_args=_dynamic_args,
+        dynamic_args_fn=_dynamic_args,
         ignore_args=_IGNORE_ARGS,
     )
     print(result)

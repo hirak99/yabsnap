@@ -26,9 +26,11 @@ for item in "${candidates[@]}"; do
 done
 """
 
+
 def shell_commands(
     completions: list[comp_types.Completion],
     file_completions: list[comp_types.FileCompletion],
+    messages: list[comp_types.Message],
 ):
     style = os.environ.get("STYLE", "")
     if style == "zsh":
@@ -54,7 +56,7 @@ def shell_commands(
             result: list[str] = []
             result += [f"local -a {varname}"]
             result += [f"{varname}=("]
-            result += [f"  '{x}'" for x in lines]
+            result += [f"  {shlex.quote(x)}" for x in lines]
             result += [f")"]
             return result
 
@@ -65,6 +67,21 @@ def shell_commands(
                 "_describe -t commands 'yabsnap command' yabsnap_commands",
                 "_describe -t options 'yabsnap options' yabsnap_options",
             ]
+
+            # TODO: Improve displaying a message.
+            # Below is the closest I had it to work. However, zsh still completes from
+            # the message which is not what we want.
+            #
+            + surround("yabsnap_messages", [x.message for x in messages])
+            + [
+                # I admit, it is unclear to me how _message exactly works.
+                # But removing this line makes the message not display correctly.
+                # Perhaps it is just setting some kind of context.
+                "_message -e messages",
+                # Still, needs _describe to actually display them.
+                "_describe -t messages 'yabsnap message' yabsnap_messages",
+            ]
+
         )
 
     if style == "array":

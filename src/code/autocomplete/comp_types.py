@@ -14,6 +14,11 @@ class FileCompletion:
 
 
 @dataclasses.dataclass(frozen=True)
+class Message:
+    message: str
+
+
+@dataclasses.dataclass(frozen=True)
 class Completion:
     option: str
     help: str | None
@@ -21,4 +26,4 @@ class Completion:
 
 
 # If it is a single str, it is interpreted as a command.
-AllCompletionsT = Completion | FileCompletion | str
+AnyCompletionType = Completion | FileCompletion | Message| str

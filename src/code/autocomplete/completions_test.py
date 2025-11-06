@@ -56,7 +56,7 @@ class CompletionsTest(unittest.TestCase):
 
         self.assertEqual(
             completions.get_completions(
-                parser, ["foo-command", ""], dynamic_args=positional_hints
+                parser, ["foo-command", ""], dynamic_args_fn=positional_hints
             ),
             "common value0",
         )
@@ -105,7 +105,7 @@ class CompletionsTest(unittest.TestCase):
             return ["value1"]
 
         self.assertEqual(
-            completions.get_completions(parser, [""], dynamic_args=positional_hints),
+            completions.get_completions(parser, [""], dynamic_args_fn=positional_hints),
             "value1",
         )
 
@@ -114,7 +114,7 @@ class CompletionsTest(unittest.TestCase):
 
         self.assertEqual(
             completions.get_completions(
-                parser, [""], dynamic_args=positional_hints_with_error
+                parser, [""], dynamic_args_fn=positional_hints_with_error
             ),
             "",
         )
