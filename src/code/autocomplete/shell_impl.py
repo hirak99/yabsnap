@@ -28,6 +28,7 @@ done
 
 
 def _zsh_commands(
+    cur_word: str,
     completions: list[comp_types.Completion],
     file_completions: list[comp_types.FileCompletion],
     messages: list[comp_types.Message],
@@ -35,10 +36,12 @@ def _zsh_commands(
     # NOTE:
     # To view documentation on `compadd`, do this -
     # ```sh
-    # unalias run-help
-    # autoload run-help
+    # unalias run-help && autoload run-help
     # run-help compadd
     # ```
+    #
+    # Also see implementation of helper methods such as _describe here -
+    # /usr/share/zsh/functions/Completion/Base/_describe
 
     if file_completions:
         return "_path_files"
@@ -66,6 +69,17 @@ def _zsh_commands(
         result += [f")"]
         result += [f"_describe -t {tag} 'yabsnap {tag}' yabsnap_{tag}"]
         return result
+
+    # By default, tag 'options' are shown only if user tries to complete with -.
+    have_options_not_shown = not cur_word.startswith("-") and option_lines
+    # Add a help to alert the user.
+    if have_options_not_shown:
+        messages.append(
+            comp_types.Message("To view flags, type '-' and press Tab to complete.")
+        )
+        if messages:
+            # Add an empty line message and commands.
+            messages.append(comp_types.Message(""))
 
     sh_lines: list[str] = []
     if command_lines:
@@ -96,6 +110,7 @@ def _bash_commands(
 
 
 def shell_commands(
+    cur_word: str,
     completions: list[comp_types.Completion],
     file_completions: list[comp_types.FileCompletion],
     messages: list[comp_types.Message],
@@ -103,7 +118,7 @@ def shell_commands(
     style = os.environ.get("STYLE", "")
     match style:
         case "zsh":
-            return _zsh_commands(completions, file_completions, messages)
+            return _zsh_commands(cur_word, completions, file_completions, messages)
         case "array":
             return _array_commands(completions)
         case "bash":

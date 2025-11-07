@@ -253,7 +253,12 @@ def _get_shell_commands(
         and x.option.startswith(cur_word)
     ]
 
-    return shell_impl.shell_commands(completions, special_completions, messages)
+    return shell_impl.shell_commands(
+        cur_word=cur_word,
+        completions=completions,
+        file_completions=special_completions,
+        messages=messages,
+    )
 
 
 def get_completions(

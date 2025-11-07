@@ -34,18 +34,24 @@ class ShellImplTest(unittest.TestCase):
 
     def test_zsh(self):
         self._compare_lines(
-            shell_impl._zsh_commands(_COMPLETIONS, file_completions=[], messages=[]),
+            shell_impl._zsh_commands(
+                cur_word="", completions=_COMPLETIONS, file_completions=[], messages=[]
+            ),
             """
             local -a yabsnap_commands
             yabsnap_commands=(
               'foo:foo help'
             )
             _describe -t commands 'yabsnap commands' yabsnap_commands
+
             local -a yabsnap_options
             yabsnap_options=(
               '--bar:bar help'
             )
             _describe -t options 'yabsnap options' yabsnap_options
+
+            compadd -x \'To view flags, type \'"\'"\'-\'"\'"\' and press Tab to complete.'
+            compadd -x ''
             """,
         )
 
@@ -55,7 +61,7 @@ class ShellImplTest(unittest.TestCase):
         ]
         self._compare_lines(
             shell_impl._zsh_commands(
-                completions=completions, file_completions=[], messages=[]
+                cur_word="", completions=completions, file_completions=[], messages=[]
             ),
             """
             local -a yabsnap_options
@@ -63,16 +69,19 @@ class ShellImplTest(unittest.TestCase):
               '--bar:bar help'
             )
             _describe -t options 'yabsnap options' yabsnap_options
+
+            compadd -x \'To view flags, type \'"\'"\'-\'"\'"\' and press Tab to complete.'
+            compadd -x ''
             """,
         )
 
-    def test_zsh_no_options(self):
+    def test_zsh_no_options_correctly_omits_option_help(self):
         completions = [
             x for x in _COMPLETIONS if x.type != comp_types.CompletionType.OPTION
         ]
         self._compare_lines(
             shell_impl._zsh_commands(
-                completions=completions, file_completions=[], messages=[]
+                cur_word="", completions=completions, file_completions=[], messages=[]
             ),
             """
             local -a yabsnap_commands
