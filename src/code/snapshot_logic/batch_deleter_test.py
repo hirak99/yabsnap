@@ -11,41 +11,50 @@ from .. import global_flags
 # pyright: reportPrivateUsage=false
 
 
-class TestISO8601ToTimestampString(unittest.TestCase):
-    def test_support_timestamp_format(self):
-        suffix_list = [
-            "20241101201015",
-            "2024-11-01 20:10:15",
-            "2024-11-01_20:10:15",
-            "2024-11-01 20:10",
+class TestParseISO8601Datetime(unittest.TestCase):
+    def test_valid_datetime_format(self):
+        datetime_strings: list[datetime.datetime] = [
+            batch_deleter._parse_iso8601_datetime(datetime_string)
+            for datetime_string in [
+                "20241101201015",
+                "2024-11-01-201015",
+                "2024-11-01 20:10:15",
+                "2024-11-01_20:10:15",
+                "2024-11-01 20:10",
+            ]
+        ]
+        excepted_results: list[datetime.datetime] = [
+            datetime.datetime.strptime(datetime_string, global_flags.TIME_FORMAT)
+            for datetime_string in [
+                "20241101201015",
+                "20241101201015",
+                "20241101201015",
+                "20241101201015",
+                "20241101201000",
+            ]
         ]
 
-        convert_results = map(batch_deleter._iso8601_to_timestamp_string, suffix_list)
-        excepted_results = [
-            "20241101201015",
-            "20241101201015",
-            "20241101201015",
-            "20241101201000",
-        ]
-        self.assertEqual(list(convert_results), excepted_results)
+        self.assertEqual(datetime_strings, excepted_results)
 
-    def test_unsupport_timestamp_format(self):
-        suffix_list = [
-            "2024/11/01",
-            "2024/11/01 20:10",
+    def test_invalid_datetime_format(self):
+        datetime_strings = [
+            "2024-11-01 20-10-15",
+            "2024_11_01 20:10:15",
             "2024/11/01 20:10:15",
-            "2024/11/1_20:10:15",
-            "11/01/2024",
+            # The intuitive expected value is 2024-11-01 20:10:00,
+            # but due to the length being less than 14 digits (it is only 12 digits here),
+            # there could be ambiguity; the actual value is 2024-11-01 20:01:00.
+            "2024" + "1101" + "2010",
         ]
 
-        for suffix in suffix_list:
-            with self.subTest(suffix=suffix):
+        for datetime_string in datetime_strings:
+            with self.subTest(datetime_string=datetime_string):
                 with self.assertRaises(ValueError):
-                    batch_deleter._iso8601_to_timestamp_string(suffix)
+                    batch_deleter._parse_iso8601_datetime(datetime_string)
 
 
 class TestRegisterFilter(unittest.TestCase):
-    class NothingFilter(batch_deleter._SnapshotFilterProtocol):
+    class NothingFilter(batch_deleter._SnapshotBaseFilter):
         arg_name_set = ("test",)
 
         def __init__(self, take_none: None): ...
@@ -72,8 +81,8 @@ class TestGetFilters(unittest.TestCase):
     def test_get_registed_filter(self):
         mininal_args = {
             "indicator": "S",
-            "start": "202411012010",
-            "end": "202411022010",
+            "start": "2024" + "1101" + "201015",
+            "end": "2024" + "1102" + "201000",
         }
         filters_list = list(batch_deleter.get_filters(mininal_args))
         self.assertEqual(len(filters_list), 3)
@@ -120,7 +129,7 @@ class TestSnapshotFilters(unittest.TestCase):
 
     # Snapshots for testing, with creation times after November 2024.
     def test_use_start_arg_to_find_all_snaps(self):
-        filter_iter = batch_deleter.get_filters({"start": "20241101" + "000000"})
+        filter_iter = batch_deleter.get_filters({"start": "2024" + "1101" + "000015"})
         filted_mapping = batch_deleter.apply_snapshot_filters(
             self._config_snaps_mapping_list, *filter_iter
         )
@@ -136,7 +145,7 @@ class TestSnapshotFilters(unittest.TestCase):
     # while user snapshots were made before the 10th.
     # So, there are only 2 user snapshots before the 10th.
     def test_use_end_arg_to_find_two_snaps(self):
-        filter_iter = batch_deleter.get_filters({"end": "20241109" + "053019"})
+        filter_iter = batch_deleter.get_filters({"end": "2024" + "1109" + "053019"})
         filted_mapping = batch_deleter.apply_snapshot_filters(
             self._config_snaps_mapping_list, *filter_iter
         )
@@ -151,8 +160,8 @@ class TestSnapshotFilters(unittest.TestCase):
     def test_use_multi_args_find_two_snaps(self):
         mininal_args = {
             "indicator": "S",
-            "start": "20241101" + "000000",
-            "end": "20241113" + "000000",
+            "start": "2024" + "1101" + "000015",
+            "end": "2024" + "1113" + "000020",
         }
         filter_iter = batch_deleter.get_filters(mininal_args)
         filted_mapping = batch_deleter.apply_snapshot_filters(
@@ -188,7 +197,8 @@ class TestSnapshotFilters(unittest.TestCase):
     # Create a test version of snapshots
     def _ten_indicator_s_snaps(self) -> list[snap_holder.Snapshot]:
         snaps = [
-            snap_holder.Snapshot(f"202411{day}" + "070500") for day in range(11, 21)
+            snap_holder.Snapshot("2024" + f"11{day}" + "070500")
+            for day in range(11, 21)
         ]
 
         for snap in snaps:
@@ -197,8 +207,8 @@ class TestSnapshotFilters(unittest.TestCase):
 
     def _two_indicator_u_snaps(self) -> list[snap_holder.Snapshot]:
         snaps = [
-            snap_holder.Snapshot("20241102" + "103051"),
-            snap_holder.Snapshot("20241103" + "172130"),
+            snap_holder.Snapshot("2024" + "1102" + "103051"),
+            snap_holder.Snapshot("2024" + "1103" + "172130"),
         ]
 
         for snap in snaps:

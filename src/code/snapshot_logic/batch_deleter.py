@@ -1,4 +1,3 @@
-import contextlib
 import dataclasses
 import datetime
 import logging
@@ -11,9 +10,9 @@ from .. import global_flags
 from ..mechanisms import snap_type_enum
 from ..utils import human_interval
 
-from typing import Any, Iterable, Iterator, Protocol
+from typing import Any, Iterable, Iterator
 
-_FILTERS: dict[str, type["_SnapshotFilterProtocol"]] = {}
+_FILTERS: dict[str, type["_SnapshotBaseFilter"]] = {}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -46,27 +45,28 @@ def _get_old_backups(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
             logging.warning(f"Could not parse timestamp, ignoring: {pathname}")
 
 
-def get_filters(args: dict[str, Any]) -> Iterator["_SnapshotFilterProtocol"]:
+def get_filters(args: dict[str, Any]) -> Iterator["_SnapshotBaseFilter"]:
     for arg_name, arg_value in args.items():
         if arg_name in _FILTERS and arg_value is not None:
             yield _FILTERS[arg_name](**{arg_name: arg_value})
 
 
-def _register_filter(cls: type["_SnapshotFilterProtocol"]):
+def _register_filter(cls: type["_SnapshotBaseFilter"]):
     for name in cls.arg_name_set:
         _FILTERS[name] = cls
 
 
-class _SnapshotFilterProtocol(Protocol):
+class _SnapshotBaseFilter:
     arg_name_set: tuple[str, ...]
 
     def __init__(self, **kwargs): ...
 
-    def __call__(self, snap: snap_holder.Snapshot) -> bool: ...
+    def __call__(self, snap: snap_holder.Snapshot) -> bool:
+        raise NotImplementedError
 
 
 @_register_filter
-class _IndicatorFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnusedClass]
+class _IndicatorFilter(_SnapshotBaseFilter):  # pyright: ignore[reportUnusedClass]
     arg_name_set = ("indicator",)
 
     def __init__(self, *, indicator: str):
@@ -82,7 +82,7 @@ class _IndicatorFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnused
 
 
 @_register_filter
-class _TimeScopeFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnusedClass]
+class _TimeScopeFilter(_SnapshotBaseFilter):  # pyright: ignore[reportUnusedClass]
     arg_name_set = ("start", "end")
 
     def __init__(self, *, start: str = "", end: str = ""):
@@ -110,7 +110,7 @@ class _TimeScopeFilter(_SnapshotFilterProtocol):  # pyright: ignore[reportUnused
 
 def apply_snapshot_filters(
     config_snaps_mapping: Iterable[_ConfigSnapshotsRelation],
-    *filters: _SnapshotFilterProtocol,
+    *filters: _SnapshotBaseFilter,
 ) -> Iterator[_ConfigSnapshotsRelation]:
     """Use the filter to select the snapshots\
        that actually need to be processed for each configuration."""
@@ -177,26 +177,29 @@ def get_to_sync_list(configs: Iterable[configs.Config]) -> list[configs.Config]:
     ]
 
 
-def _iso8601_to_timestamp_string(suffix: str) -> str:
-    """Convert an ISO 8601 compliant datetime string to a timestamp string"""
-    with contextlib.suppress(ValueError):
-        dt = datetime.datetime.strptime(suffix, global_flags.TIME_FORMAT)
-        return suffix
+def _parse_iso8601_datetime(datetime_str: str) -> datetime.datetime:
+    """Check and parse ISO 8601 datetime string"""
+    if len(datetime_str) < global_flags.TIME_FORMAT_LEN:
+        raise ValueError(
+            f"The length of the datetime string must not be less than {global_flags.TIME_FORMAT_LEN} characters."
+        )
+    # Quickly verify whether the format specifications are met and return a result promptly.
+    # Otherwise, continue with the verification process.
+    try:
+        valid_datetime_format = datetime.datetime.strptime(
+            datetime_str, global_flags.TIME_FORMAT
+        )
+        return valid_datetime_format
+    except ValueError:
+        pass
 
     try:
-        dt = datetime.datetime.fromisoformat(suffix)
+        valid_iso8601_datetime = datetime.datetime.fromisoformat(datetime_str)
     except ValueError:
         raise ValueError(
             "Suffix only accepts the following formats:\n"
             "  1. %Y%m%d%H%M%S (e.g. 20241101201015)\n"
             "  2. ISO 8601 compliant timestamp string (e.g. 2024-11-01_20:10:15)"
         )
-    else:
-        return dt.strftime(global_flags.TIME_FORMAT)
 
-
-# TODO: Combine into _iso8601_to_timestamp_string(datetime_str).
-def _parse_iso8601_datetime(datetime_str: str) -> datetime.datetime:
-    return datetime.datetime.strptime(
-        _iso8601_to_timestamp_string(datetime_str), global_flags.TIME_FORMAT
-    )
+    return valid_iso8601_datetime
