@@ -28,107 +28,109 @@ def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="yabsnap")
     parser.add_argument(
         "--sync",
-        help="Wait for btrfs to sync for any delete operations.",
+        help="Wait for filesystem to sync after deleting snapshots.",
         action="store_true",
     )
-    parser.add_argument("--config-file", help="Specify a config file to use.")
-    parser.add_argument("--source", help="Restrict to config with matching `source`.")
+    parser.add_argument("--config-file", help="Path to the config file to use.")
+    parser.add_argument(
+        "--source", help="Only use config with matching `source` value."
+    )
     parser.add_argument(
         "--dry-run",
-        help="If passed, will disable all snapshot creation and deletion.",
+        help="Disable all snapshot creation and deletion (dry run mode).",
         action="store_true",
     )
-    parser.add_argument(
-        "--verbose", help="Sets log-level to INFO.", action="store_true"
-    )
+    parser.add_argument("--verbose", help="Set log level to INFO.", action="store_true")
 
     # title - Shows as [title]: before commands are listed.
     # metavar - The string is printed below the title. If None, all commands including hidden ones are printed.
     subparsers = parser.add_subparsers(dest="command", title="command", metavar="")
 
     # A message to be added to help for all commands that honor --source or --config-file.
-    source_message = " Optionally use with --source or --config-file."
+    source_message = " Supports --source or --config-file."
 
     # Creates a new config by NAME.
     create_config = subparsers.add_parser(
-        "create-config", help="Bootstrap a config for new filesystem to snapshot."
+        "create-config", help="Create a config for a new filesystem to snapshot."
     )
     create_config.add_argument(
-        "config_name", help='Name to be given to config file, e.g. "home".'
+        "config_name", help='Name for the config file (e.g., "home").'
     )
 
     # User commands.
-    subparsers.add_parser("list", help="List all managed snaps." + source_message)
+    subparsers.add_parser("list", help="List all managed snapshots." + source_message)
     subparsers.add_parser(
-        "list-json", help="Machine readable list of all managed snaps." + source_message
+        "list-json",
+        help="List all managed snapshots in JSON Lines format." + source_message,
     )
 
     # Creates an user snapshot.
     create = subparsers.add_parser(
         "create", help="Create new snapshots." + source_message
     )
-    create.add_argument("--comment", help="Comment attached to this snapshot.")
+    create.add_argument("--comment", help="Attach a comment to the snapshot.")
 
     # Set TTL for a snapshot.
     set_ttl = subparsers.add_parser(
-        "set-ttl", help="Set a TTL for matching snapshots." + source_message
+        "set-ttl",
+        help="Set a TTL (time to live) for matching snapshots." + source_message,
     )
     set_ttl.add_argument(
         "--ttl",
         type=str,
         required=True,
-        help="Time to live from now, for instance '1 day' or '20 years'. Empty '' will delete the ttl. If ttl is present, it will take precedence over any other automated management.",
+        help="Time to live (e.g., '1 day', '20 years'). Use '' (empty) to remove TTL. If set, TTL overrides other automated management.",
     )
 
     # Delete a snapshot.
     delete = subparsers.add_parser(
-        "delete", help="Delete matching snapshots." + source_message
+        "delete", help="Delete matching snapshot(s)." + source_message
     )
 
     # Batch delete snapshots.
     batch_delete = subparsers.add_parser(
         "batch-delete",
-        help="Batch delete snapshots created by yabsnap." + source_message,
+        help="Delete multiple snapshots." + source_message,
     )
     batch_delete.add_argument(
         "--indicator",
         type=str,
         choices=("S", "I", "U"),
         default=None,
-        help="Filter out snapshots that have a specific indicator identifier.",
+        help="Only delete snapshots with the specified indicator (S, I, or U).",
     )
     batch_delete.add_argument(
         "--start",
         type=str,
         default=None,
-        help="Where to start deleting snapshots. Timestamp can be 'YYYY-MM-DD HH:MM[:SS]'",
+        help="Start deleting from this timestamp ('YYYY-MM-DD HH:MM[:SS]').",
     )
     batch_delete.add_argument(
         "--end",
         type=str,
         default=None,
-        help="Where to stop deleting snapshots. Timestamp can be 'YYYY-MM-DD HH:MM[:SS]'",
+        help="Stop deleting at this timestamp ('YYYY-MM-DD HH:MM[:SS]').",
     )
 
     # Generates a script for rolling back.
     rollback_gen = subparsers.add_parser(
         "rollback-gen",
-        help="Generate script to rollback one or more snaps." + source_message,
+        help="Generate a script to rollback one or more snapshots." + source_message,
     )
     rollback_gen.add_argument(
         "--execute",
         action="store_true",
-        help="Generate rollback script and execute.",
+        help="Immediately execute the generated rollback script.",
     )
 
     rollback = subparsers.add_parser(
         "rollback",
-        help="Generate rollback script and run. Equivalent to `rollback-gen --execute`",
+        help="Generate and run a rollback script (same as `rollback-gen --execute`).",
     )
     rollback.add_argument(
         "--noconfirm",
         action="store_true",
-        help="Execute the rollback script without confirmation.",
+        help="Run rollback without asking for confirmation.",
     )
 
     for rollback_command in [rollback_gen, rollback]:
@@ -144,11 +146,8 @@ def make_parser() -> argparse.ArgumentParser:
             "--subvol-map",
             type=_parse_subvol_map,
             required=False,
-            help="Mapping of source path to live subvolume name. "
-            "Specify this if the system is in a recovery mode and subvolume names are not auto-detected. "
-            'Example: --subvol-map "/:@"'
-            "Use space to delimit multiple mappings if multiple subvolumes are rolled back. "
-            'Example: --subvol-map "/:@ /home:@home"',
+            help="Map source paths to live subvolume names (for recovery mode when auto-detection fails). "
+            'Example: --subvol-map "/:@" /home:@home"',
         )
 
     for command_with_target in [
@@ -159,7 +158,8 @@ def make_parser() -> argparse.ArgumentParser:
     ]:
         command_with_target.add_argument(
             "target_suffix",
-            help="Datetime string, or full path of a snapshot." + source_message,
+            help="Datetime string or full path of the snapshot to target."
+            + source_message,
         )
 
     # Internal commands used in scheduling and pacman hook.
