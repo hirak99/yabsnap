@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import logging
 import os
 import platform
@@ -21,6 +22,7 @@ from typing import TextIO
 
 
 # Based on https://stackoverflow.com/q/7445658/196462, https://gist.github.com/ssbarnea/1316877
+@functools.cache
 def _is_ansi_color_supported(textout: TextIO) -> bool:
     if (hasattr(textout, "isatty") and textout.isatty()) or (
         "TERM" in os.environ and os.environ["TERM"] == "ANSI"
