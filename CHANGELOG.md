@@ -6,9 +6,9 @@
 
 1. **Implemented Shell Completions**
 
-   * Added zsh completions (commits: [7c47b3f](https://github.com/hirak99/yabsnap/commit/7c47b3f), [5541489](https://github.com/hirak99/yabsnap/commit/5541489), [650a9e1](https://github.com/hirak99/yabsnap/commit/650a9e1), [6c925b9](https://github.com/hirak99/yabsnap/commit/6c925b9), [5541489](https://github.com/hirak99/yabsnap/commit/5541489), [1b7c2a4](https://github.com/hirak99/yabsnap/commit/1b7c2a4)).
+   * Added zsh completions (commits: [94ecb0c](https://github.com/hirak99/yabsnap/commit/94ecb0c), [5541489](https://github.com/hirak99/yabsnap/commit/5541489), [650a9e1](https://github.com/hirak99/yabsnap/commit/650a9e1), [6c925b9](https://github.com/hirak99/yabsnap/commit/6c925b9), [5541489](https://github.com/hirak99/yabsnap/commit/5541489), [1b7c2a4](https://github.com/hirak99/yabsnap/commit/1b7c2a4)).
    * Integrated richer completions for zsh (commits: [ba850cc](https://github.com/hirak99/yabsnap/commit/ba850cc), [5541489](https://github.com/hirak99/yabsnap/commit/5541489)).
-   * Introduced bash autocompletion (commits: [ad82003](https://github.com/hirak99/yabsnap/commit/ad82003), [7c47b3f](https://github.com/hirak99/yabsnap/commit/7c47b3f)).
+   * Introduced bash autocompletion (commits: [ad82003](https://github.com/hirak99/yabsnap/commit/ad82003), [94ecb0c](https://github.com/hirak99/yabsnap/commit/94ecb0c)).
    * Added ability to offer completions for target_suffix (commit: [c5f0792](https://github.com/hirak99/yabsnap/commit/c5f0792)).
    * Improved completion logic by moving to Python for better abstraction from shell-dependent implementations (commits: [5f50dda](https://github.com/hirak99/yabsnap/commit/5f50dda), [86c5104](https://github.com/hirak99/yabsnap/commit/86c5104)).
 
@@ -16,7 +16,7 @@
 
 1. **Help Text and Clarity**
 
-   * Reworded help text for many args to improve clarity (commit: [59fb037](https://github.com/hirak99/yabsnap/commit/59fb037)).
+   * Reworded help text for many args to improve clarity (commit: [c3515b5](https://github.com/hirak99/yabsnap/commit/c3515b5)).
 
 ### **Refactoring**
 
