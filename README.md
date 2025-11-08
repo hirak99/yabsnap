@@ -5,7 +5,7 @@
 Currently this is tested on Arch and Fedora, and should work in most other
 distributions.
 
-### What's New
+### Release Summaries
 
 Please see [CHANGELOG.md](./CHANGELOG.md).
 

@@ -1,4 +1,7 @@
-# Release Summary
+# Release Summaries
+
+Note: The summaries below are curated using a language model on git log. Summaries for
+versions before v2.2.11 are not included.
 
 ## v2.3.3 (Nov 08, 2025)
 
