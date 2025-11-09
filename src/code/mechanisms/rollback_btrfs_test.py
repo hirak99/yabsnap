@@ -49,13 +49,31 @@ class TestRollbacker(unittest.TestCase):
         snaps_list[0].metadata.source = "/home"
         snaps_list[1].metadata.source = "/root"
 
-        mount_lines = [
-            "/dev/BLOCKDEV1 on /root type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=123,subvol=/subv_root)",
-            "/dev/BLOCKDEV1 on /home type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=456,subvol=/subv_home)",
-            "/dev/BLOCKDEV1 on /snaps type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps)",
-        ]
+        findmnt_json = {
+            "filesystems": [
+                {
+                    "target": "/root",
+                    "source": "/dev/BLOCKDEV1",
+                    "fstype": "btrfs",
+                    "options": "rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=123,subvol=/subv_root",
+                },
+                {
+                    "target": "/home",
+                    "source": "/dev/BLOCKDEV1",
+                    "fstype": "btrfs",
+                    "options": "rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=456,subvol=/subv_home",
+                },
+                {
+                    "target": "/snaps",
+                    "source": "/dev/BLOCKDEV1",
+                    "fstype": "btrfs",
+                    "options": "rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps",
+                },
+            ]
+        }
+
         with mock.patch.object(
-            mtab_parser, "_mounts", return_value=mount_lines
+            mtab_parser, "_findmnt", return_value=findmnt_json
         ), mock.patch.object(
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
@@ -91,11 +109,19 @@ echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
         snaps_list[0].metadata.source = "/vol/nested1"
         snaps_list[1].metadata.source = "/vol/nested2"
 
-        mount_lines = [
-            "/dev/BLOCKDEV1 on /vol type btrfs (subvolid=123,subvol=/volume)",
-        ]
+        findmnt_json = {
+            "filesystems": [
+                {
+                    "target": "/vol",
+                    "source": "/dev/BLOCKDEV1",
+                    "fstype": "btrfs",
+                    "options": "subvolid=123,subvol=/volume",
+                }
+            ]
+        }
+
         with mock.patch.object(
-            mtab_parser, "_mounts", return_value=mount_lines
+            mtab_parser, "_findmnt", return_value=findmnt_json
         ), mock.patch.object(
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):
@@ -132,16 +158,32 @@ echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested2"
         snaps_list[0].metadata.source = "/home"
         snaps_list[1].metadata.source = "/root"
 
-        mount_lines = [
-            # Simulate that the /etc/mtab DOES NOT have following lines.
-            # "/dev/BLOCKDEV1 on /root type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=123,subvol=/subv_root)",
-            # "/dev/BLOCKDEV1 on /home type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=456,subvol=/subv_home)",
-            #
-            # It may have other mounts like below, irrelevant to us.
-            "/dev/BLOCKDEV1 on /snaps type btrfs (rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps)",
-        ]
+        findmnt_json = {
+            "filesystems": [
+                # Simulate that the mtab DOES NOT have following lines.
+                # {
+                #     "target": "/root",
+                #     "source": "/dev/BLOCKDEV1",
+                #     "fstype": "btrfs",
+                #     "options": "rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=123,subvol=/subv_root",
+                # },
+                # {
+                #     "target": "/home",
+                #     "source": "/dev/BLOCKDEV1",
+                #     "fstype": "btrfs",
+                #     "options": "rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=456,subvol=/subv_home",
+                # },
+                {
+                    "target": "/snaps",
+                    "source": "/dev/BLOCKDEV1",
+                    "fstype": "btrfs",
+                    "options": "rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=789,subvol=/subv_snaps",
+                },
+            ]
+        }
+
         with mock.patch.object(
-            mtab_parser, "_mounts", return_value=mount_lines
+            mtab_parser, "_findmnt", return_value=findmnt_json
         ), mock.patch.object(
             rollback_btrfs, "_get_now_str", return_value="20220202220000"
         ):

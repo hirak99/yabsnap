@@ -1,5 +1,6 @@
 import dataclasses
 import functools
+import json
 import logging
 import os
 
@@ -16,13 +17,6 @@ class _MountAttributes:
     subvol_id: int
 
 
-@functools.cache
-def _mounts() -> list[str]:
-    result = os_utils.runsh_or_error("mount")
-    assert result is not None
-    return result.splitlines()
-
-
 def _get_mtab_param(*, key: str, all_params: str) -> str:
     """Parses a string of the form 'a=b,c=d,e=f' and returns the value for given key."""
     subvol_prefix = f"{key}="
@@ -36,25 +30,40 @@ def _get_mtab_param(*, key: str, all_params: str) -> str:
 
 
 @dataclasses.dataclass
-class _MountLineTokens:
+class _MountEntry:
     device: str
     mtab_mount_pt: str
     fs: str
     params: str
 
 
-def _parse_mount_line(line: str) -> _MountLineTokens:
-    tokens = line.split()
-    if (tokens[1], tokens[3]) != ("on", "type") or len(tokens) != 6:
-        raise ValueError(f"Unexpected - Invalid mount line: {line!r}")
-    if not (tokens[5].startswith("(") and tokens[5].endswith(")")):
-        raise ValueError(f"Unexpected - mount params not parenthesized: {line!r}")
-    return _MountLineTokens(
-        device=tokens[0],
-        mtab_mount_pt=tokens[2],
-        fs=tokens[4],
-        params=tokens[5].removeprefix("(").removesuffix(")"),
-    )
+@functools.cache
+def _findmnt() -> dict[str, list[dict[str, str]]]:
+    output = os_utils.runsh_or_error("findmnt --mtab -J")
+    return json.loads(output)
+
+
+def _mount_entries() -> list[_MountEntry]:
+    mounts_json = _findmnt()
+
+    def remove_square_brackets(s: str) -> str:
+        # Some sources look like "/dev/mapper/luksdev[/@]".
+        if s.endswith("]"):
+            # Find the first "[" from end and take string before that.
+            return s[: s.rfind("[")]
+        return s
+
+    result: list[_MountEntry] = []
+    for x in mounts_json["filesystems"]:
+        result.append(
+            _MountEntry(
+                device=remove_square_brackets(x["source"]),
+                mtab_mount_pt=x["target"],
+                fs=x["fstype"],
+                params=x["options"],
+            )
+        )
+    return result
 
 
 @functools.cache
@@ -65,9 +74,9 @@ def mount_attributes(mount_point: str) -> _MountAttributes:
     longest_match_to_mount_point = ""
     # Find the longest match for the mount point.
     # I.e. consider line for "/parent/nested" over line for "/parent" alone.
-    matched_line: str = ""
-    for this_line in _mounts():
-        this_tokens = _parse_mount_line(this_line)
+    matched_line: _MountEntry | None = None
+    for this_tokens in _mount_entries():
+        logging.info(this_tokens)
         if this_tokens.fs == "autofs":
             # For autofs, another entry should exist which as "btrfs".
             # See also #54.
@@ -75,26 +84,24 @@ def mount_attributes(mount_point: str) -> _MountAttributes:
         if mount_point.startswith(this_tokens.mtab_mount_pt):
             if len(this_tokens.mtab_mount_pt) > len(longest_match_to_mount_point):
                 longest_match_to_mount_point = this_tokens.mtab_mount_pt
-                matched_line = this_line
+                matched_line = this_tokens
 
-    if not matched_line:
+    if matched_line is None:
         raise ValueError(f"Mount point not found: {mount_point}")
     logging.info(f"Found matching mount line: {matched_line!r}")
-    tokens = _parse_mount_line(matched_line)
-    logging.info(f"Parsed into {tokens=}")
 
-    if tokens.fs != "btrfs":
+    if matched_line.fs != "btrfs":
         raise ValueError(
-            f"Mount point is not btrfs: {mount_point} ({tokens.fs})."
+            f"Mount point is not btrfs: {mount_point} ({matched_line.fs})."
             "\nNOTE: If you are using recovery environment such as grub-btrfs, mount points are not auto detected."
             " You can use --subvol-map arg to pass the mount point to subvolume name mapping."
         )
 
-    subvol_name = _get_mtab_param(key="subvol", all_params=tokens.params)
-    subvol_id = int(_get_mtab_param(key="subvolid", all_params=tokens.params))
+    subvol_name = _get_mtab_param(key="subvol", all_params=matched_line.params)
+    subvol_id = int(_get_mtab_param(key="subvolid", all_params=matched_line.params))
     logging.info(f"{subvol_name=}, {subvol_id=}")
 
-    if tokens.mtab_mount_pt != mount_point:
+    if matched_line.mtab_mount_pt != mount_point:
         # The mount point was mounted automatically as a nested volume.
         #
         # Example 1: For mtab line -
@@ -111,8 +118,8 @@ def mount_attributes(mount_point: str) -> _MountAttributes:
         # tokens.mtab_mount_pt="/"
         # REVISED subvol_name="/@/testnested"
         #
-        nested_part = mount_point.removeprefix(tokens.mtab_mount_pt)
+        nested_part = mount_point.removeprefix(matched_line.mtab_mount_pt)
         subvol_name = os.path.join(subvol_name, nested_part)
     return _MountAttributes(
-        device=tokens.device, subvol_name=subvol_name, subvol_id=subvol_id
+        device=matched_line.device, subvol_name=subvol_name, subvol_id=subvol_id
     )

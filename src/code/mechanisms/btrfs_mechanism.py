@@ -57,7 +57,6 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
     def fill_metadata(self, metadata: snap_metadata.SnapMetadata) -> None:
         source = metadata.source
         mtab = mtab_parser.mount_attributes(source)
-        # metadata.aux["source_subvol"] = mtab.subvol_name
         metadata.btrfs = snap_metadata.Btrfs(source_subvol=mtab.subvol_name)
 
     @override
