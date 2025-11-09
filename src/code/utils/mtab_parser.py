@@ -43,6 +43,7 @@ def _findmnt() -> dict[str, list[dict[str, str]]]:
     return json.loads(output)
 
 
+@functools.cache
 def _mount_entries() -> list[_MountEntry]:
     mounts_json = _findmnt()
 
@@ -54,15 +55,17 @@ def _mount_entries() -> list[_MountEntry]:
         return s
 
     result: list[_MountEntry] = []
-    for x in mounts_json["filesystems"]:
+    for json_entry in mounts_json["filesystems"]:
         result.append(
             _MountEntry(
-                device=remove_square_brackets(x["source"]),
-                mtab_mount_pt=x["target"],
-                fs=x["fstype"],
-                params=x["options"],
+                device=remove_square_brackets(json_entry["source"]),
+                mtab_mount_pt=json_entry["target"],
+                fs=json_entry["fstype"],
+                params=json_entry["options"],
             )
         )
+        logging.info(result[-1])
+
     return result
 
 
@@ -76,7 +79,6 @@ def mount_attributes(mount_point: str) -> _MountAttributes:
     # I.e. consider line for "/parent/nested" over line for "/parent" alone.
     matched_line: _MountEntry | None = None
     for this_tokens in _mount_entries():
-        logging.info(this_tokens)
         if this_tokens.fs == "autofs":
             # For autofs, another entry should exist which as "btrfs".
             # See also #54.

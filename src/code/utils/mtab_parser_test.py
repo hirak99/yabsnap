@@ -14,6 +14,9 @@ from . import mtab_parser
 
 
 class TestCommonFsUtils(unittest.TestCase):
+    def setUp(self):
+        mtab_parser._mount_entries.cache_clear()
+
     def test_get_mount_attributes(self):
         # Fake `findmnt --mtab -J`.
         findmnt_json = {
@@ -33,7 +36,7 @@ class TestCommonFsUtils(unittest.TestCase):
                 },
                 {
                     "target": "/home",
-                    "source": "/dev/mapper/luksdev",
+                    "source": "/dev/mapper/luksdev[/@home]",
                     "fstype": "btrfs",
                     "options": "rw,noatime,compress=zstd:3,ssd,discard=async,space_cache=v2,subvolid=2505,subvol=/@home",
                 },
@@ -54,7 +57,7 @@ class TestCommonFsUtils(unittest.TestCase):
                 # Assume "/@/testnested" is mounted at "/testnested".
                 {
                     "target": "/",
-                    "source": "/dev/vda2",
+                    "source": "/dev/vda2[/@]",
                     "fstype": "btrfs",
                     "options": "rw,relatime,discard=async,space_cache=v2,subvolid=258,subvol=/@",
                 },

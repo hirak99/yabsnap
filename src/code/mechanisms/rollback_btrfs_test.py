@@ -29,6 +29,7 @@ from ..utils import os_utils
 class TestRollbacker(unittest.TestCase):
     def setUp(self):
         mtab_parser.mount_attributes.cache_clear()
+        mtab_parser._mount_entries.cache_clear()
         self._patches = [
             mock.patch.object(btrfs_utils, "get_nested_subvs", return_value=[]),
             mock.patch.object(os_utils, "get_filesystem_uuid", return_value="12345"),
