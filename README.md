@@ -65,11 +65,11 @@ Yabsnap easily and flexibly orchestrates btrfs snapshots.
 ## Alternatives
 
 Some good alternatives are timeshift, snapper; both very good in what they do.
-However, neither supports customized of snapshot location, (e.g. [Arch recommended
+However, neither supports customization of snapshot location (e.g., the [Arch recommended
 layout](https://wiki.archlinux.org/title/snapper#Suggested_filesystem_layout)).
-Adhering to such layouts, and rolling back using them, sometime [involve
-non-obviousworkarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previous_snapshot).
-The motivation for `yabsnap` was to create a simpler, hackable and customizable
+Adhering to such layouts, and rolling back using them, sometimes involves
+non-obvious workarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previous_snapshot).
+The motivation for `yabsnap` was to create a simpler, hackable, and customizable
 snapshot system.
 
 |                     | yabsnap      | timeshift                  | snapper                |
@@ -81,7 +81,7 @@ snapshot system.
 | GUI                 |              | ✓                          | With snapper-gui       |
 | Rollback            | ✓ (3)        | ✓                          | Only default subvolume |
 
-(1) timeshift does not allow separate schedules or triggers for root and home.
+(1) Timeshift does not allow separate schedules or triggers for root and home.
 
 (2) At the time of writing, `timeshift-autosnap` does not tag the snapshot with
 pacman command used.
