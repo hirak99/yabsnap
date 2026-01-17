@@ -67,7 +67,7 @@ Yabsnap easily and flexibly orchestrates btrfs snapshots.
 Some good alternatives are timeshift, snapper; both very good in what they do.
 However, neither supports customization of snapshot location (e.g., the [Arch recommended
 layout](https://wiki.archlinux.org/title/snapper#Suggested_filesystem_layout)).
-Adhering to such layouts, and rolling back using them, sometimes involves
+Adhering to such layouts, and rolling back using them, sometimes [involves
 non-obvious workarounds](https://wiki.archlinux.org/title/snapper#Restoring_/_to_its_previous_snapshot).
 The motivation for `yabsnap` was to create a simpler, hackable, and customizable
 snapshot system.
