@@ -245,7 +245,8 @@ Snapshots with TTL will not be part of any other automated deletion operation.
 Of course, they can still be deleted manually, with the `delete` or `batch-delete`
 commands.
 
-> [!TIP] To prevent a scheduled snapshot from automatic deletion you can set a long TTL for it, e.g. '999 years'.
+> [!TIP]
+> To prevent a scheduled snapshot from automatic deletion you can set a long TTL for it, e.g. '999 years'.
 
 ### `yabsnap delete PATH|TIMESTAMP`
 Deletes a snapshot.
@@ -360,6 +361,12 @@ The optional arg `--subvol-map` works similarly as rollback-gen.
 
 ## Rollback Related
 
+> [!NOTE]
+> It is **strongly recommended** that you read and understand the script
+> before committing to a rollback. Doing so will help you see exactly what
+> it does and how to reverse it if needed. The generated script is
+> intentionally kept small and readable for this reason.
+
 - Can I roll back rsync or bcachefs snapshots?
   - Not currently. Rollback is supported only for btrfs snapshots.
 
@@ -369,12 +376,6 @@ The optional arg `--subvol-map` works similarly as rollback-gen.
 
     The generated script is designed to let you continue working in the live environment
     and switch over to the rolled-back state on the next reboot.
-
-    > [!NOTE]
-    > It is **strongly recommended** that you read and understand the script
-    > before committing to a rollback. Doing so will help you see exactly what
-    > it does and how to reverse it if needed. The generated script is
-    intentionally kept small and readable for this reason.
 
 - Does `yabsnap` support _offline_ rollback?
   - Yes! Starting from `v2.3.0`, `yabsnap` stores the necessary information to perform
@@ -387,10 +388,6 @@ The optional arg `--subvol-map` works similarly as rollback-gen.
     However, to roll back, `yabsnap` needs to know that root subvolume is `@` under
     normal operations. To specify this, you can use the `--subvol-map "/:@"`
     argument.
-
-    > [!NOTE] NOTE: As with live rollback, it’s strongly recommended that you review the
-    > generated script before running it, to ensure you understand what it will do and
-    > how to undo it if necessary.
 
 - How is rollback handled for nested subvolumes?
   - Rolling back nested subvolumes is supported. However, due to the way BTRFS handles
