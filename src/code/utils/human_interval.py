@@ -15,6 +15,7 @@
 Matches convention established in `man systemd.time`.
 E.g. parse_to_secs('10 hr')  # Returns 36000.
 """
+
 import re
 
 from typing import Optional

@@ -21,7 +21,6 @@ from ..utils import btrfs_utils
 from ..utils import mtab_parser
 from ..utils import os_utils
 
-
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
 
