@@ -22,7 +22,7 @@ readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 cd ${MY_PATH}
 
 black --check code/
-
+isort --check-only code/
 pyright code/
 
 # flake8 --ignore=E203,E501,W503 code/
@@ -30,4 +30,3 @@ pyright code/
 mypy --ignore-missing-imports --show-column-numbers --check-untyped-defs --show-error-codes code/
 
 find -type f -iname '*_test.py' -exec python -m unittest {} +
-
