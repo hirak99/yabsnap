@@ -20,8 +20,8 @@ import os
 import pathlib
 import shlex
 
-from .mechanisms import snap_type_enum
 from .mechanisms import snap_mechanisms
+from .mechanisms import snap_type_enum
 from .utils import human_interval
 from .utils import os_utils
 

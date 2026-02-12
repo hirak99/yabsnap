@@ -24,8 +24,8 @@ import os
 from . import snap_metadata
 from .. import global_flags
 from ..mechanisms import abstract_mechanism
-from ..mechanisms import snap_type_enum
 from ..mechanisms import snap_mechanisms
+from ..mechanisms import snap_type_enum
 from ..utils import human_interval
 from ..utils import os_utils
 
