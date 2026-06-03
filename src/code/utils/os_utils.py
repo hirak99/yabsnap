@@ -135,7 +135,12 @@ def last_pacman_command() -> str:
 
 
 def timer_enabled() -> bool:
-    return os.system("systemctl is-active yabsnap.timer >/dev/null") == 0
+    result = subprocess.run(
+        ["systemctl", "is-active", "yabsnap.timer"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return result.returncode == 0
 
 
 def eprint(*args: Any, **kwargs: Any) -> None:
