@@ -24,7 +24,6 @@ from . import snap_holder
 from . import snap_metadata
 from ..mechanisms import btrfs_mechanism
 from ..mechanisms import snap_type_enum
-from ..snapshot_logic import snap_metadata
 from ..utils import os_utils
 
 # For testing, we can access private methods.
