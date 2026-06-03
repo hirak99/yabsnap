@@ -184,9 +184,16 @@ def main():
             execute=args.execute,
         )
     elif command == "tui":
-        from .tui import app
+        try:
+            from .tui import app
 
-        app.run(args.source)
+            app.run(args.source)
+        except ImportError:
+            os_utils.fatal_error(
+                "The 'textual' library is required for the TUI but is not installed.\n"
+                "Please install it using your package manager or pip.\n"
+                "Example (for Arch Linux): sudo pacman -S python-textual\n"
+            )
     else:
         comment = getattr(args, "comment", "")
         _config_operation(
