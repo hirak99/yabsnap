@@ -183,6 +183,10 @@ def main():
             subvol_map=args.subvol_map,
             execute=args.execute,
         )
+    elif command == "tui":
+        from .tui import app
+
+        app.run(args.source)
     else:
         comment = getattr(args, "comment", "")
         _config_operation(

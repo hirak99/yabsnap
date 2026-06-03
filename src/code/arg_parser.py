@@ -167,4 +167,7 @@ def make_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("internal-cronrun")
     subparsers.add_parser("internal-preupdate")
 
+    # TUI command.
+    subparsers.add_parser("tui", help="Open the interactive TUI." + source_message)
+
     return parser
