@@ -14,11 +14,11 @@ from ..utils import os_utils
 class TestCreateAndChmodScript(unittest.TestCase):
     def test_rollback_no_execute(self):
         with mock.patch.object(
-            rollbacker, "_get_rollback_script_text"
+            rollbacker, "get_rollback_script_text"
         ) as mock_script, mock.patch.object(
             builtins, "print"
         ) as mock_print, mock.patch.object(
-            rollbacker, "_save_and_execute_script"
+            rollbacker, "save_and_execute_script"
         ) as mock_execute:
             mock_script.return_value = "echo Rollback"
             rollbacker.rollback(configs_iter=[], path_suffix="", subvol_map=None)
@@ -31,7 +31,7 @@ class TestCreateAndChmodScript(unittest.TestCase):
             target_file = os.path.join(dir, "test_file")
             script_content = "\n".join(["#!/bin/bash", f"touch {target_file}"])
             with mock.patch.object(
-                rollbacker, "_get_rollback_script_text"
+                rollbacker, "get_rollback_script_text"
             ) as mock_script:
                 mock_script.return_value = script_content
                 rollbacker.rollback(
@@ -49,7 +49,7 @@ class TestCreateAndChmodScript(unittest.TestCase):
             target_file = os.path.join(dir, "test_file")
             script_content = "\n".join(["#!/bin/bash", f"touch {target_file}"])
             with mock.patch.object(
-                rollbacker, "_get_rollback_script_text"
+                rollbacker, "get_rollback_script_text"
             ) as mock_script, mock.patch.object(
                 os_utils, "interactive_confirm", return_value=False
             ):

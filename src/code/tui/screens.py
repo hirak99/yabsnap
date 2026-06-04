@@ -25,11 +25,17 @@ class CreateModal(screen.ModalScreen[str | None]):
         if event.button.id == "cancel":
             self.dismiss(None)
         else:
-            comment = self.query_one("#comment-input", widgets.Input).value
-            self.dismiss(comment)
+            comment_input: widgets.Input = self.query_one(
+                "#comment-input", widgets.Input
+            )
+            self.dismiss(comment_input.value)
 
     def on_input_submitted(self, event: widgets.Input.Submitted) -> None:
         self.dismiss(event.value)
+
+
+# TODO: Can we access the one defined in widgets.Button directly, instead of redefining?
+type _ButtonVariant = Literal["primary", "error"]
 
 
 class ConfirmModal(screen.ModalScreen[bool]):
@@ -41,23 +47,23 @@ class ConfirmModal(screen.ModalScreen[bool]):
         message: str,
         confirm_label: str = "Confirm",
         cancel_label: str = "Cancel",
-        variant: Literal["primary", "error"] = "primary",
+        variant: _ButtonVariant = "primary",
     ) -> None:
         super().__init__()
-        self.title_text = title
-        self.message_text = message
-        self.confirm_label = confirm_label
-        self.cancel_label = cancel_label
-        self.variant: Literal["primary", "error"] = variant
+        self._title_text: str = title
+        self._message_text: str = message
+        self._confirm_label: str = confirm_label
+        self._cancel_label: str = cancel_label
+        self._variant: _ButtonVariant = variant
 
     def compose(self) -> app.ComposeResult:
         with containers.Vertical(id="dialog"):
-            yield widgets.Label(self.title_text, id="dialog-title")
-            yield widgets.Static(self.message_text, id="dialog-message")
+            yield widgets.Label(self._title_text, id="dialog-title")
+            yield widgets.Static(self._message_text, id="dialog-message")
             with containers.Horizontal(id="dialog-buttons"):
-                yield widgets.Button(self.cancel_label, variant="error", id="cancel")
+                yield widgets.Button(self._cancel_label, variant="error", id="cancel")
                 yield widgets.Button(
-                    self.confirm_label, variant=self.variant, id="confirm"
+                    self._confirm_label, variant=self._variant, id="confirm"
                 )
 
     def on_button_pressed(self, event: widgets.Button.Pressed) -> None:
@@ -72,7 +78,7 @@ class RollbackPreviewModal(screen.ModalScreen[bool]):
 
     def __init__(self, script_text: str) -> None:
         super().__init__()
-        self.script_text = script_text
+        self._script_text: str = script_text
 
     def compose(self) -> app.ComposeResult:
         with containers.Vertical(id="rollback-dialog"):
@@ -81,7 +87,7 @@ class RollbackPreviewModal(screen.ModalScreen[bool]):
                 "Please review the rollback script below before execution."
             )
             yield widgets.TextArea(
-                self.script_text, read_only=True, id="rollback-script"
+                self._script_text, read_only=True, id="rollback-script"
             )
             with containers.Horizontal(id="dialog-buttons"):
                 yield widgets.Button("Cancel", variant="error", id="cancel")

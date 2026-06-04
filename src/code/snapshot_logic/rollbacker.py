@@ -29,7 +29,7 @@ from ..utils import os_utils
 from typing import Iterable
 
 
-def _get_rollback_script_text(
+def get_rollback_script_text(
     configs_iter: Iterable[configs.Config],
     path_suffix: str,
     subvol_map: dict[str, str] | None,
@@ -62,7 +62,7 @@ def _get_rollback_script_text(
     return "\n".join(content)
 
 
-def _save_and_execute_script(contents: str) -> None:
+def save_and_execute_script(contents: str) -> None:
     if global_flags.FLAGS.dryrun:
         os_utils.eprint(f"Would execute the script if --dry-run is not passed.")
         return
@@ -90,7 +90,7 @@ def rollback(
     no_confirm: bool = False,
 ) -> None:
     # Obtain and display the text of rollback.
-    script_text = _get_rollback_script_text(configs_iter, path_suffix, subvol_map)
+    script_text = get_rollback_script_text(configs_iter, path_suffix, subvol_map)
     if script_text is None:
         os_utils.eprint("No matching snapshots.")
         return
@@ -106,4 +106,4 @@ def rollback(
             return
 
     # Save and execute the script.
-    _save_and_execute_script(script_text)
+    save_and_execute_script(script_text)

@@ -10,11 +10,14 @@ from . import screens
 from . import widgets as tui_widgets
 from .. import configs
 from ..snapshot_logic import rollbacker
+from ..snapshot_logic import snap_holder
 from ..snapshot_logic import snap_operator
 from ..utils import human_interval
 
 
-class YabsnapApp(app.App):
+class _YabsnapApp(app.App[None]):
+    """The main TUI application for yabsnap."""
+
     CSS = """
     Screen {
         layout: horizontal;
@@ -52,13 +55,6 @@ class YabsnapApp(app.App):
         border: thick $primary;
         background: $surface;
         align: center middle;
-    }
-
-    #dialog-message {
-        height: auto;
-        max-height: 10;
-        overflow-y: auto;
-        margin-bottom: 1;
     }
 
     #rollback-dialog {
@@ -102,13 +98,13 @@ class YabsnapApp(app.App):
 
     def __init__(self, source_filter: str | None = None) -> None:
         super().__init__()
-        self.source_filter = source_filter
-        self.current_config: configs.Config | None = None
+        self._source_filter: str | None = source_filter
+        self._current_config: configs.Config | None = None
 
     def compose(self) -> app.ComposeResult:
         yield widgets.Header()
         with containers.Horizontal():
-            with tui_widgets.VerticalSidebar(id="sidebar"):
+            with containers.Vertical(id="sidebar"):
                 yield widgets.Label("Configurations", id="sidebar-header")
                 yield widgets.ListView(id="config-list")
             with containers.Vertical(id="main-content"):
@@ -116,15 +112,17 @@ class YabsnapApp(app.App):
         yield widgets.Footer()
 
     def on_mount(self) -> None:
-        self.load_configs()
-        table = self.query_one("#snapshot-table", widgets.DataTable)
+        self._load_configs()
+        table: widgets.DataTable[str] = self.query_one(
+            "#snapshot-table", widgets.DataTable
+        )
         table.add_columns("Timestamp", "Type", "Age", "TTL", "Comment")
         table.cursor_type = "row"
 
-    def load_configs(self) -> None:
-        config_list = self.query_one("#config-list", widgets.ListView)
+    def _load_configs(self) -> None:
+        config_list: widgets.ListView = self.query_one("#config-list", widgets.ListView)
         config_list.clear()
-        for config in configs.iterate_configs(self.source_filter):
+        for config in configs.iterate_configs(self._source_filter):
             config_list.append(tui_widgets.ConfigItem(config))
 
         if config_list.children:
@@ -132,35 +130,37 @@ class YabsnapApp(app.App):
 
     def on_list_view_highlighted(self, event: widgets.ListView.Highlighted) -> None:
         if isinstance(event.item, tui_widgets.ConfigItem):
-            self.current_config = event.item.config
-            self.refresh_snapshots()
+            self._current_config = event.item.config
+            self._refresh_snapshots()
 
-    def refresh_snapshots(self) -> None:
-        if not self.current_config:
+    def _refresh_snapshots(self) -> None:
+        if not self._current_config:
             return
 
-        table = self.query_one("#snapshot-table", widgets.DataTable)
+        table: widgets.DataTable[str] = self.query_one(
+            "#snapshot-table", widgets.DataTable
+        )
         table.clear()
 
-        now = datetime.datetime.now()
-        for snap in snap_operator.get_existing_snaps(self.current_config):
+        now: datetime.datetime = datetime.datetime.now()
+        for snap in snap_operator.get_existing_snaps(self._current_config):
             # Format trigger SIU
-            trigger_str = "".join(
+            trigger_str: str = "".join(
                 c if snap.metadata.trigger == c else "-" for c in "SIU"
             )
 
             # Age
-            elapsed = (now - snap.snaptime).total_seconds()
-            age_str = human_interval.humanize(elapsed)
+            elapsed: float = (now - snap.snaptime).total_seconds()
+            age_str: str = human_interval.humanize(elapsed)
 
             # TTL
-            ttl_str = ""
+            ttl_str: str = ""
             if snap.metadata.expiry is not None:
-                ttl = snap.metadata.expiry - now.timestamp()
+                ttl: float = snap.metadata.expiry - now.timestamp()
                 ttl_str = human_interval.humanize(ttl)
 
             table.add_row(
-                snap.target.removeprefix(self.current_config.dest_prefix),
+                snap.target.removeprefix(self._current_config.dest_prefix),
                 trigger_str,
                 age_str,
                 ttl_str,
@@ -169,50 +169,59 @@ class YabsnapApp(app.App):
             )
 
     def action_refresh_data(self) -> None:
-        self.refresh_snapshots()
+        self._refresh_snapshots()
 
     def action_create_snapshot(self) -> None:
-        if not self.current_config:
-            self.notify("No configuration selected", variant="error")
+        if not self._current_config:
+            self.notify("No configuration selected", severity="warning")
             return
 
         def on_modal_result(comment: str | None) -> None:
-            if comment is not None:
-                try:
-                    now = datetime.datetime.now()
-                    snapper = snap_operator.SnapOperator(self.current_config, now)
-                    snapper.create(comment)
-                    self.notify(f"Snapshot created for {self.current_config.source}")
-                    self.refresh_snapshots()
-                except Exception as e:
-                    self.notify(f"Error: {str(e)}", variant="error")
+            if comment is None:
+                self.notify("No comment was provided, aborted.", severity="information")
+                return
+
+            assert self._current_config is not None
+            try:
+                now: datetime.datetime = datetime.datetime.now()
+                snapper: snap_operator.SnapOperator = snap_operator.SnapOperator(
+                    self._current_config, now
+                )
+                snapper.create(comment)
+                self.notify(f"Snapshot created for {self._current_config.source}")
+                self._refresh_snapshots()
+            except PermissionError:
+                self.notify("Permission denied. Run as root?", severity="error")
+            except Exception as e:
+                self.notify(f"Error: {str(e)}", severity="error")
 
         self.push_screen(screens.CreateModal(), on_modal_result)
 
     def action_delete_snapshot(self) -> None:
-        if not self.current_config:
+        if not self._current_config:
             return
 
-        table = self.query_one("#snapshot-table", widgets.DataTable)
-        if table.cursor_row is None:
-            self.notify("No snapshot selected", severity="error")
-            return
+        table: widgets.DataTable[str] = self.query_one(
+            "#snapshot-table", widgets.DataTable
+        )
 
         row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
-        target_path = str(row_key.value)
+        target_path: str = str(row_key.value)
 
-        def on_confirm(confirmed: bool) -> None:
-            if confirmed:
-                try:
-                    from ..snapshot_logic import snap_holder
-
-                    snap = snap_holder.Snapshot(target_path)
-                    snap.delete()
-                    self.current_config.call_post_hooks()
-                    self.notify(f"Deleted snapshot: {target_path}")
-                    self.refresh_snapshots()
-                except Exception as e:
-                    self.notify(f"Error deleting snapshot: {str(e)}", severity="error")
+        def on_confirm(confirmed: bool | None) -> None:
+            if not confirmed:
+                return
+            try:
+                assert self._current_config is not None
+                snap: snap_holder.Snapshot = snap_holder.Snapshot(target_path)
+                snap.delete()
+                self._current_config.call_post_hooks()
+                self.notify(f"Deleted snapshot: {target_path}")
+                self._refresh_snapshots()
+            except PermissionError:
+                self.notify("Permission denied. Run as root?", severity="error")
+            except Exception as e:
+                self.notify(f"Error deleting snapshot: {str(e)}", severity="error")
 
         self.push_screen(
             screens.ConfirmModal(
@@ -225,42 +234,41 @@ class YabsnapApp(app.App):
         )
 
     def action_rollback(self) -> None:
-        if not self.current_config:
+        if not self._current_config:
             return
 
-        table = self.query_one("#snapshot-table", widgets.DataTable)
-        if table.cursor_row is None:
-            self.notify("No snapshot selected", severity="error")
-            return
+        table: widgets.DataTable[str] = self.query_one(
+            "#snapshot-table", widgets.DataTable
+        )
 
         row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
-        target_path = str(row_key.value)
-        # Using a single config for generation here.
-        script_text = rollbacker._get_rollback_script_text(
-            [self.current_config], target_path, subvol_map=None
+        target_path: str = str(row_key.value)
+
+        script_text: str | None = rollbacker.get_rollback_script_text(
+            [self._current_config], target_path, subvol_map=None
         )
 
         if not script_text:
-            self.notify("Could not generate rollback script", variant="error")
+            self.notify("Could not generate rollback script", severity="error")
             return
 
-        def on_confirm(confirmed: bool) -> None:
-            if confirmed:
-                try:
-                    # Suspend TUI to run the script.
-                    with self.suspend():
-                        rollbacker._save_and_execute_script(script_text)
-                    self.notify("Rollback script executed successfully.")
-                except subprocess.CalledProcessError as e:
-                    self.notify(f"Rollback execution failed: {str(e)}", variant="error")
-                except Exception as e:
-                    self.notify(
-                        f"An unexpected error occurred: {str(e)}", variant="error"
-                    )
+        def on_confirm(confirmed: bool | None) -> None:
+            if not confirmed:
+                return None
+            try:
+                # Suspend TUI to run the script.
+                with self.suspend():
+                    rollbacker.save_and_execute_script(script_text)
+                self.notify("Rollback script executed successfully.")
+            except subprocess.CalledProcessError as e:
+                self.notify(f"Rollback execution failed: {str(e)}", severity="error")
+            except Exception as e:
+                self.notify(f"An unexpected error occurred: {str(e)}", severity="error")
 
         self.push_screen(screens.RollbackPreviewModal(script_text), on_confirm)
 
 
-def run(source_filter: str | None = None):
-    yabsnap_app = YabsnapApp(source_filter)
+def run(source_filter: str | None = None) -> None:
+    """Entry point for the TUI application."""
+    yabsnap_app: _YabsnapApp = _YabsnapApp(source_filter)
     yabsnap_app.run()
