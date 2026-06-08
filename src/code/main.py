@@ -185,9 +185,9 @@ def main():
         )
     elif command == "tui":
         try:
-            from .tui import app
+            from .tui import tui_app
 
-            app.run(args.source, args.show_keys)
+            tui_app.run(args.source, args.show_keys)
         except ImportError:
             os_utils.fatal_error(
                 "The 'textual' library is required for the TUI but is not installed.\n"
