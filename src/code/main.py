@@ -187,7 +187,7 @@ def main():
         try:
             from .tui import app
 
-            app.run(args.source)
+            app.run(args.source, args.show_keys)
         except ImportError:
             os_utils.fatal_error(
                 "The 'textual' library is required for the TUI but is not installed.\n"

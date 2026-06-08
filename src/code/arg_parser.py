@@ -168,6 +168,13 @@ def make_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("internal-preupdate")
 
     # TUI command.
-    subparsers.add_parser("tui", help="Open the interactive TUI." + source_message)
+    tui_parser = subparsers.add_parser(
+        "tui", help="Open the interactive TUI." + source_message
+    )
+    tui_parser.add_argument(
+        "--show-keys",
+        help="Show a transient overlay of key presses (useful for demos).",
+        action="store_true",
+    )
 
     return parser

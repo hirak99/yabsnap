@@ -16,12 +16,25 @@ from ..snapshot_logic import snap_operator
 from ..utils import human_interval
 
 
+class KeyPressOverlay(widgets.Static):
+    """A transient overlay that shows key presses."""
+
+    def show_key(self, key_name: str) -> None:
+        self.update(key_name)
+        self.add_class("visible")
+        self.set_timer(1.0, self.hide)
+
+    def hide(self) -> None:
+        self.remove_class("visible")
+
+
 class _YabsnapApp(app.App[None]):
     """The main TUI application for yabsnap."""
 
     CSS = """
     Screen {
         layout: horizontal;
+        layers: base overlay;
     }
 
     #sidebar {
@@ -87,6 +100,25 @@ class _YabsnapApp(app.App[None]):
     #dialog-buttons Button {
         margin-left: 1;
     }
+
+    #keypress-overlay {
+        display: none;
+        layer: overlay;
+        offset-x: 90%;
+        offset-y: 90%;
+        width: auto;
+        height: auto;
+        padding: 1 2;
+        background: $accent;
+        color: $text;
+        text-style: bold;
+        border: thick $primary;
+        opacity: 0.8;
+    }
+
+    #keypress-overlay.visible {
+        display: block;
+    }
     """
 
     BINDINGS = [
@@ -98,9 +130,12 @@ class _YabsnapApp(app.App[None]):
         binding.Binding("f5", "refresh_data", "Refresh", show=True),
     ]
 
-    def __init__(self, source_filter: str | None = None) -> None:
+    def __init__(
+        self, source_filter: str | None = None, show_keys: bool = False
+    ) -> None:
         super().__init__()
         self._source_filter: str | None = source_filter
+        self._show_keys: bool = show_keys
         self._current_config: configs.Config | None = None
 
     def compose(self) -> app.ComposeResult:
@@ -112,6 +147,16 @@ class _YabsnapApp(app.App[None]):
             with containers.Vertical(id="main-content"):
                 yield widgets.DataTable(id="snapshot-table")
         yield widgets.Footer()
+        if self._show_keys:
+            yield KeyPressOverlay(id="keypress-overlay")
+
+    def on_key(self, event: app.events.Key) -> None:
+        if self._show_keys:
+            try:
+                overlay = self.query_one("#keypress-overlay", KeyPressOverlay)
+                overlay.show_key(event.key.upper())
+            except Exception:
+                pass
 
     def on_mount(self) -> None:
         self._load_configs()
@@ -296,7 +341,7 @@ class _YabsnapApp(app.App[None]):
             subprocess.run([shell], cwd=target_path)
 
 
-def run(source_filter: str | None = None) -> None:
+def run(source_filter: str | None = None, show_keys: bool = False) -> None:
     """Entry point for the TUI application."""
-    yabsnap_app: _YabsnapApp = _YabsnapApp(source_filter)
+    yabsnap_app: _YabsnapApp = _YabsnapApp(source_filter, show_keys)
     yabsnap_app.run()
