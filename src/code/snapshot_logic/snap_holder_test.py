@@ -89,7 +89,7 @@ class SnapHolderTest(unittest.TestCase):
             snap_destination = os.path.join(dir, "root-20231122193630")
             snap = snap_holder.Snapshot(snap_destination)
             self.assertEqual(
-                snap.metadata._to_file_content(),
+                snap.metadata.as_json(),
                 {"version": snap_metadata._CURRENT_VERSION, "snap_type": "UNKNOWN"},
             )
 
@@ -97,7 +97,7 @@ class SnapHolderTest(unittest.TestCase):
 
             expected_expiry_ts = (_NOW + datetime.timedelta(hours=1)).timestamp()
             self.assertEqual(
-                snap.metadata._to_file_content(),
+                snap.metadata.as_json(),
                 {
                     "version": snap_metadata._CURRENT_VERSION,
                     "snap_type": "UNKNOWN",
@@ -108,7 +108,7 @@ class SnapHolderTest(unittest.TestCase):
             # Setting to empty string erases ttl.
             snap.set_ttl("", now=_NOW)
             self.assertEqual(
-                snap.metadata._to_file_content(),
+                snap.metadata.as_json(),
                 {"version": snap_metadata._CURRENT_VERSION, "snap_type": "UNKNOWN"},
             )
 

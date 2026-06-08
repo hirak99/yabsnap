@@ -10,7 +10,8 @@ CSS = """
     width: auto;
     height: auto;
     offset-x: 4;
-    offset-y: 85%;
+    offset-y: 10;
+    background: transparent;
 }
 
 #keypress-overlay.visible {

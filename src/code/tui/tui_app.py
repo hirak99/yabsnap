@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import subprocess
 
@@ -76,6 +77,12 @@ class _YabsnapApp(app.App[None]):
         border: solid $primary;
     }
 
+    #json-display {
+        margin-top: 1;
+        height: 1fr;
+        border: solid $primary;
+    }
+
     #dialog-title {
         text-style: bold;
         margin-bottom: 1;
@@ -98,6 +105,7 @@ class _YabsnapApp(app.App[None]):
         binding.Binding("d", "delete_snapshot", "Delete", show=True),
         binding.Binding("r", "rollback", "Rollback", show=True),
         binding.Binding("t", "open_terminal", "Terminal", show=True),
+        binding.Binding("v", "view_metadata", "View Metadata", show=True),
         binding.Binding("f5", "refresh_data", "Refresh", show=True),
     ]
 
@@ -279,6 +287,35 @@ class _YabsnapApp(app.App[None]):
                 self.notify(f"An unexpected error occurred: {str(e)}", severity="error")
 
         self.push_screen(screens.RollbackPreviewModal(script_text), on_confirm)
+
+    def action_view_metadata(self) -> None:
+        if not self._current_config:
+            return
+
+        table: widgets.DataTable[str] = self.query_one(
+            "#snapshot-table", widgets.DataTable
+        )
+
+        try:
+            row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
+            target_path: str = str(row_key.value)
+        except Exception:
+            self.notify("No snapshot selected", severity="warning")
+            return
+
+        try:
+            snap: snap_holder.Snapshot = snap_holder.Snapshot(target_path)
+            # Combine common info with snap-specific metadata
+            metadata_dict = {
+                "config_file": self._current_config.config_file,
+                "source": self._current_config.source,
+                "target": target_path,
+            }
+            metadata_dict.update(snap.metadata.as_json())
+            json_text = json.dumps(metadata_dict, indent=2)
+            self.push_screen(screens.ShowJsonModal("Snapshot Metadata", json_text))
+        except Exception as e:
+            self.notify(f"Error loading metadata: {str(e)}", severity="error")
 
     def action_open_terminal(self) -> None:
         if not self._current_config:

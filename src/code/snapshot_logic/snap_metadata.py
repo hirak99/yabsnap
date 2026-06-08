@@ -65,7 +65,7 @@ class SnapMetadata:
             return False
         return self.expiry < now.timestamp()
 
-    def _to_file_content(self) -> dict[str, Any]:
+    def as_json(self) -> dict[str, Any]:
         # Ignore empty strings and None.
         result = {k: v for k, v in dataclasses.asdict(self).items() if v}
         if "snap_type" in result:
@@ -73,7 +73,7 @@ class SnapMetadata:
         return result
 
     def save_file(self, fname: str) -> None:
-        data = self._to_file_content()
+        data = self.as_json()
         if global_flags.FLAGS.dryrun:
             os_utils.eprint(f"Would create {fname}: {data}")
             return

@@ -100,3 +100,24 @@ class RollbackPreviewModal(screen.ModalScreen[bool]):
             self.dismiss(True)
         else:
             self.dismiss(False)
+
+
+class ShowJsonModal(screen.ModalScreen[None]):
+    """A modal for displaying JSON metadata."""
+
+    def __init__(self, title: str, json_text: str) -> None:
+        super().__init__()
+        self._title_text: str = title
+        self._json_text: str = json_text
+
+    def compose(self) -> app.ComposeResult:
+        with containers.Vertical(id="rollback-dialog"):
+            yield widgets.Label(self._title_text, id="dialog-title")
+            yield widgets.TextArea(
+                self._json_text, read_only=True, id="json-display", language="json"
+            )
+            with containers.Horizontal(id="dialog-buttons"):
+                yield widgets.Button("Close", variant="primary", id="close")
+
+    def on_button_pressed(self, event: widgets.Button.Pressed) -> None:
+        self.dismiss(None)

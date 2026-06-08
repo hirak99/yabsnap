@@ -27,7 +27,7 @@ class SnapMetadataTest(unittest.TestCase):
             btrfs=snap_metadata.Btrfs(source_subvol="subvol"),
         )
         self.assertEqual(
-            metadata._to_file_content(),
+            metadata.as_json(),
             {
                 "version": "test",
                 "snap_type": "BTRFS",
