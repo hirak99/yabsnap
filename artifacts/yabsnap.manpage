@@ -135,6 +135,10 @@ Generates and a rollback script, executes it after interactively confirming.
 
 If [--noconfirm] is passed, the interactive confirmation is skipped.
 
+.SS yabsnap tui
+
+Start the TUI.
+
 .SH BUGS
 Please see or raise issues at: https://github.com/hirak99/yabsnap/issues
 .SH SEE ALSO

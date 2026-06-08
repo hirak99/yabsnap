@@ -84,7 +84,7 @@ snapshot system.
 | Custom destinations | ✓            |                            |                        |
 | Pacman hook         | ✓            | Via timeshift-autosnap (2) | Via snap-pac           |
 | Snapshot Mechanisms | btrfs, rsync | btrfs, rsync               | btrfs                  |
-| GUI / TUI           | ✓ TUI        | ✓ GUI                      | ✓ With snapper-gui     |
+| GUI / TUI           | Basic TUI    | ✓ Mature GUI               | ✓ With snapper-gui     |
 | Rollback            | ✓ (3)        | ✓                          | Only default subvolume |
 | Language            | Python       | Vala                       | C++                    |
 
