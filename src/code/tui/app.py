@@ -5,8 +5,10 @@ import subprocess
 from textual import app
 from textual import binding
 from textual import containers
+from textual import events
 from textual import widgets
 
+from . import keypress_overlay
 from . import screens
 from . import widgets as tui_widgets
 from .. import configs
@@ -14,25 +16,6 @@ from ..snapshot_logic import rollbacker
 from ..snapshot_logic import snap_holder
 from ..snapshot_logic import snap_operator
 from ..utils import human_interval
-
-
-class KeyPressOverlay(widgets.Static):
-    """A transient overlay that shows key presses."""
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._hide_timer = None
-
-    def show_key(self, key_name: str) -> None:
-        self.update(key_name)
-        self.add_class("visible")
-        if self._hide_timer:
-            self._hide_timer.stop()
-        self._hide_timer = self.set_timer(1.0, self.hide)
-
-    def hide(self) -> None:
-        self.remove_class("visible")
-        self._hide_timer = None
 
 
 class _YabsnapApp(app.App[None]):
@@ -107,26 +90,7 @@ class _YabsnapApp(app.App[None]):
     #dialog-buttons Button {
         margin-left: 1;
     }
-
-    #keypress-overlay {
-        display: none;
-        layer: overlay;
-        width: auto;
-        height: auto;
-        padding: 1 2;
-        background: $accent;
-        color: $text;
-        text-style: bold;
-        border: thick $primary;
-        opacity: 0.8;
-        offset-x: 80%;
-        offset-y: 85%;
-    }
-
-    #keypress-overlay.visible {
-        display: block;
-    }
-    """
+    """ + keypress_overlay.CSS
 
     BINDINGS = [
         binding.Binding("q", "quit", "Quit", show=True),
@@ -155,15 +119,10 @@ class _YabsnapApp(app.App[None]):
                 yield widgets.DataTable(id="snapshot-table")
         yield widgets.Footer()
         if self._show_keys:
-            yield KeyPressOverlay(id="keypress-overlay")
+            yield keypress_overlay.KeyPressOverlay(id="keypress-overlay")
 
-    def on_key(self, event: app.events.Key) -> None:
-        if self._show_keys:
-            try:
-                overlay = self.query_one("#keypress-overlay", KeyPressOverlay)
-                overlay.show_key(event.key.upper())
-            except Exception:
-                pass
+    def on_key(self, event: events.Key) -> None:
+        keypress_overlay.handle_key(self, event)
 
     def on_mount(self) -> None:
         self._load_configs()
