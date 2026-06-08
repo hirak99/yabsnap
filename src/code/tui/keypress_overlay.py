@@ -1,4 +1,5 @@
 from textual import app
+from textual import containers
 from textual import events
 from textual import widgets
 
@@ -8,12 +9,6 @@ CSS = """
     layer: overlay;
     width: auto;
     height: auto;
-    padding: 1 2;
-    background: $accent;
-    color: $text;
-    text-style: bold;
-    border: thick $primary;
-    opacity: 0.8;
     offset-x: 4;
     offset-y: 85%;
 }
@@ -21,32 +16,43 @@ CSS = """
 #keypress-overlay.visible {
     display: block;
 }
+
+KeyBadge {
+    width: auto;
+    height: auto;
+    padding: 0 1;
+
+    background: $accent;
+    color: $text;
+    text-style: bold;
+
+    border: thick $primary;
+}
 """
 
 
-class KeyPressOverlay(widgets.Static):
-    """A transient overlay that shows key presses."""
+class KeyBadge(widgets.Static):
+    pass
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._active_keys: list[str] = []
+
+class KeyPressOverlay(containers.Horizontal):
+    """Shows each key press as an independent badge."""
 
     def show_key(self, key_name: str) -> None:
-        self._active_keys.append(key_name)
-        self._update_display()
-        self.set_timer(1.0, lambda: self._remove_key(key_name))
+        badge = KeyBadge(key_name)
+        self.mount(badge)
 
-    def _remove_key(self, key_name: str) -> None:
-        if key_name in self._active_keys:
-            self._active_keys.remove(key_name)
-        self._update_display()
+        # schedule removal of THIS specific instance
+        self.set_timer(1.0, badge.remove)
 
-    def _update_display(self) -> None:
-        if not self._active_keys:
+        self.add_class("visible")
+
+        # optional cleanup when empty
+        self.set_timer(1.1, self._cleanup_visibility)
+
+    def _cleanup_visibility(self) -> None:
+        if not self.children:
             self.remove_class("visible")
-        else:
-            self.update(", ".join(self._active_keys))
-            self.add_class("visible")
 
 
 def handle_key(yabsnap_app: app.App[None], event: events.Key) -> None:
