@@ -19,13 +19,20 @@ from ..utils import human_interval
 class KeyPressOverlay(widgets.Static):
     """A transient overlay that shows key presses."""
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._hide_timer = None
+
     def show_key(self, key_name: str) -> None:
         self.update(key_name)
         self.add_class("visible")
-        self.set_timer(1.0, self.hide)
+        if self._hide_timer:
+            self._hide_timer.stop()
+        self._hide_timer = self.set_timer(1.0, self.hide)
 
     def hide(self) -> None:
         self.remove_class("visible")
+        self._hide_timer = None
 
 
 class _YabsnapApp(app.App[None]):
@@ -104,8 +111,6 @@ class _YabsnapApp(app.App[None]):
     #keypress-overlay {
         display: none;
         layer: overlay;
-        offset-x: 90%;
-        offset-y: 90%;
         width: auto;
         height: auto;
         padding: 1 2;
@@ -114,6 +119,8 @@ class _YabsnapApp(app.App[None]):
         text-style: bold;
         border: thick $primary;
         opacity: 0.8;
+        offset-x: 80%;
+        offset-y: 85%;
     }
 
     #keypress-overlay.visible {
