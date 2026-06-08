@@ -1,4 +1,5 @@
 import datetime
+import os
 import subprocess
 
 from textual import app
@@ -93,6 +94,7 @@ class _YabsnapApp(app.App[None]):
         binding.Binding("c", "create_snapshot", "Create", show=True),
         binding.Binding("d", "delete_snapshot", "Delete", show=True),
         binding.Binding("r", "rollback", "Rollback", show=True),
+        binding.Binding("t", "open_terminal", "Terminal", show=True),
         binding.Binding("f5", "refresh_data", "Refresh", show=True),
     ]
 
@@ -266,6 +268,32 @@ class _YabsnapApp(app.App[None]):
                 self.notify(f"An unexpected error occurred: {str(e)}", severity="error")
 
         self.push_screen(screens.RollbackPreviewModal(script_text), on_confirm)
+
+    def action_open_terminal(self) -> None:
+        if not self._current_config:
+            return
+
+        table: widgets.DataTable[str] = self.query_one(
+            "#snapshot-table", widgets.DataTable
+        )
+
+        try:
+            row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
+            target_path: str = str(row_key.value)
+        except Exception:
+            self.notify("No snapshot selected", severity="warning")
+            return
+
+        if not os.path.isdir(target_path):
+            self.notify(f"Directory does not exist: {target_path}", severity="error")
+            return
+
+        shell = os.environ.get("SHELL", "/bin/bash")
+        with self.suspend():
+            print()
+            print(f"Opening terminal in {target_path}")
+            print("Type 'exit' or press Ctrl+D to return to yabsnap.")
+            subprocess.run([shell], cwd=target_path)
 
 
 def run(source_filter: str | None = None) -> None:
