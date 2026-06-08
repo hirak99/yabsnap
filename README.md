@@ -9,6 +9,12 @@ distributions.
 
 Please see [CHANGELOG.md](./CHANGELOG.md).
 
+# TUI Demo
+
+While the CLI remains the primary interface, a built-in TUI exposes common configuration and snapshot functionalities for convenience.
+
+https://github.com/user-attachments/assets/3189a1c3-0d67-4452-8fda-bbb5b3bb9871
+
 # Installing
 
 ## Arch Linux: Install from AUR
@@ -78,8 +84,9 @@ snapshot system.
 | Custom destinations | ✓            |                            |                        |
 | Pacman hook         | ✓            | Via timeshift-autosnap (2) | Via snap-pac           |
 | Snapshot Mechanisms | btrfs, rsync | btrfs, rsync               | btrfs                  |
-| GUI                 |              | ✓                          | With snapper-gui       |
+| GUI / TUI           | ✓ TUI        | ✓ GUI                      | ✓ With snapper-gui     |
 | Rollback            | ✓ (3)        | ✓                          | Only default subvolume |
+| Language            | Python       | Vala                       | C++                    |
 
 (1) Timeshift does not allow separate schedules or triggers for root and home.
 
@@ -165,7 +172,6 @@ editing the config.
 Once you have set up a config, automated snapshots should start running.
 
 You can see how the default config looks like here: [Default config](./src/code/example_config.conf)
-
 
 # Command Line Interface
 
@@ -319,6 +325,22 @@ If you are a person who likes taking heavy risks, you can skip the confirmation
 with `... --noconfirm`.
 
 The optional arg `--subvol-map` works similarly as rollback-gen.
+
+# TUI
+
+A native TUI can be accessed with the command:
+
+```sh
+yabsnap tui
+```
+
+> [!IMPORTANT]
+> A configuration must be created before using the TUI (see `yabsnap create-config`), otherwise the TUI will display an empty list with no configurations found.
+
+Because Btrfs snapshot management operations (such as creating or deleting snapshots) require root privileges, to acceess them you will need to run the TUI with `sudo`:
+```bash
+sudo yabsnap tui
+```
 
 # FAQ
 
