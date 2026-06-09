@@ -181,7 +181,7 @@ class _YabsnapApp(app.App[None]):
                 ttl_str = human_interval.humanize(ttl)
 
             table.add_row(
-                snap.target.removeprefix(self._current_config.dest_prefix),
+                snap.snaptime.strftime("%Y-%m-%d %H:%M:%S"),
                 trigger_str,
                 age_str,
                 ttl_str,
