@@ -1,5 +1,6 @@
 from textual import app
 from textual import containers
+from textual import events
 from textual import screen
 from textual import widgets
 
@@ -72,6 +73,11 @@ class ConfirmModal(screen.ModalScreen[bool]):
         else:
             self.dismiss(False)
 
+    async def on_key(self, event: events.Key) -> None:
+        if event.key == "escape":
+            self.dismiss(False)
+            event.stop()
+
 
 class RollbackPreviewModal(screen.ModalScreen[bool]):
     """A modal for previewing a rollback script."""
@@ -101,6 +107,11 @@ class RollbackPreviewModal(screen.ModalScreen[bool]):
         else:
             self.dismiss(False)
 
+    async def on_key(self, event: events.Key) -> None:
+        if event.key == "escape":
+            self.dismiss(False)
+            event.stop()
+
 
 class ShowJsonModal(screen.ModalScreen[None]):
     """A modal for displaying JSON metadata."""
@@ -121,3 +132,8 @@ class ShowJsonModal(screen.ModalScreen[None]):
 
     def on_button_pressed(self, event: widgets.Button.Pressed) -> None:
         self.dismiss(None)
+
+    async def on_key(self, event: events.Key) -> None:
+        if event.key == "escape":
+            self.dismiss()
+            event.stop()
