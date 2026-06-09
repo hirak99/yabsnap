@@ -105,7 +105,7 @@ class _YabsnapApp(app.App[None]):
         binding.Binding("d", "delete_snapshot", "Delete", show=True),
         binding.Binding("r", "rollback", "Rollback", show=True),
         binding.Binding("t", "open_terminal", "Terminal", show=True),
-        binding.Binding("v", "view_metadata", "View Metadata", show=True),
+        binding.Binding("m", "view_metadata", "Metadata", show=True),
         binding.Binding("f5", "refresh_data", "Refresh", show=True),
     ]
 
