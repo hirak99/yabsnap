@@ -118,7 +118,8 @@ class _YabsnapApp(app.App[None]):
         self._current_config: configs.Config | None = None
 
     def compose(self) -> app.ComposeResult:
-        yield widgets.Header()
+        # Drop the window title bar by commenting out Header.
+        # yield widgets.Header()
         with containers.Horizontal():
             with containers.Vertical(id="sidebar"):
                 yield widgets.Label("Configurations", id="sidebar-header")
