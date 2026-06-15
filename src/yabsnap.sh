@@ -18,7 +18,7 @@ set -ueo pipefail
 
 readonly MY_PATH="$(dirname "$(realpath "$0")")"
 
-cd $MY_PATH
+cd "$MY_PATH"
 # Do not compile to bytecode, since we create that during installation.
 export PYTHONDONTWRITEBYTECODE=1
 # -u to enable unbuffered, to make sure `yabsnap ... 2>&1 | less` does not
