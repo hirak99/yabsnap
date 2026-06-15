@@ -19,7 +19,8 @@ set -ueo pipefail
 readonly MY_PATH="$(dirname "$(realpath "$0")")"
 
 cd $MY_PATH
+# Do not compile to bytecode, since we create that during installation.
+export PYTHONDONTWRITEBYTECODE=1
 # -u to enable unbuffered, to make sure `yabsnap ... 2>&1 | less` does not
 # change order of logs.
-# -O uses optimized code and ignores asserts. Also creates .opt-1.pyc instead of .pyc.
-python3 -O -u -m code.main "$@"
+python3 -u -m code.main "$@"
