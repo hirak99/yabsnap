@@ -18,13 +18,13 @@ import os
 import subprocess
 import tempfile
 
-from . import snap_operator
 from .. import configs
 from .. import global_flags
 from ..mechanisms import snap_mechanisms
 from ..mechanisms import snap_type_enum
 from ..snapshot_logic import snap_holder
 from ..utils import os_utils
+from . import snap_operator
 
 from typing import Iterable
 

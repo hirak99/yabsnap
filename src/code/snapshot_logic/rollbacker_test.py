@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from unittest import mock
 
-from . import rollbacker
 from ..utils import os_utils
+from . import rollbacker
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false

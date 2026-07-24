@@ -2,10 +2,10 @@ import datetime
 import itertools
 import unittest
 
-from . import batch_deleter
-from . import snap_holder
 from .. import configs
 from .. import global_flags
+from . import batch_deleter
+from . import snap_holder
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false

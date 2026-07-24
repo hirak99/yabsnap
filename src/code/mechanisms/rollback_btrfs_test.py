@@ -15,11 +15,11 @@
 import unittest
 from unittest import mock
 
-from . import rollback_btrfs
 from ..snapshot_logic import snap_holder
 from ..utils import btrfs_utils
 from ..utils import mtab_parser
 from ..utils import os_utils
+from . import rollback_btrfs
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false

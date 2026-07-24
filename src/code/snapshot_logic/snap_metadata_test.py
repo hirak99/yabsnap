@@ -2,8 +2,8 @@ import os
 import tempfile
 import unittest
 
-from . import snap_metadata
 from ..mechanisms import snap_type_enum
+from . import snap_metadata
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false

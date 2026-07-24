@@ -9,14 +9,14 @@ from textual import containers
 from textual import events
 from textual import widgets
 
-from . import keypress_overlay
-from . import screens
-from . import widgets as tui_widgets
 from .. import configs
 from ..snapshot_logic import rollbacker
 from ..snapshot_logic import snap_holder
 from ..snapshot_logic import snap_operator
 from ..utils import human_interval
+from . import keypress_overlay
+from . import screens
+from . import widgets as tui_widgets
 
 from typing import ClassVar
 

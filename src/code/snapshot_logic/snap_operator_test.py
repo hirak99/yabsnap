@@ -18,12 +18,12 @@ import time
 import unittest
 from unittest import mock
 
-from . import auto_cleanup_without_ttl
-from . import snap_holder
-from . import snap_operator
 from .. import configs
 from ..mechanisms import btrfs_mechanism
 from ..mechanisms import snap_type_enum
+from . import auto_cleanup_without_ttl
+from . import snap_holder
+from . import snap_operator
 
 from typing import Iterator
 

@@ -4,11 +4,11 @@ import logging
 import os
 import pathlib
 
-from . import snap_holder
 from .. import configs
 from .. import global_flags
 from ..mechanisms import snap_type_enum
 from ..utils import human_interval
+from . import snap_holder
 
 from typing import Any, Iterable, Iterator
 

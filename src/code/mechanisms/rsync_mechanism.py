@@ -17,9 +17,9 @@ import os
 import re
 import shlex
 
-from . import abstract_mechanism
 from .. import global_flags
 from ..utils import os_utils
+from . import abstract_mechanism
 
 from typing import override
 

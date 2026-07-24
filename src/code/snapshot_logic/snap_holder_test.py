@@ -20,11 +20,11 @@ import tempfile
 import unittest
 from unittest import mock
 
-from . import snap_holder
-from . import snap_metadata
 from ..mechanisms import btrfs_mechanism
 from ..mechanisms import snap_type_enum
 from ..utils import os_utils
+from . import snap_holder
+from . import snap_metadata
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false

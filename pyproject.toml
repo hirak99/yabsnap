@@ -73,21 +73,18 @@ pydocstyle.convention = "google"
 # D1: missing docstrings for module, class, methods etc.
 ignore = ["E501", "SIM102", "UP015", "D1"]
 
+# Google's import style.
 [tool.ruff.lint.isort]
 # Google style requires one import statement per line.
 force-single-line = true
 # Exclude standard specific modules that shouldn't be split up into single lines.
 single-line-exclusions = [
-    "collections.abc",
-    "six.moves",
-    "typing",
-    "typing-extensions"
+  "collections.abc",
+  "six.moves",
+  "typing",
+  "typing-extensions"
 ]
 # Disable grouping by types (like class vs constant vs function).
 order-by-type = false
 # Typing should be separated from other imports.
 forced-separate = ["typing"]
-# Alphabetize imports strictly within their designated sections.
-force-sort-within-sections = true
-# Sort relative imports starting with "." before "...", like isort default.
-relative-imports-order = "closest-to-furthest"
