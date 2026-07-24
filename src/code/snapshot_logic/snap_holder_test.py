@@ -34,7 +34,6 @@ _NOW = datetime.datetime(2025, 1, 30, hour=12, minute=0, second=0)
 
 
 class SnapHolderTest(unittest.TestCase):
-
     def setUp(self) -> None:
         super().setUp()
         # Mock os_utils.get_filesystem_uuid(path).
@@ -49,15 +48,21 @@ class SnapHolderTest(unittest.TestCase):
             snap = snap_holder.Snapshot(snap_destination)
             self.assertEqual(snap._snap_type, snap_type_enum.SnapType.UNKNOWN)
 
-            with mock.patch.object(
-                btrfs_mechanism.BtrfsSnapMechanism,
-                "verify_volume",
-                return_value=True,
-            ) as mock_verify_volume, mock.patch.object(
-                btrfs_mechanism.BtrfsSnapMechanism, "create", return_value=None
-            ) as mock_create, mock.patch.object(
-                btrfs_mechanism.BtrfsSnapMechanism, "fill_metadata", return_value=None
-            ) as mock_fill_metadata:
+            with (
+                mock.patch.object(
+                    btrfs_mechanism.BtrfsSnapMechanism,
+                    "verify_volume",
+                    return_value=True,
+                ) as mock_verify_volume,
+                mock.patch.object(
+                    btrfs_mechanism.BtrfsSnapMechanism, "create", return_value=None
+                ) as mock_create,
+                mock.patch.object(
+                    btrfs_mechanism.BtrfsSnapMechanism,
+                    "fill_metadata",
+                    return_value=None,
+                ) as mock_fill_metadata,
+            ):
                 snap.create_from(snap_type_enum.SnapType.BTRFS, "parent")
             mock_verify_volume.assert_called_once_with("parent")
             mock_create.assert_called_once_with("parent", snap_destination)
@@ -152,15 +157,21 @@ class SnapHolderTest(unittest.TestCase):
             self.assertRegex(log.output[0], "This may occur if .* manually deleted")
 
             # Check that there is no warning if the snap type is known.
-            with mock.patch.object(
-                btrfs_mechanism.BtrfsSnapMechanism,
-                "verify_volume",
-                return_value=True,
-            ) as mock_verify_volume, mock.patch.object(
-                btrfs_mechanism.BtrfsSnapMechanism, "create", return_value=None
-            ) as mock_create, mock.patch.object(
-                btrfs_mechanism.BtrfsSnapMechanism, "fill_metadata", return_value=None
-            ) as mock_fill_metadata:
+            with (
+                mock.patch.object(
+                    btrfs_mechanism.BtrfsSnapMechanism,
+                    "verify_volume",
+                    return_value=True,
+                ) as mock_verify_volume,
+                mock.patch.object(
+                    btrfs_mechanism.BtrfsSnapMechanism, "create", return_value=None
+                ) as mock_create,
+                mock.patch.object(
+                    btrfs_mechanism.BtrfsSnapMechanism,
+                    "fill_metadata",
+                    return_value=None,
+                ) as mock_fill_metadata,
+            ):
                 snap.create_from(snap_type_enum.SnapType.BTRFS, "parent")
             mock_verify_volume.assert_called_once_with("parent")
             mock_create.assert_called_once_with("parent", snap_destination)

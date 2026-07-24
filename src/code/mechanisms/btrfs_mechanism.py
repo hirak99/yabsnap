@@ -62,7 +62,7 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
     @override
     def create(self, source: str, destination: str):
         try:
-            _execute_sh("btrfs subvolume snapshot -r " f"{source} {destination}")
+            _execute_sh(f"btrfs subvolume snapshot -r {source} {destination}")
         except os_utils.CommandError as exc:
             raise RuntimeError("Unable to create; are you running as root?") from exc
 

@@ -73,8 +73,7 @@ class SnapOperatorTest(unittest.TestCase):
         self._old_snaps = [
             snap_holder.Snapshot(
                 # Added 10 minutes, to counteract DURATION_BUFFER.
-                "/tmp/nodir/@home-"
-                + _utc_to_local_str("20230213" "001000")
+                "/tmp/nodir/@home-" + _utc_to_local_str("20230213001000")
             )
         ]
         self._old_snaps[-1].metadata.trigger = "S"
@@ -86,7 +85,7 @@ class SnapOperatorTest(unittest.TestCase):
                 dest_prefix="dest_prefix",
                 trigger_interval=trigger_interval,
             ),
-            now=_utc_to_local("20230213" "110000"),
+            now=_utc_to_local("20230213110000"),
         )
         snapper.scheduled()
         self._mock_delete.assert_not_called()
@@ -96,8 +95,7 @@ class SnapOperatorTest(unittest.TestCase):
         self._old_snaps = [
             snap_holder.Snapshot(
                 # Added 10 minutes, to counteract DURATION_BUFFER.
-                "/tmp/nodir/@home-"
-                + _utc_to_local_str("20230213" "001000")
+                "/tmp/nodir/@home-" + _utc_to_local_str("20230213001000")
             )
         ]
         self._old_snaps[-1].metadata.trigger = "S"
@@ -109,7 +107,7 @@ class SnapOperatorTest(unittest.TestCase):
                 dest_prefix="dest_prefix",
                 trigger_interval=trigger_interval,
             ),
-            now=_utc_to_local("20230213" "130000"),
+            now=_utc_to_local("20230213130000"),
         )
         snapper.scheduled()
         self._mock_delete.assert_called_once_with()
@@ -121,14 +119,13 @@ class SnapOperatorTest(unittest.TestCase):
         self._old_snaps = [
             snap_holder.Snapshot(
                 # Added 10 minutes, to counteract DURATION_BUFFER.
-                "/tmp/nodir/@home-"
-                + _utc_to_local_str("20230213" "001000")
+                "/tmp/nodir/@home-" + _utc_to_local_str("20230213001000")
             )
         ]
         self._old_snaps[-1].metadata.trigger = "S"
         # Set it as expired.
         self._old_snaps[-1].metadata.expiry = _utc_to_local(
-            "20230213" "000100"
+            "20230213000100"
         ).timestamp()
         # Set trigger every 12 hours.
         trigger_interval = datetime.timedelta(hours=12).total_seconds()
@@ -140,7 +137,7 @@ class SnapOperatorTest(unittest.TestCase):
                 trigger_interval=trigger_interval,
             ),
             # Say the scheduled() happens just 10 seconds later.
-            now=_utc_to_local("20230213" "001010"),
+            now=_utc_to_local("20230213001010"),
         )
         snapper.scheduled()
         # Even if the scheduled() call happens before trigger, snap is deleted().
@@ -165,7 +162,7 @@ class SnapOperatorTest(unittest.TestCase):
                     dest_prefix="dest_prefix",
                     trigger_interval=trigger_interval,
                 ),
-                now=_utc_to_local("20230213" "130000"),
+                now=_utc_to_local("20230213130000"),
             )
             self._mock_delete.reset_mock()
             self._mock_create_from.reset_mock()

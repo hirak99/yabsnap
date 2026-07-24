@@ -24,7 +24,8 @@ from typing import ClassVar
 class _YabsnapApp(app.App[None]):
     """The main TUI application for yabsnap."""
 
-    CSS = """
+    CSS = (
+        """
     Screen {
         layout: horizontal;
         layers: base overlay;
@@ -99,7 +100,9 @@ class _YabsnapApp(app.App[None]):
     #dialog-buttons Button {
         margin-left: 1;
     }
-    """ + keypress_overlay.CSS
+    """
+        + keypress_overlay.CSS
+    )
 
     BINDINGS: ClassVar[list[binding.BindingType]] = [
         binding.Binding("q", "quit", "Quit", show=True),

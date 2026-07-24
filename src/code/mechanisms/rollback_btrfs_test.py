@@ -72,10 +72,11 @@ class TestRollbacker(unittest.TestCase):
             ]
         }
 
-        with mock.patch.object(
-            mtab_parser, "_findmnt", return_value=findmnt_json
-        ), mock.patch.object(
-            rollback_btrfs, "_get_now_str", return_value="20220202220000"
+        with (
+            mock.patch.object(mtab_parser, "_findmnt", return_value=findmnt_json),
+            mock.patch.object(
+                rollback_btrfs, "_get_now_str", return_value="20220202220000"
+            ),
         ):
             generated = rollback_btrfs.rollback_gen(
                 snapshots=[s.to_light_snapshot() for s in snaps_list],
@@ -120,10 +121,11 @@ echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
             ]
         }
 
-        with mock.patch.object(
-            mtab_parser, "_findmnt", return_value=findmnt_json
-        ), mock.patch.object(
-            rollback_btrfs, "_get_now_str", return_value="20220202220000"
+        with (
+            mock.patch.object(mtab_parser, "_findmnt", return_value=findmnt_json),
+            mock.patch.object(
+                rollback_btrfs, "_get_now_str", return_value="20220202220000"
+            ),
         ):
             generated = rollback_btrfs.rollback_gen(
                 snapshots=[s.to_light_snapshot() for s in snaps_list],
@@ -182,10 +184,11 @@ echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested2"
             ]
         }
 
-        with mock.patch.object(
-            mtab_parser, "_findmnt", return_value=findmnt_json
-        ), mock.patch.object(
-            rollback_btrfs, "_get_now_str", return_value="20220202220000"
+        with (
+            mock.patch.object(mtab_parser, "_findmnt", return_value=findmnt_json),
+            mock.patch.object(
+                rollback_btrfs, "_get_now_str", return_value="20220202220000"
+            ),
         ):
             generated = rollback_btrfs.rollback_gen(
                 snapshots=[s.to_light_snapshot() for s in snaps_list],
