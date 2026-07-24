@@ -17,9 +17,9 @@
 
 set -uexo pipefail
 
-readonly MY_PATH=$(cd $(dirname "$0") && pwd)
+readonly MY_PATH=$(cd "$(dirname "$0")" && pwd)
 
-cd ${MY_PATH}
+cd "${MY_PATH}"
 
 # This checks format, needs to be run separately from linting.
 ruff format --check
@@ -32,4 +32,4 @@ pyright code/
 # Type checking (mypy).
 mypy --ignore-missing-imports --show-column-numbers --check-untyped-defs --show-error-codes code/
 
-find -type f -iname '*_test.py' -exec python -m unittest {} +
+find . -type f -iname '*_test.py' -exec python -m unittest {} +
