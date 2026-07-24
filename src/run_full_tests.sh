@@ -29,7 +29,5 @@ ruff check . --select I
 
 # Type checking (pyright).
 pyright code/
-# Type checking (mypy).
-mypy --ignore-missing-imports --show-column-numbers --check-untyped-defs --show-error-codes code/
 
 find . -type f -iname '*_test.py' -exec python -m unittest {} +

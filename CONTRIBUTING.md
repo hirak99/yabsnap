@@ -25,7 +25,6 @@ Respective configurations, if any, can be found in [pyproject.toml](./pyproject.
 | Tool                                              | Purpose                                                           | Visual Studio Code Extensions                                                             |
 | ------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | [pyright](https://microsoft.github.io/pyright/#/) | Static type checking, linting                                     | [vscode](https://marketplace.visualstudio.com/items?itemName=ms-pyright.pyright)          |
-| [mypy](https://mypy-lang.org/)                    | Static type checking                                              | [vscode](https://marketplace.visualstudio.com/items?itemName=ms-python.mypy-type-checker) |
 | [ruff](https://docs.astral.sh/ruff/)              | Formatting (`Ctrl+Shift+I`)<br>Organizing imports (`Alt+Shift+O`) | [vscode](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)          |
 
 Before creating a pull request, please run the following tests locally -
