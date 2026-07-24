@@ -21,17 +21,15 @@ readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 
 cd ${MY_PATH}
 
-# For now, use black.
-black --check code/
-# If we switch to ruff, we need this check -
-# ruff format --check
+# This checks format, needs to be run separately from linting.
+ruff format --check
 
+# Linting.
 ruff check . --select I
 
+# Type checking (pyright).
 pyright code/
-
-# flake8 --ignore=E203,E501,W503 code/
-
+# Type checking (mypy).
 mypy --ignore-missing-imports --show-column-numbers --check-untyped-defs --show-error-codes code/
 
 find -type f -iname '*_test.py' -exec python -m unittest {} +

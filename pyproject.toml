@@ -43,6 +43,14 @@ line-length = 88
 target-version = "py313"
 src = ["src"]
 
+[tool.ruff.format]
+# Enable standard Black formatting choices.
+quote-style = "double"
+indent-style = "space"
+# If false, Ruff will split to multiline if you put a comma.
+# If true, Ruff will ignore your trailing comma and split only if the line is too long.
+skip-magic-trailing-comma = false
+
 [tool.ruff.lint]
 # I: import sorting
 # D: documentation
