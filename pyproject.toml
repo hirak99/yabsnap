@@ -21,23 +21,9 @@ reportRedeclaration = "none"
 pythonVersion = "3.13"
 pythonPlatform = "Linux"
 
-[tool.isort]
-line_length = 88
-profile = "google"
-src_paths = ["src/code"]
-forced_separate = ["typing"]
-# The google profile sets ordering only, not wrapping — without these, isort
-# wraps long imports with backslashes and fights black.
-multi_line_output = 3
-use_parentheses = true
-include_trailing_comma = true
-
-[tool.black]
-line-length = 88
-
-# Ruff profile. For now, it is not enforced.
-# Recommend using the ruff extension in VSCode, to visually see issues.
-# Decision to switch from black to ruff is pending; likely if changes are minimal.
+# Recommend using the ruff extension in VSCode.
+# Ruff formatting (Ctrl+Shift+I) and isort (Alt+Shift+O) are enforced in presubmit.
+# Other checks are good to review and act on.
 [tool.ruff]
 line-length = 88
 target-version = "py313"
