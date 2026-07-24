@@ -21,8 +21,13 @@ readonly MY_PATH=$(cd $(dirname "$0") && pwd)
 
 cd ${MY_PATH}
 
+# For now, use black.
 black --check code/
-isort --check-only code/
+# If we switch to ruff, we need this check -
+# ruff format --check
+
+ruff check . --select I
+
 pyright code/
 
 # flake8 --ignore=E203,E501,W503 code/

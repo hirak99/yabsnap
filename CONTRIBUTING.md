@@ -27,8 +27,9 @@ Respective configurations, if any, can be found in [pyproject.toml](./pyproject.
 | [pyright](https://microsoft.github.io/pyright/#/) | Linting              | [vscode](https://marketplace.visualstudio.com/items?itemName=ms-pyright.pyright)                         |
 | [mypy](https://mypy-lang.org/)                    | Static type checking | [vscode](https://marketplace.visualstudio.com/items?itemName=ms-python.mypy-type-checker)                |
 | [black](https://github.com/psf/black)             | Formatting           | [vscode](https://marketplace.visualstudio.com/items?itemName=ms-python.black-formatter) (`Ctrl+Shift+I`) |
-| [isort](https://pycqa.github.io/isort/)           | Organizing imports   | [vscode](https://marketplace.visualstudio.com/items?itemName=ms-python.isort) (`Alt+Shift+O`)            |
+| [ruff](https://docs.astral.sh/ruff/)              | Organizing imports   | [vscode](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff) (`Alt+Shift+O`)         |
 
 Before creating a pull request, please run the following tests locally -
+
 - `src/run_full_tests.sh` - Unit tests and linting / formatting checks.
 - `scripts/test_install-to-dest.sh` - Tests the installation script.
