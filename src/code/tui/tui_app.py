@@ -18,6 +18,8 @@ from ..snapshot_logic import snap_holder
 from ..snapshot_logic import snap_operator
 from ..utils import human_interval
 
+from typing import ClassVar
+
 
 class _YabsnapApp(app.App[None]):
     """The main TUI application for yabsnap."""
@@ -99,7 +101,7 @@ class _YabsnapApp(app.App[None]):
     }
     """ + keypress_overlay.CSS
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[binding.BindingType]] = [
         binding.Binding("q", "quit", "Quit", show=True),
         binding.Binding("c", "create_snapshot", "Create", show=True),
         binding.Binding("d", "delete_snapshot", "Delete", show=True),
@@ -215,7 +217,7 @@ class _YabsnapApp(app.App[None]):
             except PermissionError:
                 self.notify("Permission denied. Run as root?", severity="error")
             except Exception as e:
-                self.notify(f"Error: {str(e)}", severity="error")
+                self.notify(f"Error: {e!s}", severity="error")
 
         self.push_screen(screens.CreateModal(), on_modal_result)
 
@@ -243,7 +245,7 @@ class _YabsnapApp(app.App[None]):
             except PermissionError:
                 self.notify("Permission denied. Run as root?", severity="error")
             except Exception as e:
-                self.notify(f"Error deleting snapshot: {str(e)}", severity="error")
+                self.notify(f"Error deleting snapshot: {e!s}", severity="error")
 
         self.push_screen(
             screens.ConfirmModal(
@@ -283,9 +285,9 @@ class _YabsnapApp(app.App[None]):
                     rollbacker.save_and_execute_script(script_text)
                 self.notify("Rollback script executed successfully.")
             except subprocess.CalledProcessError as e:
-                self.notify(f"Rollback execution failed: {str(e)}", severity="error")
+                self.notify(f"Rollback execution failed: {e!s}", severity="error")
             except Exception as e:
-                self.notify(f"An unexpected error occurred: {str(e)}", severity="error")
+                self.notify(f"An unexpected error occurred: {e!s}", severity="error")
 
         self.push_screen(screens.RollbackPreviewModal(script_text), on_confirm)
 
@@ -316,7 +318,7 @@ class _YabsnapApp(app.App[None]):
             json_text = json.dumps(metadata_dict, indent=2)
             self.push_screen(screens.ShowJsonModal("Snapshot Metadata", json_text))
         except Exception as e:
-            self.notify(f"Error loading metadata: {str(e)}", severity="error")
+            self.notify(f"Error loading metadata: {e!s}", severity="error")
 
     def action_open_terminal(self) -> None:
         if not self._current_config:
