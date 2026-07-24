@@ -34,3 +34,52 @@ include_trailing_comma = true
 
 [tool.black]
 line-length = 88
+
+# Ruff profile. For now, it is not enforced.
+# Recommend using the ruff extension in VSCode, to visually see issues.
+# Decision to switch from black to ruff is pending; likely if changes are minimal.
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+src = ["src"]
+
+[tool.ruff.lint]
+# I: import sorting
+# D: documentation
+# E/W: basic syntax errors, code layout warnings
+# F: structural logic bugs, unused variables/imports
+# B: complex coding traps, subtle performance flaws
+# RUF/FURB: native optimizations, modern structural fixes
+# C4: slow list/dictionary allocation mistakes
+# UP: code upgrades
+# A: built-in name shadowing (e.g. naming a variable 'id' or 'list')
+# PIE: miscellaneous code styling and redundant loop cleanups
+# SIM: code complexity reductions (e.g. flattening messy if-else chains)
+select = ["I", "D", "E", "W", "F", "B", "RUF", "FURB", "C4", "UP", "A", "PIE", "SIM"]
+
+pydocstyle.convention = "google"
+
+# E501: line too long
+# SIM102: nested if
+# UP015: remove mode from open(fname, "r")
+# D1: missing docstrings for module, class, methods etc.
+ignore = ["E501", "SIM102", "UP015", "D1"]
+
+[tool.ruff.lint.isort]
+# Google style requires one import statement per line.
+force-single-line = true
+# Exclude standard specific modules that shouldn't be split up into single lines.
+single-line-exclusions = [
+    "collections.abc",
+    "six.moves",
+    "typing",
+    "typing-extensions"
+]
+# Disable grouping by types (like class vs constant vs function).
+order-by-type = false
+# Typing should be separated from other imports.
+forced-separate = ["typing"]
+# Alphabetize imports strictly within their designated sections.
+force-sort-within-sections = true
+# Sort relative imports starting with "." before "...", like isort default.
+relative-imports-order = "closest-to-furthest"
