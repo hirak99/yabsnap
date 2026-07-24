@@ -10,7 +10,15 @@ reportUnknownMemberType = "none"
 reportUnknownParameterType = "none"
 reportUnknownVariableType = "none"
 
-pythonVersion = "3.12"
+# Allow **kwargs to be subclassed as expanded.
+reportIncompatibleMethodOverride = "none"
+reportUntypedFunctionDecorator = "error"
+# Allow working on libraries without stubs.
+reportMissingTypeStubs = "none"
+# Allow redeclaration of a type.
+reportRedeclaration = "none"
+
+pythonVersion = "3.13"
 pythonPlatform = "Linux"
 
 [tool.isort]
@@ -18,3 +26,11 @@ line_length = 88
 profile = "google"
 src_paths = ["src/code"]
 forced_separate = ["typing"]
+# The google profile sets ordering only, not wrapping — without these, isort
+# wraps long imports with backslashes and fights black.
+multi_line_output = 3
+use_parentheses = true
+include_trailing_comma = true
+
+[tool.black]
+line-length = 88
