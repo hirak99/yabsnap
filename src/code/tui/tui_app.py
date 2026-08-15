@@ -282,17 +282,29 @@ class _YabsnapApp(app.App[None]):
         def on_confirm(confirmed: bool | None) -> None:
             if not confirmed:
                 return None
+            error_message: str | None = None
             try:
                 # Suspend TUI to run the script.
+                # Errors must be caught inside the `with` block, because
+                # Textual's suspend() does not resume the app if the body raises.
                 with self.suspend():
-                    success: bool = rollbacker.save_and_execute_script(script_text)
-                if success:
-                    self.notify("Rollback script executed successfully.")
-                else:
-                    # TODO: Show the failed script's output (issue #84).
-                    self.notify("Rollback execution failed.", severity="error")
+                    try:
+                        rollbacker.save_and_execute_script(script_text)
+                    except rollbacker.RollbackExecutionError as e:
+                        error_message = f"Rollback execution failed: {e!s}"
+                    except Exception as e:
+                        error_message = f"An unexpected error occurred: {e!s}"
+            # Intentional, separate from the inner catch: the inner one covers
+            # the script; this one covers suspend() itself, which can still
+            # raise (SuspendNotSupported on enter, resume failure on exit)
+            # and must not escape into Textual's event loop.
             except Exception as e:
                 self.notify(f"An unexpected error occurred: {e!s}", severity="error")
+                return
+            if error_message is None:
+                self.notify("Rollback script executed successfully.")
+            else:
+                self.notify(error_message, severity="error")
 
         self.push_screen(screens.RollbackPreviewModal(script_text), on_confirm)
 

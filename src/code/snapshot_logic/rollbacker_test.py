@@ -68,19 +68,19 @@ class TestCreateAndChmodScript(unittest.TestCase):
         with tempfile.TemporaryDirectory() as dir:
             target_file = os.path.join(dir, "test_file")
             script_content = "\n".join(["#!/bin/bash", f"touch {target_file}"])
-            result = rollbacker.save_and_execute_script(script_content)
-            self.assertTrue(result)
+            rollbacker.save_and_execute_script(script_content)
             self.assertTrue(os.path.exists(target_file))
 
     def test_save_and_execute_script_failure(self):
-        script_content = "\n".join(["#!/bin/bash", "exit 1"])
-        result = rollbacker.save_and_execute_script(script_content)
-        self.assertFalse(result)
+        script_content = "\n".join(["#!/bin/bash", "exit 3"])
+        with self.assertRaisesRegex(
+            rollbacker.RollbackExecutionError, "returned non-zero exit status 3"
+        ):
+            rollbacker.save_and_execute_script(script_content)
 
     def test_save_and_execute_script_dryrun(self):
         with mock.patch.object(global_flags.FLAGS, "dryrun", True):
-            result = rollbacker.save_and_execute_script("exit 1")
-        self.assertTrue(result)
+            rollbacker.save_and_execute_script("exit 1")
 
     def test_rollback_exit_on_failure(self):
         script_content = "\n".join(["#!/bin/bash", "exit 1"])
