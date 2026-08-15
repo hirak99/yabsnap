@@ -27,6 +27,9 @@ ruff format --check
 # Linting.
 ruff check . --select I
 
+# Block auto-fixable lint issues.
+ruff check . --fix --diff || { echo "Auto-fixable ruff issues found. Run: ruff check . --fix"; exit 1; }
+
 # Type checking (pyright).
 pyright code/
 
