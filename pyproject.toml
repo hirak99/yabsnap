@@ -57,8 +57,8 @@ pydocstyle.convention = "google"
 # SIM102: nested if
 # UP015: remove mode from open(fname, "r")
 # D1: missing docstrings for module, class, methods etc.
-# A001: builtin shadowing (e.g. `TemporaryDirectory() as dir`)
-ignore = ["E501", "SIM102", "UP015", "D1", "A001"]
+# A: flake8-builtins (shadowing Python builtins / stdlib module names)
+ignore = ["E501", "SIM102", "UP015", "D1", "A"]
 
 # Google's import style.
 [tool.ruff.lint.isort]
