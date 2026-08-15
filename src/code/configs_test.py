@@ -41,7 +41,7 @@ class ConfigsTest(unittest.TestCase):
 
             # Add a new line.
             file.write(
-                'post_transaction_scripts = script1.sh "/my directory/script2.sh"\n'.encode(),
+                b'post_transaction_scripts = script1.sh "/my directory/script2.sh"\n',
             )
             file.flush()
 

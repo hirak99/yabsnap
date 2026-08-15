@@ -88,15 +88,15 @@ class TestGetFilters(unittest.TestCase):
         self.assertEqual(len(filters_list), 3)
 
         self.assertEqual(
-            getattr(filters_list[0], "_indicator"),
+            filters_list[0]._indicator,
             mininal_args["indicator"],
         )
         self.assertEqual(
-            getattr(filters_list[1], "_start_datetime"),
+            filters_list[1]._start_datetime,
             datetime.datetime.strptime(mininal_args["start"], global_flags.TIME_FORMAT),
         )
         self.assertEqual(
-            getattr(filters_list[2], "_end_datetime"),
+            filters_list[2]._end_datetime,
             datetime.datetime.strptime(mininal_args["end"], global_flags.TIME_FORMAT),
         )
 

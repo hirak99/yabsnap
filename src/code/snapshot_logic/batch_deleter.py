@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 import pathlib
+from collections.abc import Iterable, Iterator
 
 from .. import configs
 from .. import global_flags
@@ -10,7 +11,7 @@ from ..mechanisms import snap_type_enum
 from ..utils import human_interval
 from . import snap_holder
 
-from typing import Any, Iterable, Iterator
+from typing import Any
 
 _FILTERS: dict[str, type["_SnapshotBaseFilter"]] = {}
 
@@ -113,7 +114,8 @@ def apply_snapshot_filters(
     *filters: _SnapshotBaseFilter,
 ) -> Iterator[_ConfigSnapshotsRelation]:
     """Use the filter to select the snapshots\
-       that actually need to be processed for each configuration."""
+       that actually need to be processed for each configuration.
+    """
     for mapping in config_snaps_mapping:
         filtered_snaps: list[snap_holder.Snapshot] = []
         for snap in mapping.snaps:
@@ -142,7 +144,7 @@ def _list_snapshots(
             # Skip displaying config with no matched snapshot to be deleted.
             continue
         config_abs_path = pathlib.Path(mapping.config.config_file).resolve()
-        print(f"Config: {str(config_abs_path)} (source={mapping.config.source})")
+        print(f"Config: {config_abs_path!s} (source={mapping.config.source})")
         print(f"Snaps at: {mapping.config.dest_prefix}...")
 
         for snap in mapping.snaps:

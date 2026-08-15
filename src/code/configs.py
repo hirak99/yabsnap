@@ -19,13 +19,12 @@ import logging
 import os
 import pathlib
 import shlex
+from collections.abc import Iterable, Iterator
 
 from .mechanisms import snap_mechanisms
 from .mechanisms import snap_type_enum
 from .utils import human_interval
 from .utils import os_utils
-
-from typing import Iterable, Iterator, Optional
 
 # Shortens the scheduled times by this amount. This ensures that sheduled backup
 # happens, even if previous backup didn't expire by this much time.
@@ -36,7 +35,7 @@ DURATION_BUFFER = datetime.timedelta(minutes=3)
 
 # User specified config file to use.
 # If set, _CONFIG_PATH will be ignored.
-USER_CONFIG_FILE: Optional[str] = None
+USER_CONFIG_FILE: str | None = None
 
 # Where config files are stored.
 _CONFIG_PATH = pathlib.Path("/etc/yabsnap/configs")
@@ -139,7 +138,7 @@ class Config:
         return snap_mechanisms.get(self.snap_type).verify_volume(self.source)
 
 
-def iterate_configs(source: Optional[str]) -> Iterator[Config]:
+def iterate_configs(source: str | None) -> Iterator[Config]:
     config_iterator: Iterable[str]
     # Try to add the user-specified configuration file to the `config_iterator`
     # or try to add the configuration file from the `_CONFIG_PATH` to the `config_iterator`.

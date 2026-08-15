@@ -17,6 +17,7 @@ import collections
 import datetime
 import itertools
 import logging
+from collections.abc import Iterable
 
 from . import arg_parser
 from . import configs
@@ -28,8 +29,6 @@ from .snapshot_logic import rollbacker
 from .snapshot_logic import snap_operator
 from .utils import colored_logs
 from .utils import os_utils
-
-from typing import Iterable
 
 
 def _parse_args() -> argparse.Namespace:

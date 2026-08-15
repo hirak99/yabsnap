@@ -66,7 +66,7 @@ def _zsh_commands(
         result += [f"local -a yabsnap_{tag}"]
         result += [f"yabsnap_{tag}=("]
         result += [f"  {shlex.quote(x)}" for x in lines]
-        result += [f")"]
+        result += [")"]
         result += [f"_describe -t {tag} 'yabsnap {tag}' yabsnap_{tag}"]
         return result
 

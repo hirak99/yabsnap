@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Logic to determine which snapshots will be cleaned up on schedule, ignoring TTL.
+"""Logic to determine which snapshots will be cleaned up on schedule, ignoring TTL.
 
 This module identifies snapshots that should be cleaned up based on configuration rules
 and a predefined schedule. Snapshots with TTL will not be deleted until the TTL expires,
@@ -24,8 +23,7 @@ which handles TTL assignment at the time of snapshot creation.
 """
 
 import datetime
-
-from typing import Iterator
+from collections.abc import Iterator
 
 
 class DeleteLogic:

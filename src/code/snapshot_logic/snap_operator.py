@@ -16,6 +16,7 @@ import datetime
 import json
 import logging
 import os
+from collections.abc import Iterator
 
 from .. import configs
 from .. import global_flags
@@ -25,7 +26,7 @@ from . import auto_cleanup_without_ttl
 from . import scheduled_snapshot_ttl
 from . import snap_holder
 
-from typing import Any, Iterator, Optional, TypeVar
+from typing import Any, TypeVar
 
 
 def get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
@@ -58,7 +59,7 @@ def get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot]
             logging.warning(f"Could not parse timestamp, ignoring: {pathname}")
 
 
-def find_target(config: configs.Config, suffix: str) -> Optional[snap_holder.Snapshot]:
+def find_target(config: configs.Config, suffix: str) -> snap_holder.Snapshot | None:
     if len(suffix) < global_flags.TIME_FORMAT_LEN:
         raise ValueError(
             "Length of snapshot identifier suffix "
@@ -176,7 +177,6 @@ class SnapOperator:
           bool: Whether a new snapshot will be made.
           int: What should be the TTL in seconds. If 0 or less, no TTL will be applied.
         """
-
         # Handle snapshots with TTL.
         need_new, ttl_secs = self._get_scheduled_snapshot_ttl(snaps)
         if not need_new and ttl_secs != 0:
@@ -213,7 +213,7 @@ class SnapOperator:
             self.snaps_created = True
 
     def _create_and_maintain_n_backups(
-        self, count: int, trigger: str, comment: Optional[str]
+        self, count: int, trigger: str, comment: str | None
     ):
         logging.info(f"Maintain {count} volumes of type {trigger}.")
         if not self._config.is_compatible_volume():
@@ -245,7 +245,7 @@ class SnapOperator:
             expired.delete()
             self.snaps_deleted = True
 
-    def create(self, comment: Optional[str]):
+    def create(self, comment: str | None):
         try:
             self._create_and_maintain_n_backups(
                 count=self._config.keep_user, trigger="U", comment=comment
@@ -257,7 +257,7 @@ class SnapOperator:
             raise
 
     def on_pacman(self):
-        last_snap: Optional[snap_holder.Snapshot] = None
+        last_snap: snap_holder.Snapshot | None = None
         for snap in get_existing_snaps(self._config):
             if snap.metadata.trigger == "I":
                 last_snap = snap
@@ -277,7 +277,7 @@ class SnapOperator:
 
     def _next_trigger_time(
         self, scheduled_snaps: list[snap_holder.Snapshot]
-    ) -> Optional[datetime.datetime]:
+    ) -> datetime.datetime | None:
         """Returns the next time after which a scheduled backup can trigger."""
         if not scheduled_snaps:
             return None
@@ -345,7 +345,7 @@ class SnapOperator:
 
             columns.append(snap.metadata.comment)
             print("  ".join(columns))
-        print("")
+        print()
 
     def _snaps_json_iter(self) -> Iterator[str]:
         result: dict[str, Any] = {

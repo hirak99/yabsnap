@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Logic to assign TTL to snapshots at the time of scheduled creation.
+"""Logic to assign TTL to snapshots at the time of scheduled creation.
 
 This module assigns a Time-To-Live (TTL) to snapshots that are created on schedule.
 It uses configuration rules (e.g., keep_hourly, keep_daily) to determine the appropriate

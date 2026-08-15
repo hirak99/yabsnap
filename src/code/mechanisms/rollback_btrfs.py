@@ -16,14 +16,13 @@ import datetime
 import logging
 import os
 import shlex
+from collections.abc import Iterator
 
 from .. import global_flags
 from ..mechanisms import abstract_mechanism
 from ..utils import btrfs_utils
 from ..utils import mtab_parser
 from ..utils import os_utils
-
-from typing import Iterator
 
 # This will be cleaned up if it exists by rollback script.
 _PACMAN_LOCK_FILE = "/var/lib/pacman/db.lck"
@@ -72,8 +71,7 @@ def rollback_gen(
     snapshots: list[abstract_mechanism.LightSnapshot],
     subvol_map: dict[str, str] | None,
 ) -> list[str]:
-    """
-    Generates rollback script assuming running on a live (non-snapshot) system.
+    """Generates rollback script assuming running on a live (non-snapshot) system.
 
     Args:
         snapshots: List of snapshots to roll back.

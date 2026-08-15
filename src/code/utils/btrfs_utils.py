@@ -49,8 +49,7 @@ def _btrfs_list(directory: str) -> list[_Subvolume]:
 
 # Finds all nested subvolume paths.
 def _get_nested_subvs(subvolumes: list[_Subvolume], subv_name: str) -> list[str]:
-    if subv_name.startswith("/"):
-        subv_name = subv_name[1:]
+    subv_name = subv_name.removeprefix("/")
 
     subv_name += "/"
 
@@ -61,7 +60,7 @@ def _get_nested_subvs(subvolumes: list[_Subvolume], subv_name: str) -> list[str]
         # absolute.
         if not subv.is_absolute:
             logging.error(
-                f"Unexpected: Subvolumes are not absolute. Please create a bug."
+                "Unexpected: Subvolumes are not absolute. Please create a bug."
             )
 
         if subv.path.startswith(subv_name):

@@ -16,6 +16,7 @@ import collections
 import os
 import subprocess
 import tempfile
+from collections.abc import Iterable
 
 from .. import configs
 from .. import global_flags
@@ -24,8 +25,6 @@ from ..mechanisms import snap_type_enum
 from ..snapshot_logic import snap_holder
 from ..utils import os_utils
 from . import snap_operator
-
-from typing import Iterable
 
 
 def get_rollback_script_text(
@@ -67,7 +66,7 @@ class RollbackExecutionError(Exception):
 
 def save_and_execute_script(contents: str) -> None:
     if global_flags.FLAGS.dryrun:
-        os_utils.eprint(f"Would execute the script if --dry-run is not passed.")
+        os_utils.eprint("Would execute the script if --dry-run is not passed.")
         return
 
     with tempfile.TemporaryDirectory(prefix="yabsnap_script") as dir:

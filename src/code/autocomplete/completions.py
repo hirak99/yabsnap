@@ -26,11 +26,10 @@ import dataclasses
 import enum
 import functools
 import logging
+from collections.abc import Callable, Sequence
 
 from . import comp_types
 from . import shell_impl
-
-from typing import Callable, Sequence
 
 
 class _OptionType(enum.Enum):

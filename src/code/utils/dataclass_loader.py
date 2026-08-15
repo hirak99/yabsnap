@@ -25,7 +25,7 @@ import logging
 from types import UnionType
 
 import typing
-from typing import Any, Type, TypeVar
+from typing import Any, TypeVar
 
 _T = TypeVar("_T", bound=Any)
 _U = TypeVar("_U")
@@ -38,12 +38,10 @@ class _TypeError(TypeError):
 class UnknownFieldsError(TypeError):
     """Some fields were not in the dataclass being loaded."""
 
-    pass
-
 
 # Note: While this works with unions, pyright does not handle type checking and can flag
 # it as an error.
-def as_type(typ: Type[_U], value: Any) -> _U:
+def as_type(typ: type[_U], value: Any) -> _U:
     """Generic converter from json-read value to a strict type.
 
     Args:
@@ -92,7 +90,7 @@ def as_type(typ: Type[_U], value: Any) -> _U:
 
 
 def load_dataclass(
-    dataclass_type: Type[_T], data: dict[str, Any], ignore_unknown_fields: bool = False
+    dataclass_type: type[_T], data: dict[str, Any], ignore_unknown_fields: bool = False
 ) -> _T:
     """Loads json into dataclass recursively.
 

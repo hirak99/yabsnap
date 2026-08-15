@@ -18,8 +18,6 @@ E.g. parse_to_secs('10 hr')  # Returns 36000.
 
 import re
 
-from typing import Optional
-
 # String units to seconds.
 # Matches convention given in `man systemd.time`.
 _MAPPINGS_SYNONYMS = {
@@ -68,7 +66,7 @@ _ACCURACY = 0.01
 
 def humanize(seconds: int | float) -> str:
     result: list[str] = []
-    largest_duration: Optional[float] = None
+    largest_duration: float | None = None
     prefix = ""
     if seconds < 0:
         seconds = -seconds
