@@ -87,16 +87,18 @@ class TestGetFilters(unittest.TestCase):
         filters_list = list(batch_deleter.get_filters(mininal_args))
         self.assertEqual(len(filters_list), 3)
 
+        indicator_filter, start_filter, end_filter = filters_list
+
         self.assertEqual(
-            filters_list[0]._indicator,
+            indicator_filter._indicator,  # type: ignore - legacy code
             mininal_args["indicator"],
         )
         self.assertEqual(
-            filters_list[1]._start_datetime,
+            start_filter._start_datetime,  # type: ignore - legacy code
             datetime.datetime.strptime(mininal_args["start"], global_flags.TIME_FORMAT),
         )
         self.assertEqual(
-            filters_list[2]._end_datetime,
+            end_filter._end_datetime,  # type: ignore - legacy code
             datetime.datetime.strptime(mininal_args["end"], global_flags.TIME_FORMAT),
         )
 
