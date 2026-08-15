@@ -62,10 +62,10 @@ def get_rollback_script_text(
     return "\n".join(content)
 
 
-def save_and_execute_script(contents: str) -> None:
+def save_and_execute_script(contents: str) -> bool:
     if global_flags.FLAGS.dryrun:
         os_utils.eprint(f"Would execute the script if --dry-run is not passed.")
-        return
+        return True
 
     with tempfile.TemporaryDirectory(prefix="yabsnap_script") as dir:
         temp_file_name = os.path.join(dir, "yabsnap_script.sh")
@@ -75,10 +75,13 @@ def save_and_execute_script(contents: str) -> None:
 
         try:
             subprocess.run(temp_file_name, check=True)
-            print()
-            print("Rollback executed. Please reboot at earliest convenience.")
         except subprocess.CalledProcessError:
             logging.error("Execution of rollback was unsuccessful.")
+            return False
+
+    print()
+    print("Rollback executed. Please reboot at earliest convenience.")
+    return True
 
 
 def rollback(
@@ -106,4 +109,5 @@ def rollback(
             return
 
     # Save and execute the script.
-    save_and_execute_script(script_text)
+    if not save_and_execute_script(script_text):
+        os_utils.fatal_error("Rollback execution failed.")

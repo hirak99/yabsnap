@@ -285,10 +285,12 @@ class _YabsnapApp(app.App[None]):
             try:
                 # Suspend TUI to run the script.
                 with self.suspend():
-                    rollbacker.save_and_execute_script(script_text)
-                self.notify("Rollback script executed successfully.")
-            except subprocess.CalledProcessError as e:
-                self.notify(f"Rollback execution failed: {e!s}", severity="error")
+                    success: bool = rollbacker.save_and_execute_script(script_text)
+                if success:
+                    self.notify("Rollback script executed successfully.")
+                else:
+                    # TODO: Show the failed script's output (issue #84).
+                    self.notify("Rollback execution failed.", severity="error")
             except Exception as e:
                 self.notify(f"An unexpected error occurred: {e!s}", severity="error")
 
