@@ -34,7 +34,7 @@ class _NestedClass:
 @dataclasses.dataclass
 class _TestClass:
     x_list: list[int] = dataclasses.field(default_factory=list)
-    nested: None | _NestedClass = None
+    nested: _NestedClass | None = None
     x_tuple: tuple[str, int] | None = None
     x_enum: _TestEnum | None = None
     nested_list: list[_NestedClass] = dataclasses.field(default_factory=list)
@@ -114,9 +114,8 @@ class DataclassLoaderTest(unittest.TestCase):
             (int, "1.2"),
         ]
         for typ, value in cases:
-            with self.subTest(typ=typ, value=value):
-                with self.assertRaises(TypeError):
-                    dataclass_loader.as_type(typ, value)  # type: ignore
+            with self.subTest(typ=typ, value=value), self.assertRaises(TypeError):
+                dataclass_loader.as_type(typ, value)  # type: ignore
 
     def test_error_on_unknown_fields(self):
         with self.assertRaises(dataclass_loader.UnknownFieldsError):

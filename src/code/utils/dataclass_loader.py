@@ -25,10 +25,7 @@ import logging
 from types import UnionType
 
 import typing
-from typing import Any, TypeVar
-
-_T = TypeVar("_T", bound=Any)
-_U = TypeVar("_U")
+from typing import Any
 
 
 class _TypeError(TypeError):
@@ -41,11 +38,11 @@ class UnknownFieldsError(TypeError):
 
 # Note: While this works with unions, pyright does not handle type checking and can flag
 # it as an error.
-def as_type(typ: type[_U], value: Any) -> _U:
+def as_type[U](typ: type[U], value: Any) -> U:
     """Generic converter from json-read value to a strict type.
 
     Args:
-      type: Can be list, tuple, dict, enum, dataclass.
+      typ: Can be list, tuple, dict, enum, dataclass.
       value: Something that was json.load()-ed.
 
     Returns:
@@ -65,15 +62,17 @@ def as_type(typ: type[_U], value: Any) -> _U:
     elif origin is tuple:
         if len(value) != len(typing.get_args(typ)):
             raise _TypeError(f"Length mismatch loading {value=} as type {typ=}")
-        return tuple(as_type(t, v) for t, v in zip(typing.get_args(typ), value))  # type: ignore
+        return tuple(
+            as_type(t, v) for t, v in zip(typing.get_args(typ), value, strict=True)
+        )  # type: ignore
     elif origin is dict:
         return {k: as_type(typing.get_args(typ)[1], v) for k, v in value.items()}  # type: ignore
     elif origin is set:
         return {as_type(typing.get_args(typ)[0], v) for v in value}  # type: ignore
     elif origin is UnionType:
-        for typ in typing.get_args(typ):
+        for sub in typing.get_args(typ):
             try:
-                return as_type(typ, value)
+                return as_type(sub, value)
             except TypeError:
                 continue
         raise _TypeError(f"Could not load {value=} as union type {typ=}")
@@ -89,15 +88,15 @@ def as_type(typ: type[_U], value: Any) -> _U:
     return value  # type: ignore
 
 
-def load_dataclass(
-    dataclass_type: type[_T], data: dict[str, Any], ignore_unknown_fields: bool = False
-) -> _T:
+def load_dataclass[T](
+    dataclass_type: type[T], data: dict[str, Any], ignore_unknown_fields: bool = False
+) -> T:
     """Loads json into dataclass recursively.
 
     Identifies and loads all subfields which are also dataclasses.
     """
     fields_dict: dict[str, Any] = {}
-    for field in dataclasses.fields(dataclass_type):
+    for field in dataclasses.fields(dataclass_type):  # type: ignore
         if field.name not in data:
             # Will attempt to instantiate with default.
             continue
