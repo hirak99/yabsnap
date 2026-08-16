@@ -24,11 +24,9 @@ cd "${MY_PATH}"
 # This checks format, needs to be run separately from linting.
 ruff format --check
 
-# Linting.
-ruff check . --select I
-
-# Block auto-fixable lint issues.
-ruff check . --fix --diff || { echo "Auto-fixable ruff issues found. Run: ruff check . --fix"; exit 1; }
+# Linting. Fails on any issue, auto-fixable or not.
+# Fix with: ruff check . --fix
+ruff check .
 
 # Type checking (pyright).
 pyright code/
