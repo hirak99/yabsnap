@@ -215,6 +215,7 @@ class _YabsnapApp(app.App[None]):
                     self._current_config, now
                 )
                 snapper.create(comment)
+                self._current_config.call_post_hooks()
                 self.notify(f"Snapshot created for {self._current_config.source}")
                 self._refresh_snapshots()
             except PermissionError:
