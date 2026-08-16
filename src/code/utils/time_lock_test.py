@@ -38,20 +38,21 @@ class TimeLockTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def test_release_after_second_boundary_releases_and_removes(self) -> None:
-        acquire_time = datetime.datetime.now() - datetime.timedelta(seconds=1)
+        # Fixed arbitrary time; the real clock is never read by this test.
+        acquire_time = datetime.datetime(2020, 1, 1, 0, 0, 0)
         fd = os.open(_lock_path(acquire_time, self._lock_dir), os.O_CREAT | os.O_RDWR)
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         # Freeze the (fake) clock just past acquire_time's second boundary, so
-        # this must return promptly, releasing the lock and removing the
-        # lock file.
-        fake_now = acquire_time.replace(microsecond=0) + datetime.timedelta(
-            seconds=1, milliseconds=100
-        )
-        with mock.patch.object(time_lock, "datetime") as fake_datetime:
+        # the release loop must exit on its first check, without sleeping,
+        # releasing the lock and removing the lock file.
+        fake_now = acquire_time + datetime.timedelta(seconds=1, milliseconds=100)
+        with (
+            mock.patch.object(time_lock, "datetime") as fake_datetime,
+            mock.patch.object(time, "sleep") as fake_sleep,
+        ):
             fake_datetime.datetime.now.return_value = fake_now
-            start = time.monotonic()
             time_lock._release_after_second_boundary(fd, acquire_time)
-        self.assertLess(time.monotonic() - start, 1)
+        fake_sleep.assert_not_called()
         self.assertFalse(os.path.exists(_lock_path(acquire_time, self._lock_dir)))
         with self.assertRaises(OSError):
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -76,14 +77,14 @@ class TimeLockTest(unittest.TestCase):
         with open(blocker, "w", encoding="utf-8"):
             pass
         bad_dir = blocker + os.sep + "sub"
-        with mock.patch.object(time_lock, "_LOCK_DIR", bad_dir):
-            start = time.monotonic()
-            with (
-                self.assertRaises(RuntimeError),
-                time_lock.locked_now(timeout_secs=1.0),
-            ):
-                self.fail("Expected the lock acquisition to time out.")
-            self.assertLess(time.monotonic() - start, 5)
+        with (
+            mock.patch.object(time_lock, "_LOCK_DIR", bad_dir),
+            mock.patch.object(time, "sleep") as fake_sleep,
+            self.assertRaises(RuntimeError),
+            time_lock.locked_now(timeout_secs=0),
+        ):
+            self.fail("Expected the lock acquisition to time out.")
+        fake_sleep.assert_not_called()
 
 
 if __name__ == "__main__":
