@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Basic parser for human intervals.
+
 Matches convention established in `man systemd.time`.
 E.g. parse_to_secs('10 hr')  # Returns 36000.
 """

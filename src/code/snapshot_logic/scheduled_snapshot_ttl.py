@@ -44,7 +44,7 @@ class CreationTimeTtl:
 
         Args:
             now: The current time, or when processing began.
-            existing_snaps: A list of all snaps that are present. We only use the expiry field.
+            existing_creation_expiries: (created, expiry) pairs of all existing snaps.
         """
         snapshot_ttl = datetime.timedelta.min
         for period, n in self._rules:

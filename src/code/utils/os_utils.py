@@ -99,13 +99,16 @@ def get_filesystem_uuid(path: str) -> str | None:
 
 
 def command_exists(command: str) -> bool:
-    """E.g. command_exists('rsync')"""
+    """Checks if the command exists in PATH.
+
+    E.g. command_exists('rsync').
+    """
     return runsh(f"which {command}") is not None
 
 
 def run_user_script(script_name: str, args: list[str]) -> bool:
     try:
-        subprocess.check_call([script_name] + args)
+        subprocess.check_call([script_name, *args])
     except FileNotFoundError:
         logging.warning(f"User script {script_name=} does not exist.")
         return False

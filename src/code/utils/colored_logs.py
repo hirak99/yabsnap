@@ -24,17 +24,11 @@ from typing import TextIO
 # Based on https://stackoverflow.com/q/7445658/196462, https://gist.github.com/ssbarnea/1316877
 @functools.cache
 def _is_ansi_color_supported(textout: TextIO) -> bool:
-    if (hasattr(textout, "isatty") and textout.isatty()) or (
-        "TERM" in os.environ and os.environ["TERM"] == "ANSI"
-    ):
-        if platform.system() == "Windows" and not (
-            "TERM" in os.environ and os.environ["TERM"] == "ANSI"
-        ):
-            # Windows console, no ANSI support.
-            return False
-        else:
-            return True
-    return False
+    term_ansi = "TERM" in os.environ and os.environ["TERM"] == "ANSI"
+    if platform.system() == "Windows" and not term_ansi:
+        # Windows console, no ANSI support.
+        return False
+    return term_ansi or (hasattr(textout, "isatty") and textout.isatty())
 
 
 # Based on https://stackoverflow.com/a/56944256/196462

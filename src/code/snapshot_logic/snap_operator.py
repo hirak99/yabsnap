@@ -26,7 +26,7 @@ from . import auto_cleanup_without_ttl
 from . import scheduled_snapshot_ttl
 from . import snap_holder
 
-from typing import Any, TypeVar
+from typing import Any
 
 
 def get_existing_snaps(config: configs.Config) -> Iterator[snap_holder.Snapshot]:
@@ -71,10 +71,7 @@ def find_target(config: configs.Config, suffix: str) -> snap_holder.Snapshot | N
     return None
 
 
-_GenericT = TypeVar("_GenericT")
-
-
-def _all_but_last_k(array: list[_GenericT], k: int) -> Iterator[_GenericT]:
+def _all_but_last_k[T](array: list[T], k: int) -> Iterator[T]:
     """All but at most k last elements."""
     # Edge cases -
     #   k > len(array): Returns empty array.
