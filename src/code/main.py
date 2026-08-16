@@ -14,6 +14,7 @@
 
 import argparse
 import collections
+import contextlib
 import datetime
 import itertools
 import logging
@@ -103,10 +104,16 @@ def _batch_delete_snaps(
 def _config_operation(
     command: str, source: str | None, comment: str | None, sync: bool
 ):
-    # Single timestamp for all operations. The per-second lock is held for the
-    # whole operation, so another yabsnap process cannot reserve the same
-    # second and create a snapshot with the same name (Issue #83).
-    with time_lock.locked_now() as now:
+    # Single timestamp for all operations. For commands that can create snapshots, the
+    # per-second lock is held for the whole operation, so another yabsnap process cannot
+    # reserve the same second and create a snapshot with the same name (Issue #83).
+    cm: contextlib.AbstractContextManager[datetime.datetime]
+    if command in ("list", "list-json"):
+        # Read-only: nothing is created, so no second needs reserving.
+        cm = contextlib.nullcontext(datetime.datetime.now())
+    else:
+        cm = time_lock.locked_now()
+    with cm as now:
         # Which mount paths to sync.
         to_sync: list[configs.Config] = []
 
