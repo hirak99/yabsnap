@@ -48,9 +48,11 @@ class TestParseISO8601Datetime(unittest.TestCase):
         ]
 
         for datetime_string in datetime_strings:
-            with self.subTest(datetime_string=datetime_string):
-                with self.assertRaises(ValueError):
-                    batch_deleter._parse_iso8601_datetime(datetime_string)
+            with (
+                self.subTest(datetime_string=datetime_string),
+                self.assertRaises(ValueError),
+            ):
+                batch_deleter._parse_iso8601_datetime(datetime_string)
 
 
 class TestRegisterFilter(unittest.TestCase):

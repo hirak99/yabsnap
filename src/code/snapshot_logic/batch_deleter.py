@@ -113,9 +113,7 @@ def apply_snapshot_filters(
     config_snaps_mapping: Iterable[_ConfigSnapshotsRelation],
     *filters: _SnapshotBaseFilter,
 ) -> Iterator[_ConfigSnapshotsRelation]:
-    """Use the filter to select the snapshots\
-       that actually need to be processed for each configuration.
-    """
+    """Select the snapshots that need processing for each configuration."""
     for mapping in config_snaps_mapping:
         filtered_snaps: list[snap_holder.Snapshot] = []
         for snap in mapping.snaps:
@@ -180,7 +178,7 @@ def get_to_sync_list(configs: Iterable[configs.Config]) -> list[configs.Config]:
 
 
 def _parse_iso8601_datetime(datetime_str: str) -> datetime.datetime:
-    """Check and parse ISO 8601 datetime string"""
+    """Check and parse ISO 8601 datetime string."""
     if len(datetime_str) < global_flags.TIME_FORMAT_LEN:
         raise ValueError(
             f"The length of the datetime string must not be less than {global_flags.TIME_FORMAT_LEN} characters."
@@ -202,6 +200,6 @@ def _parse_iso8601_datetime(datetime_str: str) -> datetime.datetime:
             "Suffix only accepts the following formats:\n"
             "  1. %Y%m%d%H%M%S (e.g. 20241101201015)\n"
             "  2. ISO 8601 compliant timestamp string (e.g. 2024-11-01_20:10:15)"
-        )
+        ) from None
 
     return valid_iso8601_datetime
