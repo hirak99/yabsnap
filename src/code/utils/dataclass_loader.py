@@ -49,7 +49,7 @@ def as_type[U](typ: type[U], value: Any) -> U:
       A value that now conforms to the data type requested.
     """
     if dataclasses.is_dataclass(typ):
-        return load_dataclass(typ, value)  # type: ignore
+        return load_dataclass(typ, value)
 
     if typ is float and isinstance(value, int):
         # Special case - allow int to be loaded as float.
@@ -76,7 +76,7 @@ def as_type[U](typ: type[U], value: Any) -> U:
             except TypeError:
                 continue
         raise _TypeError(f"Could not load {value=} as union type {typ=}")
-    elif issubclass(typ, enum.Enum):  # type: ignore
+    elif issubclass(typ, enum.Enum):
         # Handle enum.
         try:
             return typ[value]  # Or type(value) also works for enum.
