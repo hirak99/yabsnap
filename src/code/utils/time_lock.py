@@ -14,12 +14,13 @@ rolls over to the next second, so the wait is normally under a second. The
 timeout is a safety net for persistent failures, e.g. /dev/shm being
 unavailable, and results in a RuntimeError.
 
+The lockfile is deleted after the second boundary or when the process exits (unless
+it ends abruptly, e.g. a SIGKILL - but leaving the file is harmless).
+
 Caveats:
   * Best-effort by design: a second that cannot be locked at all (e.g. due to
     file permissions) is rolled over rather than aborting creation, which
     degrades to the older, rarer name-collision behaviour instead of failing.
-  * Lock files are never deleted: one 0-byte file per used second accumulates
-    in /dev/shm until reboot, which clears the tmpfs.
   * The reservation is based on the local wall clock. If the clock steps
     backwards (e.g. an NTP correction), the same second could be reserved
     twice.
@@ -30,6 +31,7 @@ import datetime
 import fcntl
 import logging
 import os
+import threading
 import time
 from collections.abc import Generator
 
@@ -74,9 +76,35 @@ def _try_acquire(now: datetime.datetime) -> int | None:
     return fd
 
 
-def _release(fd: int) -> None:
+def _is_same_sec(now: datetime.datetime) -> bool:
+    return now.replace(microsecond=0) == datetime.datetime.now().replace(microsecond=0)
+
+
+def _release_after_second_boundary(fd: int, acquire_time: datetime.datetime) -> None:
+    """Ensures lock is held until second-boundary, then releases it."""
+    # Careful - if the time is moved back, this must not loop forever (though
+    # correctness is no longer guaranteed).
+    while _is_same_sec(acquire_time):
+        # 0.1 so that it can exit early when the second is over.
+        time.sleep(0.1)
+
     fcntl.flock(fd, fcntl.LOCK_UN)
     os.close(fd)
+
+    # We maintain two properties -
+    # 1. Locks are guaranteed to be acquired within the same second.
+    # 2. Each lock is held at least until the next second boundary.
+    # Together these allow us to safely delete old locks.
+    with contextlib.suppress(FileNotFoundError, PermissionError):
+        os.remove(_lock_file_path(acquire_time))
+
+
+def _release(fd: int, acquire_time: datetime.datetime) -> None:
+    # Return control; but ensure it is held until the second boundary.
+    # Not daemon by design - we want to wait until the file is removed.
+    threading.Thread(
+        target=_release_after_second_boundary, args=(fd, acquire_time)
+    ).start()
 
 
 def _acquire_until(deadline: datetime.datetime) -> tuple[int, datetime.datetime]:
@@ -84,6 +112,16 @@ def _acquire_until(deadline: datetime.datetime) -> tuple[int, datetime.datetime]
     while True:
         now = datetime.datetime.now()
         fd = _try_acquire(now)
+
+        # Did we move on to the next second while acquiring?
+        if not _is_same_sec(now):
+            # Acquiring spilled over second boundary. So discard lock from the past.
+            if fd is not None:
+                # Should be instantaneous despite release_later().
+                _release(fd, now)
+            # Try again on this second.
+            continue
+
         if fd is not None:
             logging.info(
                 f"Reserved snapshot time: {now.strftime(global_flags.TIME_FORMAT)}"
@@ -119,4 +157,4 @@ def locked_now(
     try:
         yield now
     finally:
-        _release(fd)
+        _release(fd, now)

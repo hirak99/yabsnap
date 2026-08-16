@@ -17,6 +17,13 @@ def _lock_path(now: datetime.datetime, lock_dir: str) -> str:
     return os.path.join(lock_dir, "yabsnap-" + now.strftime(global_flags.TIME_FORMAT))
 
 
+# Mock for _release() for the test, release immediately instead of waiting for the
+# second boundary; the temp lock dir is cleaned up by setUp's tmp directory.
+def _release_immediately(fd: int, now: datetime.datetime) -> None:
+    fcntl.flock(fd, fcntl.LOCK_UN)
+    os.close(fd)
+
+
 class TimeLockTest(unittest.TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -26,18 +33,28 @@ class TimeLockTest(unittest.TestCase):
         patcher = mock.patch.object(time_lock, "_LOCK_DIR", self._lock_dir)
         patcher.start()
         self.addCleanup(patcher.stop)
+        patcher = mock.patch.object(time_lock, "_release", _release_immediately)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
-    def test_reserves_a_second_and_releases_it(self) -> None:
-        with time_lock.locked_now() as now:
-            # A lock file must exist for the reserved (yielded) second.
-            self.assertTrue(os.path.isfile(_lock_path(now, self._lock_dir)))
-            # The same second cannot be reserved again while it is held.
-            self.assertIsNone(time_lock._try_acquire(now))
-        # After the block the second can be reserved again.
-        fd = time_lock._try_acquire(now)
-        if fd is None:
-            self.fail("Expected the second to be reservable after release.")
-        time_lock._release(fd)
+    def test_release_after_second_boundary_releases_and_removes(self) -> None:
+        acquire_time = datetime.datetime.now() - datetime.timedelta(seconds=1)
+        fd = os.open(_lock_path(acquire_time, self._lock_dir), os.O_CREAT | os.O_RDWR)
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        # Freeze the (fake) clock just past acquire_time's second boundary, so
+        # this must return promptly, releasing the lock and removing the
+        # lock file.
+        fake_now = acquire_time.replace(microsecond=0) + datetime.timedelta(
+            seconds=1, milliseconds=100
+        )
+        with mock.patch.object(time_lock, "datetime") as fake_datetime:
+            fake_datetime.datetime.now.return_value = fake_now
+            start = time.monotonic()
+            time_lock._release_after_second_boundary(fd, acquire_time)
+        self.assertLess(time.monotonic() - start, 1)
+        self.assertFalse(os.path.exists(_lock_path(acquire_time, self._lock_dir)))
+        with self.assertRaises(OSError):
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
     def test_rolls_over_when_current_second_is_locked(self) -> None:
         blocked = datetime.datetime.now()
