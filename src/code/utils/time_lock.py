@@ -21,9 +21,14 @@ Caveats:
   * Best-effort by design: a second that cannot be locked at all (e.g. due to
     file permissions) is rolled over rather than aborting creation, which
     degrades to the older, rarer name-collision behaviour instead of failing.
-  * The reservation is based on the local wall clock. If the clock steps
-    backwards (e.g. an NTP correction), the same second could be reserved
-    twice.
+  * The reservation deliberately tracks the local wall clock, not
+    time.monotonic(). This is a project-wide constraint: snapshots are named
+    on disk from the wall clock, so the reserved instant (returned to the
+    caller) must be the same value they will be created with, or the name
+    would not match the creation time. A monotonic reservation would not
+    help, since the name it feeds is not comparable with the persisted
+    on-disk times. Accepted consequence: if the clock steps backwards (e.g.
+    an NTP correction), the same second could be reserved twice.
 """
 
 import contextlib
