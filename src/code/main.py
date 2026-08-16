@@ -29,6 +29,7 @@ from .snapshot_logic import rollbacker
 from .snapshot_logic import snap_operator
 from .utils import colored_logs
 from .utils import os_utils
+from .utils import time_lock
 
 
 def _parse_args() -> argparse.Namespace:
@@ -102,36 +103,37 @@ def _batch_delete_snaps(
 def _config_operation(
     command: str, source: str | None, comment: str | None, sync: bool
 ):
-    # Single timestamp for all operations.
-    now = datetime.datetime.now()
+    # Single timestamp for all operations. The per-second lock is held for the
+    # whole operation, so another yabsnap process cannot reserve the same
+    # second and create a snapshot with the same name (Issue #83).
+    with time_lock.locked_now() as now:
+        # Which mount paths to sync.
+        to_sync: list[configs.Config] = []
 
-    # Which mount paths to sync.
-    to_sync: list[configs.Config] = []
+        # Commands that need to access existing config.
+        for config in configs.iterate_configs(source=source):
+            snapper = snap_operator.SnapOperator(config, now)
+            if command == "internal-cronrun":
+                snapper.scheduled()
+            elif command == "internal-preupdate":
+                snapper.on_pacman()
+            elif command == "list":
+                snapper.list_snaps()
+            elif command == "list-json":
+                snapper.list_snaps_json()
+            elif command == "create":
+                snapper.create(comment)
+            else:
+                raise ValueError(f"Command not implemented: {command}")
 
-    # Commands that need to access existing config.
-    for config in configs.iterate_configs(source=source):
-        snapper = snap_operator.SnapOperator(config, now)
-        if command == "internal-cronrun":
-            snapper.scheduled()
-        elif command == "internal-preupdate":
-            snapper.on_pacman()
-        elif command == "list":
-            snapper.list_snaps()
-        elif command == "list-json":
-            snapper.list_snaps_json()
-        elif command == "create":
-            snapper.create(comment)
-        else:
-            raise ValueError(f"Command not implemented: {command}")
+            if snapper.snaps_deleted:
+                if config.snap_type == snap_type_enum.SnapType.BTRFS:
+                    to_sync.append(config)
+            if snapper.snaps_created or snapper.snaps_deleted:
+                config.call_post_hooks()
 
-        if snapper.snaps_deleted:
-            if config.snap_type == snap_type_enum.SnapType.BTRFS:
-                to_sync.append(config)
-        if snapper.snaps_created or snapper.snaps_deleted:
-            config.call_post_hooks()
-
-    if sync:
-        _sync(to_sync)
+        if sync:
+            _sync(to_sync)
 
 
 def main():

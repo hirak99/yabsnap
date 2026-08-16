@@ -14,6 +14,7 @@ from ..snapshot_logic import rollbacker
 from ..snapshot_logic import snap_holder
 from ..snapshot_logic import snap_operator
 from ..utils import human_interval
+from ..utils import time_lock
 from . import keypress_overlay
 from . import screens
 from . import widgets as tui_widgets
@@ -210,11 +211,11 @@ class _YabsnapApp(app.App[None]):
 
             assert self._current_config is not None
             try:
-                now: datetime.datetime = datetime.datetime.now()
-                snapper: snap_operator.SnapOperator = snap_operator.SnapOperator(
-                    self._current_config, now
-                )
-                snapper.create(comment)
+                with time_lock.locked_now() as now:
+                    snapper: snap_operator.SnapOperator = snap_operator.SnapOperator(
+                        self._current_config, now
+                    )
+                    snapper.create(comment)
                 self._current_config.call_post_hooks()
                 self.notify(f"Snapshot created for {self._current_config.source}")
                 self._refresh_snapshots()
