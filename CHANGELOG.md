@@ -1,7 +1,103 @@
 # Release Summaries
 
-Note: The summaries below are curated using a language model on git log. Summaries for
-versions before v2.2.11 are not included.
+Note: Summaries for versions before v2.2.11 are not included.
+
+## v2.4.2 (Aug 17, 2026)
+
+### **Fixes**
+
+1. **Rollback and TUI Stability**
+
+   * Report failed rollback instead of success (commit: [9dca24c](https://github.com/hirak99/yabsnap/commit/9dca24c)).
+   * Fix TUI freeze on failed rollback; show the error detail (commit: [ffe7d70](https://github.com/hirak99/yabsnap/commit/ffe7d70)).
+
+2. **Snapshot Creation**
+
+   * Prevent same-name snapshot collision between concurrent creates (commit: [f9deaa8](https://github.com/hirak99/yabsnap/commit/f9deaa8)).
+   * Run post-transaction hooks for TUI create (commit: [f75ff39](https://github.com/hirak99/yabsnap/commit/f75ff39)).
+
+### **Enhancements**
+
+1. **Lock Handling**
+
+   * Cleanup lock files (commit: [d74a0a7](https://github.com/hirak99/yabsnap/commit/d74a0a7)).
+   * Skip per-second lock for read-only list commands (commit: [d5362ed](https://github.com/hirak99/yabsnap/commit/d5362ed)).
+
+### **Chore**
+
+1. **Tooling**
+
+   * Migrated formatting/linting from black, isort, and mypy to ruff (commits: [99297d1](https://github.com/hirak99/yabsnap/commit/99297d1), [c5a2f6e](https://github.com/hirak99/yabsnap/commit/c5a2f6e), and related).
+
+## v2.4.1 (Jun 15, 2026)
+
+### **Fixes**
+
+1. **Packaging**
+
+   * Prevent runtime bytecode generation to avoid package conflicts (commit: [637b157](https://github.com/hirak99/yabsnap/commit/637b157)).
+
+## v2.4.0 (Jun 13, 2026)
+
+### **Enhancements**
+
+1. **TUI Polish**
+
+   * Drop the window title bar, bind escape to close modal dialogs, and format timestamps (commits: [cfdb457](https://github.com/hirak99/yabsnap/commit/cfdb457), [ebabe74](https://github.com/hirak99/yabsnap/commit/ebabe74), [c86aef3](https://github.com/hirak99/yabsnap/commit/c86aef3)).
+   * Change key for viewing metadata to m (commit: [15e53c7](https://github.com/hirak99/yabsnap/commit/15e53c7)).
+
+### **Documentation**
+
+1. **Minor Updates**
+
+   * Minor docs update (commit: [072c42d](https://github.com/hirak99/yabsnap/commit/072c42d)).
+
+## v2.3.5 (Jun 08, 2026)
+
+### **Enhancements**
+
+1. **TUI (New)**
+
+   * Introduced the TUI (commit: [f891e57](https://github.com/hirak99/yabsnap/commit/f891e57)); delete and rollback flows started as work-in-progress (commit: [e8473e5](https://github.com/hirak99/yabsnap/commit/e8473e5)).
+   * Press t to open a terminal in the TUI (commit: [d3ac1db](https://github.com/hirak99/yabsnap/commit/d3ac1db)).
+   * View snapshot metadata in the TUI (commit: [47c0015](https://github.com/hirak99/yabsnap/commit/47c0015)).
+   * Optional key overlay for demo; debounced and supports multiple keys within a second (commits: [70c2259](https://github.com/hirak99/yabsnap/commit/70c2259), [b75942b](https://github.com/hirak99/yabsnap/commit/b75942b), [f6d829b](https://github.com/hirak99/yabsnap/commit/f6d829b), [0790ff0](https://github.com/hirak99/yabsnap/commit/0790ff0)).
+
+2. **TUI as Optional Dependency**
+
+   * Made TUI optional; textual added as a workflow dependency (commits: [2a2a0f4](https://github.com/hirak99/yabsnap/commit/2a2a0f4), [08bbc1c](https://github.com/hirak99/yabsnap/commit/08bbc1c)).
+
+### **Refactoring**
+
+1. **Code Hygiene**
+
+   * Rename app.py to tui_app.py (commit: [759b2f3](https://github.com/hirak99/yabsnap/commit/759b2f3)).
+   * Replace os.system() with subprocess.run() (commit: [522adc3](https://github.com/hirak99/yabsnap/commit/522adc3)).
+   * Add isort to workflow and tests; reformat for isort and updated black checks (commits: [82812f0](https://github.com/hirak99/yabsnap/commit/82812f0), [4e401ea](https://github.com/hirak99/yabsnap/commit/4e401ea), [0fd098b](https://github.com/hirak99/yabsnap/commit/0fd098b), [47df72e](https://github.com/hirak99/yabsnap/commit/47df72e), [763115e](https://github.com/hirak99/yabsnap/commit/763115e)).
+
+### **Documentation**
+
+1. **README**
+
+   * Added TUI updates and demo; fixed alert sections; small readability fixes (commits: [d3e3e8c](https://github.com/hirak99/yabsnap/commit/d3e3e8c), [391622c](https://github.com/hirak99/yabsnap/commit/391622c), [ead3d0a](https://github.com/hirak99/yabsnap/commit/ead3d0a), [ec1add6](https://github.com/hirak99/yabsnap/commit/ec1add6)).
+
+### **External Contributions**
+
+* **ShalokShalom** contributed to fixing typos and improving readability in README.md (commits: [ec1add6](https://github.com/hirak99/yabsnap/commit/ec1add6), [42580cd](https://github.com/hirak99/yabsnap/commit/42580cd)).
+
+## v2.3.4 (Nov 10, 2025)
+
+### **Fixes**
+
+1. **mtab Parsing**
+
+   * Switch to findmnt --mtab -J (commit: [8acf988](https://github.com/hirak99/yabsnap/commit/8acf988)).
+
+### **Chore**
+
+1. **Performance**
+
+   * Added caching in mtab parser (commit: [5f48454](https://github.com/hirak99/yabsnap/commit/5f48454)).
 
 ## v2.3.3 (Nov 08, 2025)
 
