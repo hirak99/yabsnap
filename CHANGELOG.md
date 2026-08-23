@@ -2,7 +2,7 @@
 
 Note: Summaries for versions before v2.2.11 are not included.
 
-## v2.4.2 (Aug 17, 2026)
+## v2.4.2 (2026-08-17)
 
 ### **Fixes**
 
@@ -29,7 +29,7 @@ Note: Summaries for versions before v2.2.11 are not included.
 
    * Migrated formatting/linting from black, isort, and mypy to ruff (commits: [99297d1](https://github.com/hirak99/yabsnap/commit/99297d1), [c5a2f6e](https://github.com/hirak99/yabsnap/commit/c5a2f6e), and related).
 
-## v2.4.1 (Jun 15, 2026)
+## v2.4.1 (2026-06-15)
 
 ### **Fixes**
 
@@ -37,7 +37,7 @@ Note: Summaries for versions before v2.2.11 are not included.
 
    * Prevent runtime bytecode generation to avoid package conflicts (commit: [637b157](https://github.com/hirak99/yabsnap/commit/637b157)).
 
-## v2.4.0 (Jun 13, 2026)
+## v2.4.0 (2026-06-13)
 
 ### **Enhancements**
 
@@ -52,7 +52,7 @@ Note: Summaries for versions before v2.2.11 are not included.
 
    * Minor docs update (commit: [072c42d](https://github.com/hirak99/yabsnap/commit/072c42d)).
 
-## v2.3.5 (Jun 08, 2026)
+## v2.3.5 (2026-06-08)
 
 ### **Enhancements**
 
@@ -85,7 +85,7 @@ Note: Summaries for versions before v2.2.11 are not included.
 
 * **ShalokShalom** contributed to fixing typos and improving readability in README.md (commits: [ec1add6](https://github.com/hirak99/yabsnap/commit/ec1add6), [42580cd](https://github.com/hirak99/yabsnap/commit/42580cd)).
 
-## v2.3.4 (Nov 10, 2025)
+## v2.3.4 (2025-11-10)
 
 ### **Fixes**
 
@@ -99,7 +99,7 @@ Note: Summaries for versions before v2.2.11 are not included.
 
    * Added caching in mtab parser (commit: [5f48454](https://github.com/hirak99/yabsnap/commit/5f48454)).
 
-## v2.3.3 (Nov 08, 2025)
+## v2.3.3 (2025-11-08)
 
 ### **Enhancements**
 
@@ -154,7 +154,7 @@ Note: Summaries for versions before v2.2.11 are not included.
    * Completed batch deleter todo (commit: [0d242f0](https://github.com/hirak99/yabsnap/commit/0d242f0)).
    * Updated unit tests for batch deleter (commit: [8786623](https://github.com/hirak99/yabsnap/commit/8786623)).
 
-## v2.3.2 (Nov 04, 2025)
+## v2.3.2 (2025-11-04)
 
 ### **Fixes and Enhancements**
 
@@ -177,7 +177,7 @@ Note: Summaries for versions before v2.2.11 are not included.
    * Chore: Ignore unknown fields in configuration (commits: [0513be2](https://github.com/hirak99/yabsnap/commit/0513be2)).
    * Documentation update to specify that `list-json` outputs in JSONL format (commits: [aaf3be6](https://github.com/hirak99/yabsnap/commit/aaf3be6)).
 
-## v2.3.1 also v2.2.12 (Nov 03, 2025)
+## v2.3.1 also v2.2.12 (2025-11-03)
 
 Rollback to address bugs #69 and #70. The base is v2.2.11.
 
@@ -187,7 +187,7 @@ Rollback to address bugs #69 and #70. The base is v2.2.11.
 
    * Ignore unknown snapshot fields to facilitate rollback of version 2.3.0 without snapshot loading errors (commits: [d747523](https://github.com/hirak99/yabsnap/commit/d747523)).
 
-## v2.3.0 (Nov 01, 2025)
+## v2.3.0 (2025-11-01)
 
 ### **Enhancements**
 
@@ -239,7 +239,7 @@ Rollback to address bugs #69 and #70. The base is v2.2.11.
    * Revised and expanded FAQ section (commits: [9527374](https://github.com/hirak99/yabsnap/commit/9527374), [8c8a8dd](https://github.com/hirak99/yabsnap/commit/8c8a8dd)).
    * Updated README and manpage for `subvol-map` (commit: [b30302b](https://github.com/hirak99/yabsnap/commit/b30302b)).
 
-## v2.2.11 (Oct 30, 2025)
+## v2.2.11 (2025-10-30)
 
 ### **Enhancements**
 
