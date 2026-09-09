@@ -7,6 +7,8 @@ This should be kept free of yabsnap-specific code.
 import argparse
 import shlex
 
+from .version import get_version
+
 
 def _parse_subvol_map(map_str: str) -> dict[str, str]:
     """Helper to parse the --subvol-map argument.
@@ -25,7 +27,9 @@ def _parse_subvol_map(map_str: str) -> dict[str, str]:
 
 
 def make_parser() -> argparse.ArgumentParser:
+    version_string = get_version()
     parser = argparse.ArgumentParser(prog="yabsnap")
+    parser.add_argument("--version", action="version", version=version_string)
     parser.add_argument(
         "--sync",
         help="Wait for filesystem to sync after deleting snapshots.",

@@ -35,6 +35,9 @@ tar -cf - \
   $(find -type f -not -name "*_test.py" \( -name "*.py" -o -name "*.conf" \)) |
   tar -xf - -C "$DEST"/ --no-same-owner
   pushd "$DEST"/
+    # Write version info for --version flag.
+    VERSION=$(git describe --tags --abbrev=7 --dirty 2>/dev/null || echo "v0.0.0 (unknown)")
+    echo -n "$VERSION" > .version
     chmod -R u=rwX,go=rX .
   popd
 popd
