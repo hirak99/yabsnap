@@ -14,7 +14,11 @@ def get_version() -> str:
             check=True,
         )
         return f"{out.stdout.strip()} (git)"
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+    except (
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+        FileNotFoundError,
+    ):
         pass
     # Fall back to .version file (for packaged releases).
     version_file = ".version"
