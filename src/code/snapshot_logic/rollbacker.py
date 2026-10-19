@@ -27,6 +27,13 @@ from ..snapshot_logic import snap_holder
 from ..utils import os_utils
 from . import snap_operator
 
+# Exit status used by generated rollback scripts when a post-rollback hook
+# fails. Lets rollback() tell "hook failed (core rollback had completed)"
+# apart from "rollback itself failed". A core-rollback command exiting with
+# exactly this status would be misreported, but the "post-rollback hook
+# failed" marker line in the output disambiguates for a human reader.
+_HOOK_FAILURE_CODE = 42
+
 
 def _hook_lines(
     config_file: str, snapshot_target: str, scripts: list[str]
@@ -35,16 +42,25 @@ def _hook_lines(
 
     Each script is called as `script CONFIG_FILE SNAPSHOT_PATH`, with the
     snapshot path also available as `YABSNAP_SNAPSHOT_PATH` in the environment.
+    A failing hook prints which script failed and exits _HOOK_FAILURE_CODE so
+    the caller can attribute the failure to the hook, not the rollback.
     """
     lines = [
         f"# Post-rollback hooks from {config_file} (post_rollback_scripts).",
     ]
     for script in scripts:
-        lines.append(
+        quoted_script = shlex.quote(script)
+        call = (
             f"YABSNAP_SNAPSHOT_PATH={shlex.quote(snapshot_target)} "
-            f"{shlex.quote(script)} "
+            f"{quoted_script} "
             f"{shlex.quote(config_file)} "
             f"{shlex.quote(snapshot_target)}"
+        )
+        # Note: quoted_script is a separate shell word (not interpolated into
+        # the double-quoted string), so paths with spaces/quotes stay safe.
+        lines.append(
+            f'{call} || {{ code=$?; echo "post-rollback hook failed '
+            f'(exit $code):" {quoted_script} >&2; exit {_HOOK_FAILURE_CODE}; }}'
         )
     return lines
 
@@ -143,4 +159,18 @@ def rollback(
     try:
         save_and_execute_script(script_text)
     except RollbackExecutionError as e:
+        cause = e.__cause__
+        if cause is None and e.args:
+            # RollbackExecutionError always chains the CalledProcessError via
+            # `raise ... from`, but also look at args for robustness.
+            cause = e.args[0]
+        if (
+            isinstance(cause, subprocess.CalledProcessError)
+            and cause.returncode == _HOOK_FAILURE_CODE
+        ):
+            os_utils.fatal_error(
+                "A post-rollback hook failed (the core rollback had completed). "
+                f"See 'post-rollback hook failed' line above: {cause!s}"
+            )
+            return
         os_utils.fatal_error(f"Rollback execution failed: {e!s}")

@@ -94,9 +94,6 @@ class Config:
             dest_prefix=section["dest_prefix"],
         )
         for key, value in section.items():
-            if key in ("post_transaction_scripts", "post_rollback_scripts"):
-                setattr(result, key, shlex.split(value))
-                continue
             if key == "snap_type":
                 if not value:
                     value = "BTRFS"
@@ -111,6 +108,9 @@ class Config:
                         f"Invalid boolean value for {key} in {config_file=}"
                     )
                 setattr(result, key, value.lower().strip() == "true")
+            elif key in ("post_transaction_scripts", "post_rollback_scripts"):
+                setattr(result, key, shlex.split(value))
+                continue
             elif key.endswith("_interval"):
                 setattr(result, key, human_interval.parse_to_secs(value))
             elif key not in {"source", "dest_prefix"}:

@@ -1,5 +1,7 @@
 import builtins
 import os
+import shlex
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -155,6 +157,12 @@ class TestPostRollbackHooks(unittest.TestCase):
             "/.snapshots/@root-20220101130000",
             text,
         )
+        # Hook failures are self-identifying with a distinct exit code.
+        self.assertIn("post-rollback hook failed", text)
+        self.assertIn(
+            f"exit {rollbacker._HOOK_FAILURE_CODE}",
+            text,
+        )
 
     def test_hooks_quoted_and_per_config(self):
         config1 = self._fake_config(
@@ -178,9 +186,11 @@ class TestPostRollbackHooks(unittest.TestCase):
                 [config1, config2], "suffix", None
             )
         assert text is not None
-        # Quoting handles spaces; only config1's hook appears, once.
+        # Quoting handles spaces; only config1 has a hook, so its failure
+        # marker appears once, and the quoted path twice (call + echo).
         self.assertIn("'/my dir/hook.sh'", text)
-        self.assertEqual(text.count("/my dir/hook.sh"), 1)
+        self.assertEqual(text.count("post-rollback hook failed"), 1)
+        self.assertEqual(text.count("'/my dir/hook.sh'"), 2)
         self.assertIn("root.conf", text)
 
     def test_no_matching_snapshot_returns_none(self):
@@ -193,3 +203,113 @@ class TestPostRollbackHooks(unittest.TestCase):
             self.assertIsNone(
                 rollbacker.get_rollback_script_text([config], "suffix", None)
             )
+
+    def test_hook_receives_config_snapshot_and_env(self):
+        # End-to-end: run the generated script with a recording hook and check
+        # what the hook actually received as $1, $2 and $YABSNAP_SNAPSHOT_PATH.
+        with tempfile.TemporaryDirectory() as tmp:
+            record = os.path.join(tmp, "hook_args.txt")
+            hook = os.path.join(tmp, "hook.sh")
+            with open(hook, "w") as f:
+                f.write("#!/bin/bash\n")
+                f.write(
+                    f'echo "$1|$2|$YABSNAP_SNAPSHOT_PATH" > {shlex.quote(record)}\n'
+                )
+            os.chmod(hook, 0o700)
+            config_file = "/etc/yabsnap/configs/root.conf"
+            target = "/.snapshots/@root-20220101130000"
+            config = self._fake_config(
+                config_file, snap_type_enum.SnapType.BTRFS, [hook]
+            )
+            with (
+                mock.patch.object(
+                    snap_operator, "find_target", return_value=self._fake_snap(target)
+                ),
+                mock.patch.object(snap_mechanisms, "get") as mock_get,
+            ):
+                mock_get.return_value.rollback_gen.return_value = ["echo core-rollback"]
+                text = rollbacker.get_rollback_script_text([config], "suffix", None)
+            assert text is not None
+            subprocess.run(["bash", "-c", text], check=True)
+            with open(record) as f:
+                self.assertEqual(f.read().strip(), f"{config_file}|{target}|{target}")
+
+    def test_failing_hook_exits_with_hook_failure_code(self):
+        # End-to-end: a hook exiting nonzero fails the generated script with
+        # _HOOK_FAILURE_CODE (not the hook's raw code), exercising the real
+        # `raise ... from` chaining in save_and_execute_script.
+        with tempfile.TemporaryDirectory() as tmp:
+            hook = os.path.join(tmp, "hook.sh")
+            with open(hook, "w") as f:
+                f.write("#!/bin/bash\nexit 3\n")
+            os.chmod(hook, 0o700)
+            config = self._fake_config(
+                "/etc/yabsnap/configs/root.conf",
+                snap_type_enum.SnapType.BTRFS,
+                [hook],
+            )
+            target = "/.snapshots/@root-20220101130000"
+            with (
+                mock.patch.object(
+                    snap_operator, "find_target", return_value=self._fake_snap(target)
+                ),
+                mock.patch.object(snap_mechanisms, "get") as mock_get,
+            ):
+                mock_get.return_value.rollback_gen.return_value = ["echo core-rollback"]
+                text = rollbacker.get_rollback_script_text([config], "suffix", None)
+            assert text is not None
+            with self.assertRaises(rollbacker.RollbackExecutionError) as ctx:
+                rollbacker.save_and_execute_script(text)
+            cause = ctx.exception.__cause__
+            assert isinstance(cause, subprocess.CalledProcessError)
+            self.assertEqual(cause.returncode, rollbacker._HOOK_FAILURE_CODE)
+
+    def test_hook_failure_reported_distinctly(self):
+        err = subprocess.CalledProcessError(
+            rollbacker._HOOK_FAILURE_CODE, "yabsnap_script.sh"
+        )
+        with (
+            mock.patch.object(
+                rollbacker, "get_rollback_script_text", return_value="echo hi"
+            ),
+            mock.patch.object(
+                rollbacker,
+                "save_and_execute_script",
+                side_effect=rollbacker.RollbackExecutionError(err),
+            ),
+            mock.patch.object(os_utils, "fatal_error") as mock_fatal,
+        ):
+            rollbacker.rollback(
+                configs_iter=[],
+                path_suffix="",
+                subvol_map=None,
+                execute=True,
+                no_confirm=True,
+            )
+        mock_fatal.assert_called_once()
+        self.assertIn("post-rollback hook", mock_fatal.call_args[0][0])
+
+    def test_core_failure_still_reported_as_rollback(self):
+        err = subprocess.CalledProcessError(1, "yabsnap_script.sh")
+        with (
+            mock.patch.object(
+                rollbacker, "get_rollback_script_text", return_value="echo hi"
+            ),
+            mock.patch.object(
+                rollbacker,
+                "save_and_execute_script",
+                side_effect=rollbacker.RollbackExecutionError(err),
+            ),
+            mock.patch.object(os_utils, "fatal_error") as mock_fatal,
+        ):
+            rollbacker.rollback(
+                configs_iter=[],
+                path_suffix="",
+                subvol_map=None,
+                execute=True,
+                no_confirm=True,
+            )
+        mock_fatal.assert_called_once()
+        msg = mock_fatal.call_args[0][0]
+        self.assertIn("Rollback execution failed", msg)
+        self.assertNotIn("post-rollback hook", msg)

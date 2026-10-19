@@ -325,6 +325,8 @@ restore EFI files alongside the subvolume rollback:
 Each script is embedded into the generated script as
 `script CONFIG_FILE SNAPSHOT_PATH` (snapshot path also in
 `$YABSNAP_SNAPSHOT_PATH`) and runs after the rollback lines.
+A failing hook aborts remaining hooks and is reported distinctly as a hook
+failure (naming the script), not as a rollback failure.
 
 ### `yabsnap rollback PATH|TIMESTAMP [--subvol-map SUBVOL_MAP] [--noconfirm]`
 
