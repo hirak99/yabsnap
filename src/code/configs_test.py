@@ -51,6 +51,30 @@ class ConfigsTest(unittest.TestCase):
                 ["script1.sh", "/my directory/script2.sh"],
             )
 
+    def test_post_rollback_scripts(self):
+        with tempfile.NamedTemporaryFile(prefix="yabsnap_config_test_") as file:
+            with open(configs._example_config_fname()) as example_file:
+                for line in example_file:
+                    file.write(line.encode())
+            file.flush()
+
+            # Defaults to empty.
+            self.assertEqual(
+                configs.Config.from_configfile(file.name).post_rollback_scripts,
+                [],
+            )
+
+            file.write(
+                b'post_rollback_scripts = restore-efi.sh "/my directory/hook2.sh"\n',
+            )
+            file.flush()
+
+            read_config = configs.Config.from_configfile(file.name)
+            self.assertEqual(
+                read_config.post_rollback_scripts,
+                ["restore-efi.sh", "/my directory/hook2.sh"],
+            )
+
     def test_create_config(self):
         with tempfile.NamedTemporaryFile(prefix="yabsnap_config_test_") as file:
             # Don't need the file; in fact if it exists we cannot create it.

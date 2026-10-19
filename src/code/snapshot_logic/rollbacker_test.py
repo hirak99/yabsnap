@@ -4,9 +4,13 @@ import tempfile
 import unittest
 from unittest import mock
 
+from .. import configs
 from .. import global_flags
+from ..mechanisms import snap_mechanisms
+from ..mechanisms import snap_type_enum
 from ..utils import os_utils
 from . import rollbacker
+from . import snap_operator
 
 # For testing, we can access private methods.
 # pyright: reportPrivateUsage=false
@@ -94,3 +98,98 @@ class TestCreateAndChmodScript(unittest.TestCase):
                     execute=True,
                     no_confirm=True,
                 )
+
+
+class TestPostRollbackHooks(unittest.TestCase):
+    def _fake_config(self, config_file, snap_type, scripts):
+        return configs.Config(
+            config_file=config_file,
+            source="/",
+            dest_prefix="/.snapshots/@root-",
+            snap_type=snap_type,
+            post_rollback_scripts=scripts,
+        )
+
+    def _fake_snap(self, target):
+        snap = mock.Mock()
+        snap.target = target
+        snap.to_light_snapshot.return_value = mock.Mock()
+        return snap
+
+    def test_no_hooks_no_extra_lines(self):
+        config = self._fake_config(
+            "/etc/yabsnap/configs/root.conf", snap_type_enum.SnapType.BTRFS, []
+        )
+        snap = self._fake_snap("/.snapshots/@root-20220101130000")
+        with (
+            mock.patch.object(snap_operator, "find_target", return_value=snap),
+            mock.patch.object(snap_mechanisms, "get") as mock_get,
+        ):
+            mock_get.return_value.rollback_gen.return_value = ["echo rollback"]
+            text = rollbacker.get_rollback_script_text([config], "suffix", None)
+        assert text is not None
+        self.assertIn("echo rollback", text)
+        self.assertNotIn("YABSNAP_SNAPSHOT_PATH", text)
+
+    def test_hooks_embedded_with_config_and_snapshot(self):
+        config = self._fake_config(
+            "/etc/yabsnap/configs/root.conf",
+            snap_type_enum.SnapType.BTRFS,
+            ["/usr/local/bin/restore-efi.sh"],
+        )
+        target = "/.snapshots/@root-20220101130000"
+        snap = self._fake_snap(target)
+        with (
+            mock.patch.object(snap_operator, "find_target", return_value=snap),
+            mock.patch.object(snap_mechanisms, "get") as mock_get,
+        ):
+            mock_get.return_value.rollback_gen.return_value = ["echo rollback"]
+            text = rollbacker.get_rollback_script_text([config], "suffix", None)
+        assert text is not None
+        # Core rollback comes first, hooks after.
+        self.assertLess(text.index("echo rollback"), text.index("restore-efi.sh"))
+        self.assertIn(
+            "YABSNAP_SNAPSHOT_PATH=/.snapshots/@root-20220101130000 "
+            "/usr/local/bin/restore-efi.sh "
+            "/etc/yabsnap/configs/root.conf "
+            "/.snapshots/@root-20220101130000",
+            text,
+        )
+
+    def test_hooks_quoted_and_per_config(self):
+        config1 = self._fake_config(
+            "/etc/yabsnap/configs/root.conf",
+            snap_type_enum.SnapType.BTRFS,
+            ["/my dir/hook.sh"],
+        )
+        config2 = self._fake_config(
+            "/etc/yabsnap/configs/home.conf",
+            snap_type_enum.SnapType.BTRFS,
+            [],
+        )
+        snap1 = self._fake_snap("/.snapshots/@root-20220101130000")
+        snap2 = self._fake_snap("/.snapshots/@home-20220101130000")
+        with (
+            mock.patch.object(snap_operator, "find_target", side_effect=[snap1, snap2]),
+            mock.patch.object(snap_mechanisms, "get") as mock_get,
+        ):
+            mock_get.return_value.rollback_gen.return_value = ["echo rollback"]
+            text = rollbacker.get_rollback_script_text(
+                [config1, config2], "suffix", None
+            )
+        assert text is not None
+        # Quoting handles spaces; only config1's hook appears, once.
+        self.assertIn("'/my dir/hook.sh'", text)
+        self.assertEqual(text.count("/my dir/hook.sh"), 1)
+        self.assertIn("root.conf", text)
+
+    def test_no_matching_snapshot_returns_none(self):
+        config = self._fake_config(
+            "/etc/yabsnap/configs/root.conf",
+            snap_type_enum.SnapType.BTRFS,
+            ["/usr/local/bin/restore-efi.sh"],
+        )
+        with mock.patch.object(snap_operator, "find_target", return_value=None):
+            self.assertIsNone(
+                rollbacker.get_rollback_script_text([config], "suffix", None)
+            )

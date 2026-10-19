@@ -69,6 +69,7 @@ class Config:
     keep_yearly: int = 0
 
     post_transaction_scripts: list[str] = dataclasses.field(default_factory=list)
+    post_rollback_scripts: list[str] = dataclasses.field(default_factory=list)
 
     # If empty, btrfs is assumed.
     snap_type: snap_type_enum.SnapType = snap_type_enum.SnapType.BTRFS
@@ -93,8 +94,8 @@ class Config:
             dest_prefix=section["dest_prefix"],
         )
         for key, value in section.items():
-            if key == "post_transaction_scripts":
-                result.post_transaction_scripts = shlex.split(value)
+            if key in ("post_transaction_scripts", "post_rollback_scripts"):
+                setattr(result, key, shlex.split(value))
                 continue
             if key == "snap_type":
                 if not value:

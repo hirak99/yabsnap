@@ -317,6 +317,15 @@ subvolume to roll back is `@`).
 For snapshots taken **after** `v2.3.0`, this option is no longer necessary, as the
 subvolume names are now stored with the snapshots.
 
+**Post-rollback hooks (`post_rollback_scripts`, see issue #73)**
+
+A config may list scripts to run after the core rollback commands, e.g. to
+restore EFI files alongside the subvolume rollback:
+`post_rollback_scripts = "/usr/local/bin/restore-efi.sh"`.
+Each script is embedded into the generated script as
+`script CONFIG_FILE SNAPSHOT_PATH` (snapshot path also in
+`$YABSNAP_SNAPSHOT_PATH`) and runs after the rollback lines.
+
 ### `yabsnap rollback PATH|TIMESTAMP [--subvol-map SUBVOL_MAP] [--noconfirm]`
 
 Shows a rollback script, interactively confirms, and executes it.

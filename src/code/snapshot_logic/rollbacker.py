@@ -14,6 +14,7 @@
 
 import collections
 import os
+import shlex
 import subprocess
 import tempfile
 from collections.abc import Iterable
@@ -27,6 +28,27 @@ from ..utils import os_utils
 from . import snap_operator
 
 
+def _hook_lines(
+    config_file: str, snapshot_target: str, scripts: list[str]
+) -> list[str]:
+    """Shell lines invoking post-rollback hooks for one snapshot.
+
+    Each script is called as `script CONFIG_FILE SNAPSHOT_PATH`, with the
+    snapshot path also available as `YABSNAP_SNAPSHOT_PATH` in the environment.
+    """
+    lines = [
+        f"# Post-rollback hooks from {config_file} (post_rollback_scripts).",
+    ]
+    for script in scripts:
+        lines.append(
+            f"YABSNAP_SNAPSHOT_PATH={shlex.quote(snapshot_target)} "
+            f"{shlex.quote(script)} "
+            f"{shlex.quote(config_file)} "
+            f"{shlex.quote(snapshot_target)}"
+        )
+    return lines
+
+
 def get_rollback_script_text(
     configs_iter: Iterable[configs.Config],
     path_suffix: str,
@@ -36,10 +58,16 @@ def get_rollback_script_text(
     source_dests_by_snaptype: dict[
         snap_type_enum.SnapType, list[snap_holder.Snapshot]
     ] = collections.defaultdict(list)
+    # (config_file, snapshot_target, scripts) in configs_iter order.
+    hook_jobs: list[tuple[str, str, list[str]]] = []
     for config in configs_iter:
         snap = snap_operator.find_target(config, path_suffix)
         if snap:
             source_dests_by_snaptype[config.snap_type].append(snap)
+            if config.post_rollback_scripts:
+                hook_jobs.append(
+                    (config.config_file, snap.target, config.post_rollback_scripts)
+                )
     if not source_dests_by_snaptype:
         return None
 
@@ -57,6 +85,9 @@ def get_rollback_script_text(
                 snap_mechanisms.get(snap_type).rollback_gen(light_snapshots, subvol_map)
             )
         )
+    for config_file, target, scripts in hook_jobs:
+        content.append("")
+        content.extend(_hook_lines(config_file, target, scripts))
     return "\n".join(content)
 
 
