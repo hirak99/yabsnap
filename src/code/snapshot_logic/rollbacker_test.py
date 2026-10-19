@@ -270,7 +270,9 @@ class TestPostRollbackHooks(unittest.TestCase):
         )
         with (
             mock.patch.object(
-                rollbacker, "get_rollback_script_text", return_value="echo hi"
+                rollbacker,
+                "get_rollback_script_text",
+                return_value="# content of mocked rollback script",
             ),
             mock.patch.object(
                 rollbacker,
@@ -293,7 +295,9 @@ class TestPostRollbackHooks(unittest.TestCase):
         err = subprocess.CalledProcessError(1, "yabsnap_script.sh")
         with (
             mock.patch.object(
-                rollbacker, "get_rollback_script_text", return_value="echo hi"
+                rollbacker,
+                "get_rollback_script_text",
+                return_value="# content of mocked rollback script",
             ),
             mock.patch.object(
                 rollbacker,
