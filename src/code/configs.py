@@ -99,18 +99,22 @@ class Config:
                     value = "BTRFS"
                 result.snap_type = snap_type_enum.SnapType[value]
                 continue
+
+            # Common check before setattr assignments.
             if not hasattr(result, key):
                 logging.warning(f"Invalid field {key=} found in {config_file=}")
+                continue
+
             if key == "enable_scheduled_ttl":
-                # Boolean.
+                # Key(s) that are boolean.
                 if value.lower() not in ("true", "false"):
                     raise ValueError(
                         f"Invalid boolean value for {key} in {config_file=}"
                     )
                 setattr(result, key, value.lower().strip() == "true")
             elif key in ("post_transaction_scripts", "post_rollback_scripts"):
+                # Keys requiring shlex.
                 setattr(result, key, shlex.split(value))
-                continue
             elif key.endswith("_interval"):
                 setattr(result, key, human_interval.parse_to_secs(value))
             elif key not in {"source", "dest_prefix"}:
