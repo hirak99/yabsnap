@@ -76,6 +76,17 @@ In nushell, you can use `... | from json --objects` to read JSONL.
 Creates a new backup for all configs. Can be disabled per config by setting
 `keep_user = 0`.
 
+.B Post-transaction hooks (post_transaction_scripts)
+
+A config file may list hook scripts to run after yabsnap creates or deletes
+any snapshot, for example to mirror snapshots to a second disk:
+
+  post_transaction_scripts = "/usr/local/bin/btrfs-send-receive.sh"
+
+Each script is called once per config that had snapshots created or deleted,
+as `script CONFIG_FILE`. Scripts must be idempotent and fast; a nonzero exit
+only produces a warning and never rolls back the snapshots.
+
 .SS yabsnap set-ttl TARGET_SUFFIX --ttl TTL
 
 Set a TTL (or Time-To-Live) for matching snapshots. The TTL argument must be a
@@ -129,11 +140,27 @@ subvolume to roll back is `@`).
 For snapshots taken **after** `v2.3.0`, this option is no longer necessary, as the
 subvolume names are now stored with the snapshots.
 
+.B Post-rollback hooks (post_rollback_scripts)
+
+A config file may list hook scripts to run after the core rollback commands,
+for example to restore EFI files alongside the subvolume rollback:
+
+  post_rollback_scripts = "/usr/local/bin/restore-efi.sh"
+
+Each script is embedded into the generated script as `script CONFIG_FILE
+SNAPSHOT_PATH` (the snapshot path is also available as $YABSNAP_SNAPSHOT_PATH)
+and runs after the rollback lines. A failing hook aborts any remaining hooks
+and is reported distinctly as a hook failure; the core rollback has already
+completed at that point.
+
 .SS yabsnap [--dry-run] rollback TARGET_SUFFIX [--subvol-map SUBVOL_MAP] [--noconfirm]
 
 Generates and a rollback script, executes it after interactively confirming.
 
 If [--noconfirm] is passed, the interactive confirmation is skipped.
+
+Post-rollback hooks configured via `post_rollback_scripts` run as part of the
+executed script; see `rollback-gen` above.
 
 .SS yabsnap tui
 
