@@ -322,6 +322,8 @@ subvolume names are now stored with the snapshots.
 A config may list scripts to run after the core rollback commands, e.g. to
 restore EFI files alongside the subvolume rollback:
 `post_rollback_scripts = "/usr/local/bin/restore-efi.sh"`.
+Worked example for mkinitcpio UKI backup/restore by @effects3d:
+https://github.com/hirak99/yabsnap/issues/73#issuecomment-6317574942.
 Each script is embedded into the generated script as
 `script CONFIG_FILE SNAPSHOT_PATH` (snapshot path also in
 `$YABSNAP_SNAPSHOT_PATH`) and runs after the rollback lines.
