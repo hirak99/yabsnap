@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# For testing, we can access private methods.
+# pyright: reportPrivateUsage=false
+
+import dataclasses
 import datetime
 import logging
 import os
@@ -67,6 +71,39 @@ def _drop_root_slash(s: str) -> str:
     return s[1:]
 
 
+def _is_within_path(child: str, parent: str) -> bool:
+    """Whether child is parent itself or nested inside it (top-level-relative paths)."""
+    return child == parent or child.startswith(parent + "/")
+
+
+def _resolve_live_subvol_name(
+    snap: abstract_mechanism.LightSnapshot,
+    snap_subvolume: mtab_parser._MountAttributes,
+    subvol_map: dict[str, str],
+) -> tuple[str, bool]:
+    """Resolve the live subvolume name for a snapshot.
+
+    Returns (live_subvol_name, using_subvol_map).
+    """
+    snap_source = snap.metadata.source
+    if snap_source in subvol_map:
+        logging.info(f"Using mapped subvol for {snap_source!r}.")
+        return subvol_map[snap_source], True
+    if snap.metadata.btrfs and snap.metadata.btrfs.source_subvol:
+        logging.info(f"Using recorded subvol for {snap_source!r}.")
+        return snap.metadata.btrfs.source_subvol, False
+    live_subvolume = mtab_parser.mount_attributes(snap_source)
+    if snap_subvolume.device != live_subvolume.device:
+        raise RuntimeError(
+            f"{snap_source!r} and {snap.target!r} are not on the same device."
+        )
+    logging.info(
+        f"Using currently mounted source as subvol for {snap_source!r}."
+        " This is for older snapshots, and expected to work for online rollbacks."
+    )
+    return live_subvolume.subvol_name, False
+
+
 def rollback_gen(
     snapshots: list[abstract_mechanism.LightSnapshot],
     subvol_map: dict[str, str] | None,
@@ -86,19 +123,68 @@ def rollback_gen(
     if not snapshots:
         return ["# No snapshot matched to rollback."]
 
-    sh_lines: list[str] = []
-
     if not subvol_map:
         subvol_map = {}
 
-    # 0. Generate code to mount all the required volumes for rollback.
-    temp_mount_points: dict[str, str] = {}
-    for snap in snapshots:
-        # Note that live_path and snap_path must be on the same volume. This is
-        # a sanity check performed on the next loop.
+    now_str = _get_now_str()
 
-        snap_subvolume = mtab_parser.mount_attributes(snap.target)
-        device = snap_subvolume.device
+    # 0. Resolve all live/snapshot subvolumes first so incompatible layouts
+    # fail fast before any script lines are generated (see issue #90).
+    # IMPORTNT NOTE: Do not assume the snap_source is live.
+    # In particular, it should not be used to gather mtab attributes.
+    @dataclasses.dataclass
+    class _SnapPlan:
+        snap: abstract_mechanism.LightSnapshot
+        snap_subvolume: mtab_parser._MountAttributes
+        live_subvol_name: str
+        using_subvol_map: bool
+        script_live_path: str
+        backup_path: str
+
+    plans: list[_SnapPlan] = []
+    for snap in snapshots:
+        # 1. We retrieve device and snapshot subvolume information from the snapshot path.
+        snap_subvolume = mtab_parser.mount_attributes(os.path.dirname(snap.target))
+        # 2. We retrieve the name of the `live_subvolume`.
+        live_subvol_name, using_subvol_map = _resolve_live_subvol_name(
+            snap, snap_subvolume, subvol_map
+        )
+        # The path where it will be mounted when running the script.
+        script_live_path = _drop_root_slash(live_subvol_name)
+        # If the subvolume being rolled back is nested, normalize for the backup path.
+        normalized_live_path = script_live_path.replace("/", "_")
+        backup_path = f"{_drop_root_slash(snap_subvolume.subvol_name)}/rollback_{now_str}_{normalized_live_path}"
+        if _is_within_path(backup_path, script_live_path):
+            raise RuntimeError(
+                f"Cannot roll back {snap.metadata.source!r} to {snap.target!r}: "
+                f"the live subvolume {live_subvol_name!r} would be moved into itself "
+                f"({script_live_path!r} -> {backup_path!r}). "
+                "The snapshot storage (dirname of the snapshot, i.e. the "
+                "`dest_prefix` directory in the config) must be outside the "
+                "subvolume being rolled back; move `dest_prefix` to a separate "
+                "subvolume (e.g. `dest_prefix = /.snapshots/@root-` with "
+                "`/.snapshots` on its own subvolume). See issue #90."
+            )
+        plans.append(
+            _SnapPlan(
+                snap=snap,
+                snap_subvolume=snap_subvolume,
+                live_subvol_name=live_subvol_name,
+                using_subvol_map=using_subvol_map,
+                script_live_path=script_live_path,
+                backup_path=backup_path,
+            )
+        )
+
+    sh_lines: list[str] = []
+
+    # 1. Generate code to mount all the required volumes for rollback.
+    temp_mount_points: dict[str, str] = {}
+    for plan in plans:
+        snap = plan.snap
+        # Note that live_path and snap_path must be on the same volume.
+        snap_subvolume_for_device = mtab_parser.mount_attributes(snap.target)
+        device = snap_subvolume_for_device.device
 
         if device not in temp_mount_points:
             temp_mount_pt = f"/run/mount/_yabsnap_internal_{len(temp_mount_points)}"
@@ -121,54 +207,18 @@ def rollback_gen(
                         f"  New UUID: {uuid}"
                     )
 
-    now_str = _get_now_str()
-
     sh_lines.append("")
     backup_paths: list[str] = []
     current_dir: str | None = None
     nested_subvol_commands: list[str] = []
-    for snap in snapshots:
-        # IMPORTNT NOTE: Do not assume the snap_source is live.
-        # In particular, it should not be used to gather mtab attributes.
+    for plan in plans:
+        snap = plan.snap
         snap_source = snap.metadata.source
-        # 1. We retrieve device and snapshot subvolume information from the snapshot path.
-        snap_subvolume = mtab_parser.mount_attributes(os.path.dirname(snap.target))
-
-        # 2. We retrieve the name of the `live_subvolume`.
-        live_subvol_name: str
-        # Using user defined --subvol-map for this snapshot?
-        using_subvol_map = False
-
-        if snap_source in subvol_map:
-            # Prioritize the map which indicates system may be offline.
-            live_subvol_name = subvol_map[snap_source]
-            using_subvol_map = True
-            logging.info(f"Using mapped subvol for {snap_source!r}.")
-
-        elif snap.metadata.btrfs and snap.metadata.btrfs.source_subvol:
-            # For all newer snaps, we will land here.
-            # Irrespective of what is mounted at metadata.source, we use the recorded
-            # subvol name.
-
-            live_subvol_name = snap.metadata.btrfs.source_subvol
-            logging.info(f"Using recorded subvol for {snap_source!r}.")
-
-        else:
-            # For older snapshots which do not record subvol name, we fall back on using
-            # the source. We assume that the same subvol is mounted there as when the
-            # snapshot was taken. This will be true for online rollbacks.
-
-            live_subvolume = mtab_parser.mount_attributes(snap_source)
-            # Sanity check: live_path and snap_path must be on same subvolume.
-            if snap_subvolume.device != live_subvolume.device:
-                raise RuntimeError(
-                    f"{snap_source!r} and {snap.target!r} are not on the same device."
-                )
-            live_subvol_name = live_subvolume.subvol_name
-            logging.info(
-                f"Using currently mounted source as subvol for {snap_source!r}."
-                " This is for older snapshots, and expected to work for online rollbacks."
-            )
+        snap_subvolume = plan.snap_subvolume
+        live_subvol_name = plan.live_subvol_name
+        using_subvol_map = plan.using_subvol_map
+        script_live_path = plan.script_live_path
+        backup_path = plan.backup_path
 
         # Check nested subvolumes.
         # Note: `btrfs_utils.get_nested_subvs` depends on `mount_attributes`(`live_path`).
@@ -189,9 +239,6 @@ def rollback_gen(
                 )
                 logging.warning(nested_subv_msg)
 
-        # The path where it will be mounted when running the script.
-        script_live_path = _drop_root_slash(live_subvol_name)
-
         # 3. Logic to switch to the mount point for recovery.
         # The if block ensures this is executed once even if multiple subvolumes
         # are part of the same file system.
@@ -205,14 +252,13 @@ def rollback_gen(
                 f"# Using --subvol-map: {snap_source!r} -> {live_subvol_name!r}."
             )
 
-        # If the subvolume being rolled back is nested, normalize for the backup path.
-        normalized_live_path = script_live_path.replace("/", "_")
-        if script_live_path != normalized_live_path:
+        # If the subvolume being rolled back is nested, warn (backup name was
+        # normalized with / -> _ during planning).
+        if "/" in script_live_path:
             logging.warning(
                 f"Rolling back snapshot of nested subvolume {script_live_path!r} is experimental."
             )
 
-        backup_path = f"{_drop_root_slash(snap_subvolume.subvol_name)}/rollback_{now_str}_{normalized_live_path}"
         backup_path_after_reboot = shlex.quote(
             f"{os.path.dirname(snap.target)}/rollback_{now_str}_{script_live_path}"
         )

@@ -216,6 +216,37 @@ echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
 """
         self.assertEqual(generated, expected.splitlines())
 
+    def test_rollback_btrfs_snapshot_inside_live_fails_fast(self):
+        # Issue #90: snapshots stored inside the live subvolume would generate
+        # `mv @ @/...` (moving a subvolume into itself). Must fail fast.
+        snaps_list = [
+            snap_holder.Snapshot("/.snapshots/@-20220101130000"),
+        ]
+        snaps_list[0].metadata.source = "/"
+
+        findmnt_json = {
+            "filesystems": [
+                {
+                    "target": "/",
+                    "source": "/dev/BLOCKDEV1",
+                    "fstype": "btrfs",
+                    "options": "rw,subvolid=257,subvol=/@",
+                },
+            ]
+        }
+
+        with (
+            mock.patch.object(mtab_parser, "_findmnt", return_value=findmnt_json),
+            mock.patch.object(
+                rollback_btrfs, "_get_now_str", return_value="20220202220000"
+            ),
+            self.assertRaisesRegex(RuntimeError, "into itself.*dest_prefix"),
+        ):
+            rollback_btrfs.rollback_gen(
+                snapshots=[s.to_light_snapshot() for s in snaps_list],
+                subvol_map=None,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
