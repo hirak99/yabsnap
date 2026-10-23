@@ -163,7 +163,7 @@ def rollback_gen(
                 "`dest_prefix` directory in the config) must be outside the "
                 "subvolume being rolled back; move `dest_prefix` to a separate "
                 "subvolume (e.g. `dest_prefix = /.snapshots/@root-` with "
-                "`/.snapshots` on its own subvolume). See issue #90."
+                "`/.snapshots` on its own subvolume)."
             )
         plans.append(
             _SnapPlan(

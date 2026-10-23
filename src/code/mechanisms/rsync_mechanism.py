@@ -104,6 +104,19 @@ class RsyncSnapMechanism(abstract_mechanism.SnapMechanism):
             raise RuntimeError("Unable to delete snapshot.") from exc
 
     @override
+    def _nested_dest_reason(self, source: str, dest_prefix: str) -> str | None:
+        # rsync copies with no --one-file-system, so even a separately mounted
+        # destdir inside source would get re-snapshotted; pure path check.
+        if not abstract_mechanism.destdir_inside_source(source, dest_prefix):
+            return None
+        destdir = os.path.dirname(dest_prefix.rstrip("/"))
+        return (
+            f"snapshot storage {destdir!r} is inside the source {source!r}; snapshots will "
+            "recursively include previous snapshots on every run, move `dest_prefix` outside "
+            "the source"
+        )
+
+    @override
     def rollback_gen(
         self,
         snapshots: list[abstract_mechanism.LightSnapshot],

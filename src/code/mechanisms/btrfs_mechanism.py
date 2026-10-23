@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import os
 
 from .. import global_flags
 from ..snapshot_logic import snap_metadata
@@ -72,6 +73,34 @@ class BtrfsSnapMechanism(abstract_mechanism.SnapMechanism):
             _execute_sh(f"btrfs subvolume delete {destination}")
         except os_utils.CommandError as exc:
             raise RuntimeError("Unable to delete; are you running as root?") from exc
+
+    @override
+    def _nested_dest_reason(self, source: str, dest_prefix: str) -> str | None:
+        destdir = os.path.dirname(dest_prefix.rstrip("/"))
+        if not destdir:
+            return None
+        try:
+            live = mtab_parser.mount_attributes(source)
+            store = mtab_parser.mount_attributes(destdir)
+        except (ValueError, RuntimeError) as exc:
+            logging.debug(f"Skipping nested-dest check for {source!r}: {exc}")
+            return None
+        if store.device != live.device:
+            return None
+        live_sub = "/" + live.subvol_name.strip("/")
+        store_sub = "/" + store.subvol_name.strip("/")
+        if live_sub == "/":
+            inside = True  # Source is the whole filesystem; same device means inside.
+        else:
+            inside = store_sub == live_sub or store_sub.startswith(live_sub + "/")
+        if not inside:
+            return None
+        return (
+            f"snapshot storage {destdir!r} (subvolume {store.subvol_name!r}) is inside "
+            f"the source subvolume {live.subvol_name!r} for {source!r}; move `dest_prefix` "
+            "to a separate subvolume (e.g. `dest_prefix = /.snapshots/@root-` with "
+            "`/.snapshots` on its own subvolume)"
+        )
 
     @override
     def rollback_gen(

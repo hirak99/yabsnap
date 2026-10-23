@@ -15,6 +15,8 @@
 import abc
 import dataclasses
 import enum
+import logging
+import os
 
 from ..snapshot_logic import snap_metadata
 
@@ -33,6 +35,20 @@ class LightSnapshot:
 
     target: str
     metadata: snap_metadata.SnapMetadata
+
+
+def destdir_inside_source(source: str, dest_prefix: str) -> bool:
+    """Whether the snapshot storage dir (dirname of dest_prefix) is inside source.
+
+    Pure path check, no filesystem access. Used by mechanisms whose snapshots
+    live as plain directories (rsync), and as a pre-filter by others.
+    """
+    destdir = os.path.dirname(dest_prefix.rstrip(os.sep))
+    if not destdir:
+        return False
+    child = os.path.normpath(destdir)
+    parent = os.path.normpath(source)
+    return child == parent or child.startswith(parent.rstrip(os.sep) + os.sep)
 
 
 class SnapMechanism(abc.ABC):
@@ -79,6 +95,27 @@ class SnapMechanism(abc.ABC):
           during normal operation. However, this parameter may be passed by the
           user when it cannot be auto detected, e.g. during offline recovery.
         """
+
+    @abc.abstractmethod
+    def _nested_dest_reason(self, source: str, dest_prefix: str) -> str | None:
+        """Returns why snapshot storage (dirname of dest_prefix) inside source is bad.
+
+        Returns None if the layout is fine. Must never raise for unresolvable
+        layouts (debug-log and return None instead); each mechanism implements
+        this with its own mount/subvolume awareness.
+        """
+
+    def warn_if_dest_inside_source(self, source: str, dest_prefix: str) -> None:
+        """Warns if snapshot storage (dirname of dest_prefix) lives inside source.
+
+        Called on snapshot write paths. Common framing is added here; the
+        specific reason comes from _nested_dest_reason().
+        """
+        reason = self._nested_dest_reason(source, dest_prefix)
+        if reason is not None:
+            logging.warning(
+                f"Nonstandard layout, rollback may not be supported. Reason: {reason}"
+            )
 
     @abc.abstractmethod
     def sync_paths(self, paths: set[str]):

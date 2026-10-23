@@ -41,6 +41,26 @@ class TestRsyncMechanism(unittest.TestCase):
         self._mocks["execute"].assert_not_called()
         self._mocks["listdir"].assert_called_once()
 
+    def test_dest_inside_source_warns(self):
+        with self.assertLogs(level="WARNING") as logs:
+            rsync_mechanism.RsyncSnapMechanism().warn_if_dest_inside_source(
+                "/home", "/home/.snaps/@home-"
+            )
+        self.assertTrue(any("inside" in line for line in logs.output))
+        self.assertTrue(any("Nonstandard layout" in line for line in logs.output))
+
+    def test_dest_equal_to_source_warns(self):
+        with self.assertLogs(level="WARNING"):
+            rsync_mechanism.RsyncSnapMechanism().warn_if_dest_inside_source(
+                "/home", "/home/@home-"
+            )
+
+    def test_dest_outside_source_quiet(self):
+        with self.assertNoLogs(level="WARNING"):
+            rsync_mechanism.RsyncSnapMechanism().warn_if_dest_inside_source(
+                "/home", "/.snapshots/@home-"
+            )
+
     def test_hardlink_command_execution(self):
         """Test if the hardlink command is executed correctly."""
         self._mocks["listdir"].return_value = [

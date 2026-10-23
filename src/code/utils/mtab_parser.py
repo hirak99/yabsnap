@@ -69,6 +69,25 @@ def _mount_entries() -> list[_MountEntry]:
     return result
 
 
+def mount_entry_for(path: str) -> _MountEntry | None:
+    """Returns the mtab entry with the longest mount point prefix-matching path.
+
+    Unlike mount_attributes(), this works for any filesystem type and does not
+    resolve subvolume names. Returns None if no mtab entry matches.
+    """
+    best: _MountEntry | None = None
+    best_len = -1
+    for entry in _mount_entries():
+        if entry.fs == "autofs":
+            continue
+        mp = entry.mtab_mount_pt
+        if path == mp or path.startswith(mp.rstrip("/") + "/"):
+            if len(mp) > best_len:
+                best = entry
+                best_len = len(mp)
+    return best
+
+
 @functools.cache
 def mount_attributes(mount_point: str) -> _MountAttributes:
     logging.info(f"Searching {mount_point=} in /etc/mtab.")

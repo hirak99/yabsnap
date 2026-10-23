@@ -314,6 +314,38 @@ class SnapOperatorTest(unittest.TestCase):
         self._exit_stack.close()
         super().tearDown()
 
+    def test_create_warns_when_dest_inside_source(self):
+        with mock.patch.object(
+            btrfs_mechanism.BtrfsSnapMechanism,
+            "warn_if_dest_inside_source",
+        ) as mock_warn:
+            snapper = snap_operator.SnapOperator(
+                config=configs.Config(
+                    config_file="config_file",
+                    source="snap_source",
+                    dest_prefix="dest_prefix",
+                ),
+                now=_FAKE_NOW,
+            )
+            snapper.create(None)
+        mock_warn.assert_called_once_with("snap_source", "dest_prefix")
+
+    def test_scheduled_warns_when_dest_inside_source(self):
+        with mock.patch.object(
+            btrfs_mechanism.BtrfsSnapMechanism,
+            "warn_if_dest_inside_source",
+        ) as mock_warn:
+            snapper = snap_operator.SnapOperator(
+                config=configs.Config(
+                    config_file="config_file",
+                    source="snap_source",
+                    dest_prefix="dest_prefix",
+                ),
+                now=_FAKE_NOW,
+            )
+            snapper.scheduled()
+        mock_warn.assert_called_once_with("snap_source", "dest_prefix")
+
 
 if __name__ == "__main__":
     unittest.main()

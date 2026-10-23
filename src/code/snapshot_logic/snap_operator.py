@@ -20,6 +20,7 @@ from collections.abc import Iterator
 
 from .. import configs
 from .. import global_flags
+from ..mechanisms import snap_mechanisms
 from ..utils import human_interval
 from ..utils import os_utils
 from . import auto_cleanup_without_ttl
@@ -191,6 +192,9 @@ class SnapOperator:
 
     # Part of scheduled().
     def _manage_scheduled_lifecycle(self, snaps: list[snap_holder.Snapshot]):
+        snap_mechanisms.get(self._config.snap_type).warn_if_dest_inside_source(
+            self._config.source, self._config.dest_prefix
+        )
         wait_until = self._next_trigger_time(snaps)
         if wait_until is not None:
             if self._now <= wait_until - configs.DURATION_BUFFER:
@@ -213,6 +217,9 @@ class SnapOperator:
         self, count: int, trigger: str, comment: str | None
     ):
         logging.info(f"Maintain {count} volumes of type {trigger}.")
+        snap_mechanisms.get(self._config.snap_type).warn_if_dest_inside_source(
+            self._config.source, self._config.dest_prefix
+        )
         if not self._config.is_compatible_volume():
             logging.warning(f"Not a compatible volume {self._config.source}.")
             return

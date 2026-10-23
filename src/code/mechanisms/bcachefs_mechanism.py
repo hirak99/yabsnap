@@ -1,7 +1,9 @@
 import logging
+import os
 import shlex
 
 from .. import global_flags
+from ..utils import mtab_parser
 from ..utils import os_utils
 from . import abstract_mechanism
 
@@ -49,6 +51,33 @@ class BcachefsSnapMechanism(abstract_mechanism.SnapMechanism):
             _execute_sh(f"bcachefs subvolume delete {shlex.quote(destination)}")
         except os_utils.CommandError as exc:
             raise RuntimeError("Unable to delete; are you running as root?") from exc
+
+    @override
+    def _nested_dest_reason(self, source: str, dest_prefix: str) -> str | None:
+        destdir = os.path.dirname(dest_prefix.rstrip("/"))
+        if not destdir:
+            return None
+        if not abstract_mechanism.destdir_inside_source(source, dest_prefix):
+            return None
+        # Path-inside is not enough: a separately mounted snapshots subvolume
+        # (the recommended layout) is path-inside but safe. Only warn when both
+        # resolve to the same mount (i.e. no separate mount in between).
+        try:
+            src_entry = mtab_parser.mount_entry_for(os.path.normpath(source))
+            dst_entry = mtab_parser.mount_entry_for(os.path.normpath(destdir))
+        except Exception as exc:  # Never break snapshot creation on a warning.
+            logging.debug(f"Skipping nested-dest check for {source!r}: {exc}")
+            return None
+        if src_entry is None or dst_entry is None:
+            return None
+        if dst_entry.device != src_entry.device:
+            return None
+        if len(dst_entry.mtab_mount_pt) > len(src_entry.mtab_mount_pt):
+            return None  # Snapshot storage is separately mounted; safe.
+        return (
+            f"snapshot storage {destdir!r} is inside the source {source!r} on the same mount; "
+            "move `dest_prefix` to a separately mounted location"
+        )
 
     @override
     def rollback_gen(
