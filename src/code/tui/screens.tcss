@@ -21,6 +21,11 @@
     color: $error;
 }
 
+#rollback-gen-warnings {
+    text-style: bold;
+    color: $warning;
+}
+
 #rollback-script {
     margin-top: 1;
     height: 1fr;

@@ -1,7 +1,9 @@
 """Rollback workflow for the TUI: preview, confirm, execute, report."""
 
+import contextlib
+import logging
 import subprocess
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Generator
 
 from textual import app
 
@@ -9,6 +11,35 @@ from .. import configs
 from ..snapshot_logic import rollbacker
 from ..utils import script_exec
 from . import screens
+
+
+class _WarningCollector(logging.Handler):
+    """logging.Handler storing formatted warnings for display in the TUI."""
+
+    def __init__(self, store: list[str]) -> None:
+        super().__init__(level=logging.WARNING)
+        self._store: list[str] = store
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self._store.append(record.getMessage())
+
+
+@contextlib.contextmanager
+def _captured_warnings() -> Generator[list[str]]:
+    """Collects warnings logged while generating the rollback script.
+
+    Library code reports generation-time caveats (e.g. checks skipped without
+    sudo) via logging, which is invisible under the TUI's alternate screen.
+    Callers can surface the collected lines in a modal instead.
+    """
+    collected: list[str] = []
+    handler = _WarningCollector(collected)
+    root = logging.getLogger()
+    root.addHandler(handler)
+    try:
+        yield collected
+    finally:
+        root.removeHandler(handler)
 
 
 class RollbackFlow:
@@ -33,9 +64,10 @@ class RollbackFlow:
         if target_path is None:
             return
 
-        script_text: str | None = rollbacker.get_rollback_script_text(
-            [config], target_path, subvol_map=None
-        )
+        with _captured_warnings() as generation_warnings:
+            script_text: str | None = rollbacker.get_rollback_script_text(
+                [config], target_path, subvol_map=None
+            )
         if not script_text:
             self._host.notify("Could not generate rollback script", severity="error")
             return
@@ -49,7 +81,10 @@ class RollbackFlow:
             # here) would target the dismissed screen's message pump.
             self._host.call_after_refresh(self._start, script_text)
 
-        self._host.push_screen(screens.RollbackPreviewModal(script_text), on_confirm)
+        self._host.push_screen(
+            screens.RollbackPreviewModal(script_text, warnings=generation_warnings),
+            on_confirm,
+        )
 
     def _start(self, script_text: str) -> None:
         modal = screens.RollbackResultModal()

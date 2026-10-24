@@ -88,9 +88,10 @@ class RollbackPreviewModal(screen.ModalScreen[bool]):
 
     CSS_PATH = "screens.tcss"
 
-    def __init__(self, script_text: str) -> None:
+    def __init__(self, script_text: str, warnings: list[str] | None = None) -> None:
         super().__init__()
         self._script_text: str = script_text
+        self._warnings: list[str] = list(warnings) if warnings else []
 
     def compose(self) -> app.ComposeResult:
         with containers.Vertical(id="rollback-dialog"):
@@ -104,6 +105,11 @@ class RollbackPreviewModal(screen.ModalScreen[bool]):
                 "-- only proceed if you understand what it does.",
                 id="rollback-warning",
             )
+            if self._warnings:
+                yield widgets.Label(
+                    "\n".join(self._warnings),
+                    id="rollback-gen-warnings",
+                )
             yield widgets.TextArea(
                 self._script_text, read_only=True, id="rollback-script"
             )

@@ -1,4 +1,5 @@
 import datetime
+import logging
 import subprocess
 import unittest
 from unittest import mock
@@ -271,6 +272,63 @@ class TestRollbackResultModal(unittest.IsolatedAsyncioTestCase):
                     message = str(warning.render())
                     self.assertIn("Warning", message)
                     self.assertIn("live system", message)
+
+    async def test_preview_shows_generation_warnings(self):
+        def fake_script_text(configs, suffix, subvol_map):
+            logging.getLogger().warning("Cannot check for nested subvolumes in '/x'.")
+            return "#!/bin/bash"
+
+        app = tui_app._YabsnapApp()
+        with mock.patch.object(
+            tui_app.configs, "iterate_configs", return_value=iter([])
+        ):
+            async with app.run_test() as pilot:
+                with (
+                    mock.patch.object(
+                        tui_app.snap_operator,
+                        "get_existing_snaps",
+                        return_value=[self._fake_snap()],
+                    ),
+                    mock.patch.object(
+                        tui_app.rollback_flow.rollbacker,
+                        "get_rollback_script_text",
+                        side_effect=fake_script_text,
+                    ),
+                ):
+                    app._current_config = mock.MagicMock()
+                    app._refresh_snapshots()
+                    app.action_rollback()
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, screens.RollbackPreviewModal)
+                    label = app.screen.query_one(
+                        "#rollback-gen-warnings", widgets.Label
+                    )
+                    self.assertIn("Cannot check", str(label.render()))
+
+    async def test_preview_hides_warnings_when_generation_is_clean(self):
+        app = tui_app._YabsnapApp()
+        with mock.patch.object(
+            tui_app.configs, "iterate_configs", return_value=iter([])
+        ):
+            async with app.run_test() as pilot:
+                with (
+                    mock.patch.object(
+                        tui_app.snap_operator,
+                        "get_existing_snaps",
+                        return_value=[self._fake_snap()],
+                    ),
+                    mock.patch.object(
+                        tui_app.rollback_flow.rollbacker,
+                        "get_rollback_script_text",
+                        return_value="#!/bin/bash",
+                    ),
+                ):
+                    app._current_config = mock.MagicMock()
+                    app._refresh_snapshots()
+                    app.action_rollback()
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, screens.RollbackPreviewModal)
+                    self.assertEqual(len(app.screen.query("#rollback-gen-warnings")), 0)
 
     async def test_success_shows_streamed_output(self):
         async def fake_execute(script_text: str, on_output) -> bool:
