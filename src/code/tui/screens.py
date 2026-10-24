@@ -113,6 +113,80 @@ class RollbackPreviewModal(screen.ModalScreen[bool]):
             event.stop()
 
 
+class RollbackResultModal(screen.ModalScreen[None]):
+    """A modal showing rollback output live, then its final status.
+
+    Output is fed line by line via append_line(); finish() marks the run as done,
+    styles the result (red on failure) and enables the Close button. Lines and
+    status that arrive before the widgets are mounted are buffered and applied
+    on mount. While running, the modal cannot be dismissed.
+    """
+
+    def __init__(self, title: str = "Rollback") -> None:
+        super().__init__()
+        self._title_text: str = title
+        self._finished: bool = False
+        self._status_text: str = "Running rollback script..."
+        self._status_error: bool = False
+        self._pending_lines: list[str] = []
+        self._log: widgets.RichLog | None = None
+
+    def compose(self) -> app.ComposeResult:
+        with containers.Vertical(id="rollback-dialog"):
+            yield widgets.Label(self._title_text, id="dialog-title")
+            yield widgets.Label(self._status_text, id="rollback-status")
+            yield widgets.RichLog(
+                markup=False, highlight=False, wrap=True, id="rollback-log"
+            )
+            with containers.Horizontal(id="dialog-buttons"):
+                yield widgets.Button(
+                    "Close", variant="primary", id="close", disabled=not self._finished
+                )
+
+    def on_mount(self) -> None:
+        self._log = self.query_one("#rollback-log", widgets.RichLog)
+        for line in self._pending_lines:
+            self._log.write(line)
+        self._pending_lines.clear()
+        self._apply_status()
+
+    def append_line(self, line: str) -> None:
+        if self._log is None:
+            self._pending_lines.append(line)
+        else:
+            self._log.write(line)
+
+    def finish(self, message: str, *, error: bool = False) -> None:
+        """Records the final status and allows the modal to be closed."""
+        self._finished = True
+        self._status_text = message
+        self._status_error = error
+        self._apply_status()
+
+    def _apply_status(self) -> None:
+        if self._log is None:
+            # Widgets not mounted yet; on_mount() applies the buffered state.
+            return
+        status: widgets.Label = self.query_one("#rollback-status", widgets.Label)
+        status.update(self._status_text)
+        if self._status_error:
+            status.add_class("-error")
+            self.query_one("#rollback-dialog").add_class("-error")
+        close_button: widgets.Button = self.query_one("#close", widgets.Button)
+        close_button.disabled = False
+        close_button.focus()
+
+    def on_button_pressed(self, event: widgets.Button.Pressed) -> None:
+        if event.button.id == "close":
+            self.dismiss(None)
+
+    async def on_key(self, event: events.Key) -> None:
+        # Not dismissible while the script is still running.
+        if event.key == "escape" and self._finished:
+            self.dismiss(None)
+            event.stop()
+
+
 class ShowJsonModal(screen.ModalScreen[None]):
     """A modal for displaying JSON metadata."""
 

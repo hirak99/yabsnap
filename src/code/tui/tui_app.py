@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import subprocess
+from collections.abc import Awaitable
 
 from textual import app
 from textual import binding
@@ -81,6 +82,24 @@ class _YabsnapApp(app.App[None]):
         border: solid $primary;
     }
 
+    #rollback-log {
+        margin-top: 1;
+        height: 1fr;
+        border: solid $primary;
+    }
+
+    #rollback-status {
+        text-style: bold;
+    }
+
+    #rollback-status.-error {
+        color: $error;
+    }
+
+    #rollback-dialog.-error {
+        border: thick $error;
+    }
+
     #json-display {
         margin-top: 1;
         height: 1fr;
@@ -122,6 +141,7 @@ class _YabsnapApp(app.App[None]):
         self._source_filter: str | None = source_filter
         self._show_keys: bool = show_keys
         self._current_config: configs.Config | None = None
+        self._rollback_running: bool = False
 
     def compose(self) -> app.ComposeResult:
         # Drop the window title bar by commenting out Header.
@@ -199,9 +219,21 @@ class _YabsnapApp(app.App[None]):
     def action_refresh_data(self) -> None:
         self._refresh_snapshots()
 
+    def action_quit(self) -> None:
+        if self._rollback_running:
+            self.notify(
+                "Rollback in progress; please wait for it to finish.",
+                severity="warning",
+            )
+            return
+        self.exit()
+
     def action_create_snapshot(self) -> None:
         if not self._current_config:
             self.notify("No configuration selected", severity="warning")
+            return
+        if self._rollback_running:
+            self.notify("Rollback in progress; please wait.", severity="warning")
             return
 
         def on_modal_result(comment: str | None) -> None:
@@ -228,6 +260,9 @@ class _YabsnapApp(app.App[None]):
 
     def action_delete_snapshot(self) -> None:
         if not self._current_config:
+            return
+        if self._rollback_running:
+            self.notify("Rollback in progress; please wait.", severity="warning")
             return
 
         table: widgets.DataTable[str] = self.query_one(
@@ -265,6 +300,9 @@ class _YabsnapApp(app.App[None]):
     def action_rollback(self) -> None:
         if not self._current_config:
             return
+        if self._rollback_running:
+            self.notify("Rollback already in progress.", severity="warning")
+            return
 
         table: widgets.DataTable[str] = self.query_one(
             "#snapshot-table", widgets.DataTable
@@ -284,31 +322,60 @@ class _YabsnapApp(app.App[None]):
         def on_confirm(confirmed: bool | None) -> None:
             if not confirmed:
                 return None
-            error_message: str | None = None
-            try:
-                # Suspend TUI to run the script.
-                # Errors must be caught inside the `with` block, because
-                # Textual's suspend() does not resume the app if the body raises.
-                with self.suspend():
-                    try:
-                        rollbacker.save_and_execute_script(script_text)
-                    except rollbacker.RollbackExecutionError as e:
-                        error_message = f"Rollback execution failed: {e!s}"
-                    except Exception as e:
-                        error_message = f"An unexpected error occurred: {e!s}"
-            # Intentional, separate from the inner catch: the inner one covers
-            # the script; this one covers suspend() itself, which can still
-            # raise (SuspendNotSupported on enter, resume failure on exit)
-            # and must not escape into Textual's event loop.
-            except Exception as e:
-                self.notify(f"An unexpected error occurred: {e!s}", severity="error")
-                return
-            if error_message is None:
-                self.notify("Rollback script executed successfully.")
-            else:
-                self.notify(error_message, severity="error")
+            self._rollback_running = True
+            # Defer: this callback runs inside the preview screen's message
+            # handler, and pushing a screen from here (or from a worker started
+            # here) would target the dismissed screen's message pump.
+            self.call_after_refresh(self._start_rollback, script_text)
 
         self.push_screen(screens.RollbackPreviewModal(script_text), on_confirm)
+
+    def _start_rollback(self, script_text: str) -> None:
+        modal = screens.RollbackResultModal()
+        mount_complete = self.push_screen(modal)
+        self.run_worker(
+            self._execute_rollback(script_text, modal, mount_complete),
+            name="rollback",
+            exclusive=True,
+        )
+
+    async def _execute_rollback(
+        self,
+        script_text: str,
+        modal: screens.RollbackResultModal,
+        mount_complete: Awaitable[object],
+    ) -> None:
+        """Runs the rollback script, streaming its output into `modal`."""
+        try:
+            # Ensure the modal is mounted before any output is written; the
+            # modal also buffers lines, in case children mount a bit later.
+            await mount_complete
+            executed = await rollbacker.execute_script_streaming(
+                script_text, modal.append_line
+            )
+        except rollbacker.RollbackExecutionError as e:
+            if rollbacker.is_hook_failure(e):
+                modal.finish(
+                    "Post-rollback hook failed (core rollback completed). "
+                    "Reboot to finish the rollback.",
+                    error=True,
+                )
+            else:
+                returncode = (
+                    e.cause.returncode
+                    if isinstance(e.cause, subprocess.CalledProcessError)
+                    else "?"
+                )
+                modal.finish(f"Rollback FAILED (exit code {returncode}).", error=True)
+        except Exception as e:
+            modal.finish(f"Unexpected error: {e!s}", error=True)
+        else:
+            if executed:
+                modal.finish("Rollback script executed. Please reboot.")
+            else:
+                modal.finish("Dry run: the script was not executed.")
+        finally:
+            self._rollback_running = False
 
     def action_view_metadata(self) -> None:
         if not self._current_config:

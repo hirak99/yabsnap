@@ -102,6 +102,50 @@ class TestCreateAndChmodScript(unittest.TestCase):
                 )
 
 
+class TestExecuteScriptStreaming(unittest.IsolatedAsyncioTestCase):
+    """execute_script_streaming(): output capture used by the TUI."""
+
+    async def test_streams_output_in_order(self):
+        lines: list[str] = []
+        executed = await rollbacker.execute_script_streaming(
+            "#!/bin/bash\necho one\necho two", lines.append
+        )
+        self.assertTrue(executed)
+        self.assertEqual(lines, ["one", "two"])
+
+    async def test_failure_captures_merged_output(self):
+        lines: list[str] = []
+        with self.assertRaises(rollbacker.RollbackExecutionError) as ctx:
+            await rollbacker.execute_script_streaming(
+                "#!/bin/bash\necho before\necho boom >&2\nexit 3", lines.append
+            )
+        self.assertEqual(lines, ["before", "boom"])
+        error = ctx.exception
+        self.assertIn("before", error.output)
+        self.assertIn("boom", error.output)
+        assert isinstance(error.cause, subprocess.CalledProcessError)
+        self.assertEqual(error.cause.returncode, 3)
+        self.assertFalse(rollbacker.is_hook_failure(error))
+
+    async def test_hook_failure_code_is_detected(self):
+        with self.assertRaises(rollbacker.RollbackExecutionError) as ctx:
+            await rollbacker.execute_script_streaming(
+                f"#!/bin/bash\nexit {rollbacker._HOOK_FAILURE_CODE}",
+                lambda _: None,
+            )
+        self.assertTrue(rollbacker.is_hook_failure(ctx.exception))
+
+    async def test_dryrun_does_not_execute(self):
+        lines: list[str] = []
+        with mock.patch.object(global_flags.FLAGS, "dryrun", True):
+            executed = await rollbacker.execute_script_streaming(
+                "#!/bin/bash\nexit 1", lines.append
+            )
+        self.assertFalse(executed)
+        self.assertEqual(len(lines), 1)
+        self.assertIn("--dry-run", lines[0])
+
+
 class TestPostRollbackHooks(unittest.TestCase):
     def _fake_config(self, config_file, snap_type, scripts):
         return configs.Config(

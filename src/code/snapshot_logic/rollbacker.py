@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import asyncio
 import collections
+import contextlib
 import os
 import shlex
 import subprocess
 import tempfile
-from collections.abc import Iterable
+from collections.abc import Callable, Generator, Iterable
 
 from .. import configs
 from .. import global_flags
@@ -108,7 +110,42 @@ def get_rollback_script_text(
 
 
 class RollbackExecutionError(Exception):
-    """Raised when execution of the rollback script fails."""
+    """Raised when execution of the rollback script fails.
+
+    Attributes:
+        cause: The underlying error, typically a CalledProcessError.
+        output: Combined stdout/stderr captured so far, joined with newlines.
+            Empty when the script ran with inherited stdio (CLI path), since
+            output then went straight to the terminal.
+    """
+
+    def __init__(self, cause: Exception, output: str = "") -> None:
+        super().__init__(cause)
+        self.cause: Exception = cause
+        self.output: str = output
+
+
+def is_hook_failure(error: RollbackExecutionError) -> bool:
+    """Whether `error` came from a post-rollback hook rather than the rollback.
+
+    Hook failures exit _HOOK_FAILURE_CODE, which lets callers tell "hook failed
+    (core rollback had completed)" apart from "rollback itself failed".
+    """
+    return (
+        isinstance(error.cause, subprocess.CalledProcessError)
+        and error.cause.returncode == _HOOK_FAILURE_CODE
+    )
+
+
+@contextlib.contextmanager
+def _script_file(contents: str) -> Generator[str]:
+    """Writes `contents` to a temporary executable script, yields its path."""
+    with tempfile.TemporaryDirectory(prefix="yabsnap_script") as dir:
+        temp_file_name = os.path.join(dir, "yabsnap_script.sh")
+        with open(temp_file_name, mode="w", encoding="utf_8") as fp:
+            fp.write(contents)
+        os.chmod(temp_file_name, mode=0o700)
+        yield temp_file_name
 
 
 def save_and_execute_script(contents: str) -> None:
@@ -116,12 +153,7 @@ def save_and_execute_script(contents: str) -> None:
         os_utils.eprint("Would execute the script if --dry-run is not passed.")
         return
 
-    with tempfile.TemporaryDirectory(prefix="yabsnap_script") as dir:
-        temp_file_name = os.path.join(dir, "yabsnap_script.sh")
-        with open(temp_file_name, mode="w", encoding="utf_8") as fp:
-            fp.write(contents)
-        os.chmod(temp_file_name, mode=0o700)
-
+    with _script_file(contents) as temp_file_name:
         try:
             subprocess.run(temp_file_name, check=True)
         except subprocess.CalledProcessError as e:
@@ -129,6 +161,58 @@ def save_and_execute_script(contents: str) -> None:
 
     print()
     print("Rollback executed. Please reboot at earliest convenience.")
+
+
+async def execute_script_streaming(
+    contents: str, on_output: Callable[[str], None]
+) -> bool:
+    """Executes the rollback script, forwarding output lines to `on_output`.
+
+    Unlike save_and_execute_script(), stdio is captured instead of inherited, so
+    a caller such as the TUI can present the output instead of having it written
+    to the terminal and lost. Lines are forwarded as they arrive, without their
+    trailing newline; stderr is merged into stdout.
+
+    The script gets no stdin (it is connected to /dev/null), so it cannot prompt.
+
+    Args:
+        contents: The script to run.
+        on_output: Called with each output line, as it is produced.
+
+    Returns:
+        True if the script ran, False in dry-run mode (nothing was executed).
+
+    Raises:
+        RollbackExecutionError: If the script exits non-zero. Its `output`
+            attribute holds everything captured.
+    """
+    if global_flags.FLAGS.dryrun:
+        on_output("Would execute the script if --dry-run is not passed.")
+        return False
+
+    captured: list[str] = []
+
+    def emit(line: str) -> None:
+        captured.append(line)
+        on_output(line)
+
+    with _script_file(contents) as temp_file_name:
+        proc = await asyncio.create_subprocess_exec(
+            temp_file_name,
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        assert proc.stdout is not None
+        async for raw_line in proc.stdout:
+            emit(raw_line.decode(errors="replace").rstrip("\n"))
+        returncode = await proc.wait()
+
+    if returncode != 0:
+        output = "\n".join(captured)
+        cause = subprocess.CalledProcessError(returncode, temp_file_name, output=output)
+        raise RollbackExecutionError(cause, output=output) from cause
+    return True
 
 
 def rollback(
@@ -159,18 +243,10 @@ def rollback(
     try:
         save_and_execute_script(script_text)
     except RollbackExecutionError as e:
-        cause = e.__cause__
-        if cause is None and e.args:
-            # RollbackExecutionError always chains the CalledProcessError via
-            # `raise ... from`, but also look at args for robustness.
-            cause = e.args[0]
-        if (
-            isinstance(cause, subprocess.CalledProcessError)
-            and cause.returncode == _HOOK_FAILURE_CODE
-        ):
+        if is_hook_failure(e):
             os_utils.fatal_error(
                 "A post-rollback hook failed (the core rollback had completed). "
-                f"See 'post-rollback hook failed' line above: {cause!s}"
+                f"See 'post-rollback hook failed' line above: {e.cause!s}"
             )
             return
         os_utils.fatal_error(f"Rollback execution failed: {e!s}")
