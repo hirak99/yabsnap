@@ -31,15 +31,28 @@ def _captured_warnings() -> Generator[list[str]]:
     Library code reports generation-time caveats (e.g. checks skipped without
     sudo) via logging, which is invisible under the TUI's alternate screen.
     Callers can surface the collected lines in a modal instead.
+
+    While capturing, the root logger's own handlers are detached (and
+    `lastResort` neutralized for entry points without logging setup), so a
+    captured warning is shown exactly once, in the modal, instead of also
+    flashing on stderr behind the TUI.
     """
     collected: list[str] = []
     handler = _WarningCollector(collected)
     root = logging.getLogger()
+    saved_handlers = root.handlers[:]
+    for old_handler in saved_handlers:
+        root.removeHandler(old_handler)
+    saved_last_resort = logging.lastResort
+    logging.lastResort = logging.NullHandler()
     root.addHandler(handler)
     try:
         yield collected
     finally:
         root.removeHandler(handler)
+        for old_handler in saved_handlers:
+            root.addHandler(old_handler)
+        logging.lastResort = saved_last_resort
 
 
 class RollbackFlow:
