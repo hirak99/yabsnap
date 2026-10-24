@@ -23,6 +23,29 @@ from . import widgets as tui_widgets
 from typing import ClassVar
 
 
+def _snapshot_row(
+    snap: snap_holder.Snapshot, now: datetime.datetime
+) -> tuple[str, str, str, str, str]:
+    """Formats `snap` as a table row: timestamp, trigger, age, TTL, comment."""
+    # The trigger is a single character (S/I/U, or "" for unknown); show it as a
+    # flag, e.g. "--U" for a user snapshot.
+    trigger_str: str = "".join(c if snap.metadata.trigger == c else "-" for c in "SIU")
+
+    age_str: str = human_interval.humanize((now - snap.snaptime).total_seconds())
+
+    ttl_str: str = ""
+    if snap.metadata.expiry is not None:
+        ttl_str = human_interval.humanize(snap.metadata.expiry - now.timestamp())
+
+    return (
+        snap.snaptime.strftime("%Y-%m-%d %H:%M:%S"),
+        trigger_str,
+        age_str,
+        ttl_str,
+        snap.metadata.comment,
+    )
+
+
 class _YabsnapApp(app.App[None]):
     """The main TUI application for yabsnap."""
 
@@ -192,29 +215,22 @@ class _YabsnapApp(app.App[None]):
 
         now: datetime.datetime = datetime.datetime.now()
         for snap in snap_operator.get_existing_snaps(self._current_config):
-            # Format trigger SIU
-            trigger_str: str = "".join(
-                c if snap.metadata.trigger == c else "-" for c in "SIU"
-            )
+            table.add_row(*_snapshot_row(snap, now), key=snap.target)
 
-            # Age
-            elapsed: float = (now - snap.snaptime).total_seconds()
-            age_str: str = human_interval.humanize(elapsed)
+    def _selected_target(self) -> str | None:
+        """The target path of the snapshot under the cursor, if there is one.
 
-            # TTL
-            ttl_str: str = ""
-            if snap.metadata.expiry is not None:
-                ttl: float = snap.metadata.expiry - now.timestamp()
-                ttl_str = human_interval.humanize(ttl)
-
-            table.add_row(
-                snap.snaptime.strftime("%Y-%m-%d %H:%M:%S"),
-                trigger_str,
-                age_str,
-                ttl_str,
-                snap.metadata.comment,
-                key=snap.target,
-            )
+        Notifies the user when no snapshot is selected, since every action that
+        operates on a single snapshot needs the same check.
+        """
+        table: widgets.DataTable[str] = self.query_one(
+            "#snapshot-table", widgets.DataTable
+        )
+        if table.row_count == 0:
+            self.notify("No snapshot selected", severity="warning")
+            return None
+        row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
+        return str(row_key.value)
 
     def action_refresh_data(self) -> None:
         self._refresh_snapshots()
@@ -265,12 +281,9 @@ class _YabsnapApp(app.App[None]):
             self.notify("Rollback in progress; please wait.", severity="warning")
             return
 
-        table: widgets.DataTable[str] = self.query_one(
-            "#snapshot-table", widgets.DataTable
-        )
-
-        row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
-        target_path: str = str(row_key.value)
+        target_path: str | None = self._selected_target()
+        if target_path is None:
+            return
 
         def on_confirm(confirmed: bool | None) -> None:
             if not confirmed:
@@ -304,12 +317,9 @@ class _YabsnapApp(app.App[None]):
             self.notify("Rollback already in progress.", severity="warning")
             return
 
-        table: widgets.DataTable[str] = self.query_one(
-            "#snapshot-table", widgets.DataTable
-        )
-
-        row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
-        target_path: str = str(row_key.value)
+        target_path: str | None = self._selected_target()
+        if target_path is None:
+            return
 
         script_text: str | None = rollbacker.get_rollback_script_text(
             [self._current_config], target_path, subvol_map=None
@@ -381,15 +391,8 @@ class _YabsnapApp(app.App[None]):
         if not self._current_config:
             return
 
-        table: widgets.DataTable[str] = self.query_one(
-            "#snapshot-table", widgets.DataTable
-        )
-
-        try:
-            row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
-            target_path: str = str(row_key.value)
-        except Exception:
-            self.notify("No snapshot selected", severity="warning")
+        target_path: str | None = self._selected_target()
+        if target_path is None:
             return
 
         try:
@@ -410,15 +413,8 @@ class _YabsnapApp(app.App[None]):
         if not self._current_config:
             return
 
-        table: widgets.DataTable[str] = self.query_one(
-            "#snapshot-table", widgets.DataTable
-        )
-
-        try:
-            row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
-            target_path: str = str(row_key.value)
-        except Exception:
-            self.notify("No snapshot selected", severity="warning")
+        target_path: str | None = self._selected_target()
+        if target_path is None:
             return
 
         if not os.path.isdir(target_path):
