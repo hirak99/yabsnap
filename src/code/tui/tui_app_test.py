@@ -244,6 +244,34 @@ class TestRollbackResultModal(unittest.IsolatedAsyncioTestCase):
                     await pilot.pause()
                     check(app.screen, app)
 
+    async def test_preview_warns_about_risk(self):
+        app = tui_app._YabsnapApp()
+        with mock.patch.object(
+            tui_app.configs, "iterate_configs", return_value=iter([])
+        ):
+            async with app.run_test() as pilot:
+                with (
+                    mock.patch.object(
+                        tui_app.snap_operator,
+                        "get_existing_snaps",
+                        return_value=[self._fake_snap()],
+                    ),
+                    mock.patch.object(
+                        tui_app.rollback_flow.rollbacker,
+                        "get_rollback_script_text",
+                        return_value="#!/bin/bash",
+                    ),
+                ):
+                    app._current_config = mock.MagicMock()
+                    app._refresh_snapshots()
+                    app.action_rollback()
+                    await pilot.pause()
+                    self.assertIsInstance(app.screen, screens.RollbackPreviewModal)
+                    warning = app.screen.query_one("#rollback-warning", widgets.Label)
+                    message = str(warning.render())
+                    self.assertIn("Warning", message)
+                    self.assertIn("live system", message)
+
     async def test_success_shows_streamed_output(self):
         async def fake_execute(script_text: str, on_output) -> bool:
             on_output("line one")

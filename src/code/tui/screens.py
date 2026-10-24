@@ -98,6 +98,12 @@ class RollbackPreviewModal(screen.ModalScreen[bool]):
             yield widgets.Label(
                 "Please review the rollback script below before execution."
             )
+            yield widgets.Label(
+                "Warning: executing this script replaces live system "
+                "subvolumes. Review every command below "
+                "-- only proceed if you understand what it does.",
+                id="rollback-warning",
+            )
             yield widgets.TextArea(
                 self._script_text, read_only=True, id="rollback-script"
             )

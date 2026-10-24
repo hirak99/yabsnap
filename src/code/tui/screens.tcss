@@ -16,6 +16,11 @@
     align: center middle;
 }
 
+#rollback-warning {
+    text-style: bold;
+    color: $error;
+}
+
 #rollback-script {
     margin-top: 1;
     height: 1fr;
