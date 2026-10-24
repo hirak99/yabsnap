@@ -10,6 +10,8 @@ from typing import Literal
 class CreateModal(screen.ModalScreen[str | None]):
     """A modal for entering a snapshot comment."""
 
+    CSS_PATH = "screens.tcss"
+
     def compose(self) -> app.ComposeResult:
         with containers.Vertical(id="dialog"):
             yield widgets.Label("Create User Snapshot", id="dialog-title")
@@ -41,6 +43,8 @@ type _ButtonVariant = Literal["primary", "error"]
 
 class ConfirmModal(screen.ModalScreen[bool]):
     """A generic confirmation modal."""
+
+    CSS_PATH = "screens.tcss"
 
     def __init__(
         self,
@@ -82,6 +86,8 @@ class ConfirmModal(screen.ModalScreen[bool]):
 class RollbackPreviewModal(screen.ModalScreen[bool]):
     """A modal for previewing a rollback script."""
 
+    CSS_PATH = "screens.tcss"
+
     def __init__(self, script_text: str) -> None:
         super().__init__()
         self._script_text: str = script_text
@@ -121,6 +127,8 @@ class RollbackResultModal(screen.ModalScreen[None]):
     status that arrive before the widgets are mounted are buffered and applied
     on mount. While running, the modal cannot be dismissed.
     """
+
+    CSS_PATH = "screens.tcss"
 
     def __init__(self, title: str = "Rollback") -> None:
         super().__init__()
@@ -189,6 +197,8 @@ class RollbackResultModal(screen.ModalScreen[None]):
 
 class ShowJsonModal(screen.ModalScreen[None]):
     """A modal for displaying JSON metadata."""
+
+    CSS_PATH = "screens.tcss"
 
     def __init__(self, title: str, json_text: str) -> None:
         super().__init__()

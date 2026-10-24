@@ -1,0 +1,29 @@
+Screen {
+    layout: horizontal;
+    layers: base overlay;
+}
+
+#sidebar {
+    width: 35;
+    background: $panel;
+    border-right: tall $primary;
+}
+
+#main-content {
+    width: 1fr;
+}
+
+.config-item {
+    padding: 0 1;
+}
+
+DataTable {
+    height: 1fr;
+}
+
+#sidebar-header {
+    padding: 1 2;
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}

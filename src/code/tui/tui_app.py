@@ -49,103 +49,12 @@ def _snapshot_row(
 class _YabsnapApp(app.App[None]):
     """The main TUI application for yabsnap."""
 
-    CSS = (
-        """
-    Screen {
-        layout: horizontal;
-        layers: base overlay;
-    }
+    # App chrome lives in app.tcss; modal styling lives next to the modals, in
+    # screens.tcss.
+    CSS_PATH = "app.tcss"
 
-    #sidebar {
-        width: 35;
-        background: $panel;
-        border-right: tall $primary;
-    }
-
-    #main-content {
-        width: 1fr;
-    }
-
-    .config-item {
-        padding: 0 1;
-    }
-
-    DataTable {
-        height: 1fr;
-    }
-
-    #sidebar-header {
-        padding: 1 2;
-        background: $primary;
-        color: $text;
-        text-style: bold;
-    }
-
-    #dialog {
-        padding: 1 2;
-        width: 60;
-        max-height: 80%;
-        border: thick $primary;
-        background: $surface;
-        align: center middle;
-    }
-
-    #rollback-dialog {
-        padding: 1 2;
-        width: 90%;
-        height: 90%;
-        border: thick $primary;
-        background: $surface;
-        align: center middle;
-    }
-
-    #rollback-script {
-        margin-top: 1;
-        height: 1fr;
-        border: solid $primary;
-    }
-
-    #rollback-log {
-        margin-top: 1;
-        height: 1fr;
-        border: solid $primary;
-    }
-
-    #rollback-status {
-        text-style: bold;
-    }
-
-    #rollback-status.-error {
-        color: $error;
-    }
-
-    #rollback-dialog.-error {
-        border: thick $error;
-    }
-
-    #json-display {
-        margin-top: 1;
-        height: 1fr;
-        border: solid $primary;
-    }
-
-    #dialog-title {
-        text-style: bold;
-        margin-bottom: 1;
-    }
-
-    #dialog-buttons {
-        margin-top: 1;
-        height: auto;
-        align: right middle;
-    }
-
-    #dialog-buttons Button {
-        margin-left: 1;
-    }
-    """
-        + keypress_overlay.CSS
-    )
+    # Loaded after CSS_PATH.
+    CSS = keypress_overlay.CSS
 
     BINDINGS: ClassVar[list[binding.BindingType]] = [
         binding.Binding("q", "quit", "Quit", show=True),

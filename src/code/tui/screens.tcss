@@ -1,0 +1,62 @@
+#dialog {
+    padding: 1 2;
+    width: 60;
+    max-height: 80%;
+    border: thick $primary;
+    background: $surface;
+    align: center middle;
+}
+
+#rollback-dialog {
+    padding: 1 2;
+    width: 90%;
+    height: 90%;
+    border: thick $primary;
+    background: $surface;
+    align: center middle;
+}
+
+#rollback-script {
+    margin-top: 1;
+    height: 1fr;
+    border: solid $primary;
+}
+
+#rollback-log {
+    margin-top: 1;
+    height: 1fr;
+    border: solid $primary;
+}
+
+#rollback-status {
+    text-style: bold;
+}
+
+#rollback-status.-error {
+    color: $error;
+}
+
+#rollback-dialog.-error {
+    border: thick $error;
+}
+
+#json-display {
+    margin-top: 1;
+    height: 1fr;
+    border: solid $primary;
+}
+
+#dialog-title {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#dialog-buttons {
+    margin-top: 1;
+    height: auto;
+    align: right middle;
+}
+
+#dialog-buttons Button {
+    margin-left: 1;
+}

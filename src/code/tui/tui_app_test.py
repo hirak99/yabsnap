@@ -147,6 +147,39 @@ class TestSnapshotSelection(unittest.IsolatedAsyncioTestCase):
                     mock_script.assert_not_called()
 
 
+class TestStylesheets(unittest.IsolatedAsyncioTestCase):
+    """Styling lives in .tcss files, next to the widgets that use it.
+
+    A CSS_PATH that does not resolve would otherwise show up only as an
+    unstyled TUI at runtime.
+    """
+
+    async def test_app_styles_are_loaded(self):
+        app = tui_app._YabsnapApp()
+        with mock.patch.object(
+            tui_app.configs, "iterate_configs", return_value=iter([])
+        ):
+            async with app.run_test():
+                sidebar = app.query_one("#sidebar")
+                self.assertEqual(str(sidebar.styles.width), "35")
+                header = app.query_one("#sidebar-header")
+                self.assertEqual(str(header.styles.text_style), "bold")
+
+    async def test_modal_styles_are_loaded(self):
+        app = tui_app._YabsnapApp()
+        with mock.patch.object(
+            tui_app.configs, "iterate_configs", return_value=iter([])
+        ):
+            async with app.run_test() as pilot:
+                app.push_screen(screens.CreateModal())
+                await pilot.pause()
+
+                dialog = app.screen.query_one("#dialog")
+                self.assertEqual(str(dialog.styles.width), "60")
+                title = dialog.query_one("#dialog-title")
+                self.assertEqual(str(title.styles.text_style), "bold")
+
+
 class TestAppStartup(unittest.IsolatedAsyncioTestCase):
     """Basic smoke test to ensure the app can be instantiated and initialized."""
 
