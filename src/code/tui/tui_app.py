@@ -2,7 +2,6 @@ import datetime
 import json
 import os
 import subprocess
-from collections.abc import Awaitable
 
 from textual import app
 from textual import binding
@@ -11,12 +10,12 @@ from textual import events
 from textual import widgets
 
 from .. import configs
-from ..snapshot_logic import rollbacker
 from ..snapshot_logic import snap_holder
 from ..snapshot_logic import snap_operator
 from ..utils import human_interval
 from ..utils import time_lock
 from . import keypress_overlay
+from . import rollback_flow
 from . import screens
 from . import widgets as tui_widgets
 
@@ -73,7 +72,9 @@ class _YabsnapApp(app.App[None]):
         self._source_filter: str | None = source_filter
         self._show_keys: bool = show_keys
         self._current_config: configs.Config | None = None
-        self._rollback_running: bool = False
+        self._rollback_flow: rollback_flow.RollbackFlow = rollback_flow.RollbackFlow(
+            self
+        )
 
     def compose(self) -> app.ComposeResult:
         # Drop the window title bar by commenting out Header.
@@ -145,7 +146,7 @@ class _YabsnapApp(app.App[None]):
         self._refresh_snapshots()
 
     def action_quit(self) -> None:
-        if self._rollback_running:
+        if self._rollback_flow.is_running:
             self.notify(
                 "Rollback in progress; please wait for it to finish.",
                 severity="warning",
@@ -157,7 +158,7 @@ class _YabsnapApp(app.App[None]):
         if not self._current_config:
             self.notify("No configuration selected", severity="warning")
             return
-        if self._rollback_running:
+        if self._rollback_flow.is_running:
             self.notify("Rollback in progress; please wait.", severity="warning")
             return
 
@@ -186,7 +187,7 @@ class _YabsnapApp(app.App[None]):
     def action_delete_snapshot(self) -> None:
         if not self._current_config:
             return
-        if self._rollback_running:
+        if self._rollback_flow.is_running:
             self.notify("Rollback in progress; please wait.", severity="warning")
             return
 
@@ -222,79 +223,12 @@ class _YabsnapApp(app.App[None]):
     def action_rollback(self) -> None:
         if not self._current_config:
             return
-        if self._rollback_running:
+        if self._rollback_flow.is_running:
             self.notify("Rollback already in progress.", severity="warning")
             return
 
         target_path: str | None = self._selected_target()
-        if target_path is None:
-            return
-
-        script_text: str | None = rollbacker.get_rollback_script_text(
-            [self._current_config], target_path, subvol_map=None
-        )
-
-        if not script_text:
-            self.notify("Could not generate rollback script", severity="error")
-            return
-
-        def on_confirm(confirmed: bool | None) -> None:
-            if not confirmed:
-                return None
-            self._rollback_running = True
-            # Defer: this callback runs inside the preview screen's message
-            # handler, and pushing a screen from here (or from a worker started
-            # here) would target the dismissed screen's message pump.
-            self.call_after_refresh(self._start_rollback, script_text)
-
-        self.push_screen(screens.RollbackPreviewModal(script_text), on_confirm)
-
-    def _start_rollback(self, script_text: str) -> None:
-        modal = screens.RollbackResultModal()
-        mount_complete = self.push_screen(modal)
-        self.run_worker(
-            self._execute_rollback(script_text, modal, mount_complete),
-            name="rollback",
-            exclusive=True,
-        )
-
-    async def _execute_rollback(
-        self,
-        script_text: str,
-        modal: screens.RollbackResultModal,
-        mount_complete: Awaitable[object],
-    ) -> None:
-        """Runs the rollback script, streaming its output into `modal`."""
-        try:
-            # Ensure the modal is mounted before any output is written; the
-            # modal also buffers lines, in case children mount a bit later.
-            await mount_complete
-            executed = await rollbacker.execute_script_streaming(
-                script_text, modal.append_line
-            )
-        except rollbacker.RollbackExecutionError as e:
-            if rollbacker.is_hook_failure(e):
-                modal.finish(
-                    "Post-rollback hook failed (core rollback completed). "
-                    "Reboot to finish the rollback.",
-                    error=True,
-                )
-            else:
-                returncode = (
-                    e.cause.returncode
-                    if isinstance(e.cause, subprocess.CalledProcessError)
-                    else "?"
-                )
-                modal.finish(f"Rollback FAILED (exit code {returncode}).", error=True)
-        except Exception as e:
-            modal.finish(f"Unexpected error: {e!s}", error=True)
-        else:
-            if executed:
-                modal.finish("Rollback script executed. Please reboot.")
-            else:
-                modal.finish("Dry run: the script was not executed.")
-        finally:
-            self._rollback_running = False
+        self._rollback_flow.request(self._current_config, target_path)
 
     def action_view_metadata(self) -> None:
         if not self._current_config:

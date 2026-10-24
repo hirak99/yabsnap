@@ -134,7 +134,7 @@ class TestSnapshotSelection(unittest.IsolatedAsyncioTestCase):
                         tui_app.snap_operator, "get_existing_snaps", return_value=[]
                     ),
                     mock.patch.object(
-                        tui_app.rollbacker, "get_rollback_script_text"
+                        tui_app.rollback_flow.rollbacker, "get_rollback_script_text"
                     ) as mock_script,
                 ):
                     app._current_config = mock.MagicMock()
@@ -225,13 +225,13 @@ class TestRollbackResultModal(unittest.IsolatedAsyncioTestCase):
                         return_value=[self._fake_snap()],
                     ),
                     mock.patch.object(
-                        tui_app.rollbacker,
+                        tui_app.rollback_flow.rollbacker,
                         "get_rollback_script_text",
                         return_value="#!/bin/bash",
                     ),
                     mock.patch.object(
-                        tui_app.rollbacker,
-                        "execute_script_streaming",
+                        tui_app.rollback_flow.script_exec,
+                        "execute_streaming",
                         side_effect=fake_execute,
                     ),
                 ):
@@ -261,7 +261,7 @@ class TestRollbackResultModal(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(status.has_class("-error"))
             close_button = current_screen.query_one("#close", widgets.Button)
             self.assertFalse(close_button.disabled)
-            self.assertFalse(app._rollback_running)
+            self.assertFalse(app._rollback_flow.is_running)
 
         await self._run_rollback(fake_execute, check)
 
@@ -271,7 +271,7 @@ class TestRollbackResultModal(unittest.IsolatedAsyncioTestCase):
             cause = subprocess.CalledProcessError(
                 1, "yabsnap_script.sh", output="btrfs: device not found"
             )
-            raise tui_app.rollbacker.RollbackExecutionError(cause)
+            raise tui_app.rollback_flow.rollbacker.RollbackExecutionError(cause)
 
         def check(current_screen, app) -> None:
             log = current_screen.query_one("#rollback-log", widgets.RichLog)
@@ -285,7 +285,7 @@ class TestRollbackResultModal(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(
                 current_screen.query_one("#rollback-dialog").has_class("-error")
             )
-            self.assertFalse(app._rollback_running)
+            self.assertFalse(app._rollback_flow.is_running)
 
         await self._run_rollback(fake_execute, check)
 
@@ -293,9 +293,9 @@ class TestRollbackResultModal(unittest.IsolatedAsyncioTestCase):
         async def fake_execute(script_text: str, on_output) -> bool:
             on_output("post-rollback hook failed (exit 3): /usr/local/bin/hook.sh")
             cause = subprocess.CalledProcessError(
-                tui_app.rollbacker._HOOK_FAILURE_CODE, "yabsnap_script.sh"
+                tui_app.rollback_flow.rollbacker._HOOK_FAILURE_CODE, "yabsnap_script.sh"
             )
-            raise tui_app.rollbacker.RollbackExecutionError(cause)
+            raise tui_app.rollback_flow.rollbacker.RollbackExecutionError(cause)
 
         def check(current_screen, app) -> None:
             status = current_screen.query_one("#rollback-status", widgets.Label)

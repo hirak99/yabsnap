@@ -11,6 +11,7 @@ from .. import global_flags
 from ..mechanisms import snap_mechanisms
 from ..mechanisms import snap_type_enum
 from ..utils import os_utils
+from ..utils import script_exec
 from . import rollbacker
 from . import snap_operator
 
@@ -102,48 +103,22 @@ class TestCreateAndChmodScript(unittest.TestCase):
                 )
 
 
-class TestExecuteScriptStreaming(unittest.IsolatedAsyncioTestCase):
-    """execute_script_streaming(): output capture used by the TUI."""
+class TestHookFailureDetection(unittest.IsolatedAsyncioTestCase):
+    """Hook-failure attribution, the rollback-specific part of execution."""
 
-    async def test_streams_output_in_order(self):
-        lines: list[str] = []
-        executed = await rollbacker.execute_script_streaming(
-            "#!/bin/bash\necho one\necho two", lines.append
+    def test_non_hook_failure_is_not_hook_failure(self):
+        error = script_exec.ScriptExecutionError(
+            subprocess.CalledProcessError(3, "yabsnap_script.sh")
         )
-        self.assertTrue(executed)
-        self.assertEqual(lines, ["one", "two"])
-
-    async def test_failure_captures_merged_output(self):
-        lines: list[str] = []
-        with self.assertRaises(rollbacker.RollbackExecutionError) as ctx:
-            await rollbacker.execute_script_streaming(
-                "#!/bin/bash\necho before\necho boom >&2\nexit 3", lines.append
-            )
-        self.assertEqual(lines, ["before", "boom"])
-        error = ctx.exception
-        self.assertIn("before", error.output)
-        self.assertIn("boom", error.output)
-        assert isinstance(error.cause, subprocess.CalledProcessError)
-        self.assertEqual(error.cause.returncode, 3)
         self.assertFalse(rollbacker.is_hook_failure(error))
 
     async def test_hook_failure_code_is_detected(self):
-        with self.assertRaises(rollbacker.RollbackExecutionError) as ctx:
-            await rollbacker.execute_script_streaming(
+        with self.assertRaises(script_exec.ScriptExecutionError) as ctx:
+            await script_exec.execute_streaming(
                 f"#!/bin/bash\nexit {rollbacker._HOOK_FAILURE_CODE}",
                 lambda _: None,
             )
         self.assertTrue(rollbacker.is_hook_failure(ctx.exception))
-
-    async def test_dryrun_does_not_execute(self):
-        lines: list[str] = []
-        with mock.patch.object(global_flags.FLAGS, "dryrun", True):
-            executed = await rollbacker.execute_script_streaming(
-                "#!/bin/bash\nexit 1", lines.append
-            )
-        self.assertFalse(executed)
-        self.assertEqual(len(lines), 1)
-        self.assertIn("--dry-run", lines[0])
 
 
 class TestPostRollbackHooks(unittest.TestCase):
