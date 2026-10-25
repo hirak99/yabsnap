@@ -122,6 +122,13 @@ Below is an example layout.
 | @home (optional) | `/home`       | `subvol=@home`       |
 | @.snapshots      | `/.snapshots` | `subvol=@.snapshots` |
 
+### Special Directories
+
+| Path                 | Comments |
+| -------------------- | -------- |
+| `/var/lib/machines`  | On btrfs, `systemd-tmpfiles` creates this as a nested subvolume if the path is missing - even if you never use `systemd-nspawn` or portable services. To avoid nested subvolumes, either create a top level subvolume (e.g. `@var_lib_machines`) and mount it here, or delete the nested subvolume and leave an empty directory. Note that deleting it discards any images stored inside. |
+| `/var/lib/portables` | Same as `/var/lib/machines`. |
+
 You can also refer to [suggested filesystem layout in Arch Wiki here](https://wiki.archlinux.org/title/Snapper#Suggested_filesystem_layout).
 
 Tips -
@@ -132,7 +139,7 @@ Tips -
 
 ### Example Shell commands to set up
 
-Assuming you already have root mounted from a subvolume (e.g. `@`), below are some shell commands to create `@.snapshot` -
+Assuming you already have root mounted from a subvolume (e.g. `@`), below are some shell commands to create `@.snapshots` -
 
 ```sh
 # Mount the top level subvolume (id 5) into a temporary mount dir.
@@ -143,6 +150,19 @@ mount --mkdir /dev/sdX $TOP -t btrfs -o subvolid=5
 btrfs subvolume create $TOP/@.snapshots
 # Also need directory to mount @.snapshots into -
 mkdir /.snapshots
+
+# Special paths -
+# systemd creates these as nested subvolumes if they are missing. On an
+# existing system they are already there, so delete them first (they must be
+# empty, and unmounted if you mounted them separately). This deletes any
+# images inside, so move them out first. Ignore errors about missing paths
+# on a fresh install.
+btrfs subvolume delete /var/lib/machines /var/lib/portables
+mkdir -p /var/lib/machines /var/lib/portables
+# OR create top level subvolumes instead, and mount them via the matching
+# fstab lines below.
+# btrfs subvolume create $TOP/@var_lib_machines
+# btrfs subvolume create $TOP/@var_lib_portables
 ```
 
 ### fstab
@@ -150,11 +170,17 @@ And then add a line to your `fstab` to mount the @.snapshots subvolume on every 
 
 Example lines for fstab -
 ```fstab
-# fstab: Example for root. Notably, use subvol=/@, do not use subvolid.
+# /etc/fstab
+
+# Example for root. Notably, use subvol=/@, do not use subvolid.
 UUID=BTRFS_VOL_UUID  /  btrfs  rw,noatime,ssd,space_cache=v2,subvol=/@,compress=zstd  0  1
 
-# fstab: Example for /.snapshots.
+# Example for /.snapshots.
 UUID=BTRFS_VOL_UUID  /.snapshots  btrfs  rw,noatime,ssd,space_cache=v2,subvolid=260,subvol=/@.snapshots  0  2
+
+# Uncomment if you choose to use subvolumes for these paths.
+# UUID=BTRFS_VOL_UUID  /var/lib/machines    btrfs  rw,noatime,ssd,space_cache=v2,subvol=/@var_lib_machines   0  2
+# UUID=BTRFS_VOL_UUID  /var/lib/portables   btrfs  rw,noatime,ssd,space_cache=v2,subvol=/@var_lib_portables  0  2
 ```
 
 Replace `BTRFS_VOL_UUID` with the uuid from `lsblk
