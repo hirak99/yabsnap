@@ -259,8 +259,11 @@ def rollback_gen(
                 f"Rolling back snapshot of nested subvolume {script_live_path!r} is experimental."
             )
 
+        # Normalize '/' so the post-reboot path matches the top-level backup name.
+        # E.g. script_live_path='volume/nested1' -> '.../rollback_..._volume_nested1',
+        # not '.../rollback_..._volume/nested1' (a nonexistent subdirectory).
         backup_path_after_reboot = shlex.quote(
-            f"{os.path.dirname(snap.target)}/rollback_{now_str}_{script_live_path}"
+            f"{os.path.dirname(snap.target)}/rollback_{now_str}_{script_live_path.replace('/', '_')}"
         )
         sh_lines.append(f"mv {script_live_path} {backup_path}")
         backup_paths.append(backup_path_after_reboot)

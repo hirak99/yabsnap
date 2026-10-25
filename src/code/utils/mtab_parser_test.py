@@ -86,3 +86,29 @@ class TestCommonFsUtils(unittest.TestCase):
                 mtab_parser.mount_attributes("/testnested"),
                 mtab_parser._MountAttributes("/dev/vda2", "/@/testnested", 258),
             )
+
+    def test_nested_dir_under_nonroot_mount(self):
+        # Issue #90: plain dir inside a non-root mount (e.g. '/.snapshots/@'
+        # inside '@.snapshots') must keep the parent prefix. Old
+        # os.path.join(base, '/@') discarded base and returned '/@'.
+        findmnt_json = {
+            "filesystems": [
+                {
+                    "target": "/",
+                    "source": "/dev/BLOCKDEV1",
+                    "fstype": "btrfs",
+                    "options": "rw,subvolid=257,subvol=/@",
+                },
+                {
+                    "target": "/.snapshots",
+                    "source": "/dev/BLOCKDEV1",
+                    "fstype": "btrfs",
+                    "options": "rw,subvolid=258,subvol=/@.snapshots",
+                },
+            ]
+        }
+        with mock.patch.object(mtab_parser, "_findmnt", return_value=findmnt_json):
+            self.assertEqual(
+                mtab_parser.mount_attributes("/.snapshots/@"),
+                mtab_parser._MountAttributes("/dev/BLOCKDEV1", "/@.snapshots/@", 258),
+            )

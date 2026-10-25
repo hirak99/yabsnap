@@ -140,7 +140,9 @@ def mount_attributes(mount_point: str) -> _MountAttributes:
         # REVISED subvol_name="/@/testnested"
         #
         nested_part = mount_point.removeprefix(matched_line.mtab_mount_pt)
-        subvol_name = os.path.join(subvol_name, nested_part)
+        # lstrip: nested_part keeps a leading '/' when the match isn't '/';
+        # without this, join() would discard subvol_name (see issue #90).
+        subvol_name = os.path.join(subvol_name, nested_part.lstrip("/"))
     return _MountAttributes(
         device=matched_line.device, subvol_name=subvol_name, subvol_id=subvol_id
     )

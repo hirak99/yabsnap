@@ -137,17 +137,17 @@ mount /dev/BLOCKDEV1 /run/mount/_yabsnap_internal_0 -o subvolid=5
 
 cd /run/mount/_yabsnap_internal_0
 
-mv nested1 snaps/rollback_20220202220000_nested1
-btrfs subvolume snapshot /vol/snaps/@home-20220101130000 nested1
+mv volume/nested1 volume/snaps/rollback_20220202220000_volume_nested1
+btrfs subvolume snapshot /vol/snaps/@home-20220101130000 volume/nested1
 
-mv nested2 snaps/rollback_20220202220000_nested2
-btrfs subvolume snapshot /vol/snaps/@root-20220101140000 nested2
+mv volume/nested2 volume/snaps/rollback_20220202220000_volume_nested2
+btrfs subvolume snapshot /vol/snaps/@root-20220101140000 volume/nested2
 
 echo Please reboot to complete the rollback.
 echo
 echo After reboot you may delete -
-echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested1"
-echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_nested2"
+echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_volume_nested1"
+echo "# sudo btrfs subvolume delete /vol/snaps/rollback_20220202220000_volume_nested2"
 """
         self.assertEqual(generated, expected.splitlines())
 
@@ -246,6 +246,59 @@ echo "# sudo btrfs subvolume delete /snaps/rollback_20220202220000_subv_root"
                 snapshots=[s.to_light_snapshot() for s in snaps_list],
                 subvol_map=None,
             )
+
+    def test_rollback_btrfs_trailing_slash_dest(self):
+        # Issue #90: dest_prefix with trailing '/' (e.g. '/.snapshots/@/')
+        # stores snaps in a plain dir inside the separate '@.snapshots' subvol.
+        # Must resolve to '@.snapshots/@', not '@' (old os.path.join bug
+        # dropped the prefix when nested_part kept its leading '/').
+        snaps_list = [
+            snap_holder.Snapshot("/.snapshots/@/20220101130000"),
+        ]
+        snaps_list[0].metadata.source = "/"
+
+        findmnt_json = {
+            "filesystems": [
+                {
+                    "target": "/",
+                    "source": "/dev/BLOCKDEV1",
+                    "fstype": "btrfs",
+                    "options": "rw,subvolid=257,subvol=/@",
+                },
+                {
+                    "target": "/.snapshots",
+                    "source": "/dev/BLOCKDEV1",
+                    "fstype": "btrfs",
+                    "options": "rw,subvolid=258,subvol=/@.snapshots",
+                },
+            ]
+        }
+
+        with (
+            mock.patch.object(mtab_parser, "_findmnt", return_value=findmnt_json),
+            mock.patch.object(
+                rollback_btrfs, "_get_now_str", return_value="20220202220000"
+            ),
+        ):
+            generated = rollback_btrfs.rollback_gen(
+                snapshots=[s.to_light_snapshot() for s in snaps_list],
+                subvol_map=None,
+            )
+
+        expected = """mkdir -p /run/mount/_yabsnap_internal_0
+mount /dev/BLOCKDEV1 /run/mount/_yabsnap_internal_0 -o subvolid=5
+
+cd /run/mount/_yabsnap_internal_0
+
+mv @ @.snapshots/@/rollback_20220202220000_@
+btrfs subvolume snapshot /.snapshots/@/20220101130000 @
+
+echo Please reboot to complete the rollback.
+echo
+echo After reboot you may delete -
+echo "# sudo btrfs subvolume delete /.snapshots/@/rollback_20220202220000_@"
+"""
+        self.assertEqual(generated, expected.splitlines())
 
 
 if __name__ == "__main__":
