@@ -1,0 +1,113 @@
+name: Bug report
+description: Report a problem with yabsnap. Poorly described reports take several rounds to debug — please fill in all sections.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Many yabsnap bugs turn out to be layout-specific (especially rollback),
+        so the **Version**, **Config**, **Command / TUI steps**, and **Disk layout** sections below are required.
+        Providing them up front avoids extra back-and-forth.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `yabsnap --version`. If installed from git, include the git hash.
+      placeholder: "e.g. 2.4.2 (or v2.4.2 r2.g0624f6f (git))"
+    validations:
+      required: true
+
+  - type: input
+    id: distro
+    attributes:
+      label: Distro
+      description: e.g. Arch, Fedora, Ubuntu + version.
+      placeholder: "e.g. Arch, up to date as of 2026-10-25"
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Config file(s)
+      description: Paste the full triggering config (usually under /etc/yabsnap/configs/). Mask nothing — there are no secrets in these files.
+      placeholder: |
+        Paste output of (tail prints each filename as a header):
+          tail -n +1 /etc/yabsnap/configs/*.conf
+        Or if the issue is specific to one config, just that file.
+      render: ini
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or TUI steps, and full output
+      description: >-
+        CLI: the exact command you ran and its complete output (not a paraphrase).
+        TUI: the screens/buttons you went through (e.g. TUI → Rollback → selected snapshot → preview)
+        plus the script text from the preview modal and any error shown. If you cannot copy from the TUI,
+        re-run the equivalent `rollback-gen` CLI command for the same snapshot and paste that, and/or attach a screenshot.
+        For rollback issues, include the full generated script, not just one line.
+      placeholder: |
+        CLI e.g.
+          $ sudo yabsnap rollback-gen --source /
+          <paste full output>
+        TUI e.g.
+          TUI → Rollback → selected <snapshot> → preview showed:
+          <paste script text from preview modal, or screenshot>
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: layout
+    attributes:
+      label: Disk layout
+      description: >
+        Required — most snapshot/rollback bugs cannot be diagnosed without this.
+        Run the block below as root and paste the output. It is read-only and prints
+        mounts, subvolumes, and fstab entries.
+      value: |
+        ```
+        findmnt -o TARGET,SOURCE,FSTYPE,OPTIONS
+        btrfs subvolume list /
+        cat /etc/fstab
+        ```
+        Paste the output here:
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps, starting from a known state. Include source, dest_prefix if non-standard, and anything you did that differs from the README recommended layout.
+      placeholder: |
+        1. source = ..., dest_prefix = ...
+        2. ran `...`
+        3. saw `...`
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-vs-actual
+    attributes:
+      label: Expected vs actual behavior
+      description: What were you trying to do, what did you expect to work, and what happened instead? Quote exact error lines. Do not guess the fix — just describe the failure.
+      placeholder: |
+        Tried to: roll back to snapshot <name>.
+        Expected: rollback script runs successfully.
+        Actual: it failed with `...` (paste exact error).
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Additional context
+      description: Anything else — hooks (post_transaction_scripts / post_rollback_scripts), recent config changes, VM vs bare metal.
+    validations:
+      required: false
