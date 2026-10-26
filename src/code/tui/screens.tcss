@@ -17,13 +17,22 @@
 }
 
 #rollback-warning {
+    width: 100%;
+    height: auto;
     text-style: bold;
     color: $error;
 }
 
 #rollback-gen-warnings {
+    width: 100%;
+    height: auto;
     text-style: bold;
     color: $warning;
+}
+
+#rollback-dialog Label {
+    width: 100%;
+    height: auto;
 }
 
 #rollback-script {
@@ -39,6 +48,8 @@
 }
 
 #rollback-status {
+    width: 100%;
+    height: auto;
     text-style: bold;
 }
 
